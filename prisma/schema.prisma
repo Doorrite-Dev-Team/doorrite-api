@@ -1,0 +1,206 @@
+// Prisma MongoDB Schema Best Practices (2025)
+// Docs: https://pris.ly/d/prisma-schema
+// Prisma MongoDB Guide: https://pris.ly/d/mongodb
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// enums
+enum Role {
+  CUSTOMER
+  VENDOR
+  RIDER
+  ADMIN
+}
+
+enum VehicleType {
+  BIKE
+  CAR
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  PAYSTACK
+  CASH_ON_DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  WAITING_PICKUP
+  PICKED_UP
+  DELIVERING
+  DELIVERED
+}
+
+// types
+type Address {
+  street     String?
+  city       String?
+  state      String?
+  lga        String?
+  postalCode String?
+  country    String? @default("Nigeria")
+}
+
+// models
+
+model otp {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  code            String
+  verified        Boolean
+  expiresAt       DateTime
+  userId          String   @unique @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+model User {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  role            Role @default(CUSTOMER)
+  fullName        String
+  email           String   @unique
+  phoneNumber     String   @unique
+  passwordHash    String
+  profileImageUrl String?
+  address         Address?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders    Order[]       @relation("customer_orders")
+  payments  Payment[]
+  otp       otp?
+}
+
+model Vendor {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessName String
+  logoUrl      String?
+  address      Address
+  category     String
+  rating       Float?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  menuItems MenuItem[]
+  orders    Order[]
+}
+
+model MenuItem {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  vendorId    String   @db.ObjectId
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Rider {
+  id              String   @id      @default(auto()) @map("_id") @db.ObjectId
+  fullName        String
+  email           String   @unique
+  phoneNumber     String   @unique
+  passwordHash    String
+  Address          Address?
+  vehicleType     VehicleType
+  profileImageUrl String?
+  licenseNumber   String?
+  isAvailable     Boolean  @default(true)
+  currentLocation Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  deliveries Delivery[]
+  orders     Order[] @relation("rider_orders")
+}
+
+model Order {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  customerId    String        @db.ObjectId
+  customer      User          @relation("customer_orders", fields: [customerId], references: [id])
+  vendorId      String        @db.ObjectId
+  vendor        Vendor        @relation(fields: [vendorId], references: [id])
+  riderId       String?       @db.ObjectId
+  rider         Rider?        @relation("rider_orders", fields: [riderId], references: [id])
+  status        OrderStatus   @default(PENDING)
+  deliveryAddress String
+  totalAmount   Float
+  paymentStatus PaymentStatus @default(PENDING)
+  placedAt      DateTime      @default(now())
+  deliveredAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items   OrderItem[]
+  payment Payment?
+  delivery Delivery?
+}
+
+model OrderItem {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String   @db.ObjectId
+  order       Order    @relation(fields: [orderId], references: [id])
+  menuItemId  String   @db.ObjectId
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity    Int
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderId       String        @unique @db.ObjectId
+  order         Order         @relation(fields: [orderId], references: [id])
+  userId        String        @db.ObjectId
+  user          User          @relation(fields: [userId], references: [id])
+  amount        Float
+  method        PaymentMethod
+  transactionId String?
+  status        PaymentStatus @default(PENDING)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Delivery {
+  id                    String         @id @default(auto()) @map("_id") @db.ObjectId
+  orderId               String         @unique @db.ObjectId
+  order                 Order          @relation(fields: [orderId], references: [id])
+  riderId               String         @db.ObjectId
+  rider                 Rider          @relation(fields: [riderId], references: [id])
+  pickupLocation        Json
+  dropoffLocation       Json
+  status                DeliveryStatus @default(WAITING_PICKUP)
+  estimatedDeliveryTime DateTime?
+  actualDeliveryTime    DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+}

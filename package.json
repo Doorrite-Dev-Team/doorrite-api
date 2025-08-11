@@ -1,0 +1,50 @@
+{
+  "author": "",
+  "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "@sendgrid/mail": "^8.1.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "argon2": "^0.43.1",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "nodemailer": "^7.0.5",
+    "zod": "^4.0.15"
+  },
+  "description": "",
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.2.0",
+    "@types/nodemailer": "^6.4.17",
+    "prisma": "^6.13.0",
+    "supertest": "^7.1.4",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "doorrite-api",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "build": "tsc",
+    "dev": "pnpm dev:server || pnpm dev:typecheck",
+    "dev:server": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
+    "dev:typecheck": "tsc --noEmit --watch",
+    "start": "node dist/server.js",
+    "test": "vitest"
+  },
+  "version": "1.0.0"
+}
