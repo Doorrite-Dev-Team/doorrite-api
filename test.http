@@ -1,0 +1,34 @@
+### Create a new user account
+# POST http://localhost:4000/api/v1/auth/create-user
+# Content-Type: application/json
+
+# {
+#   "email": "abdulazeezadekiilekun@gmail.com",
+#   "password": "password123",
+#   "fullName": "Badmus Abdulazeez",
+#   "phoneNumber": "+2341234567890"
+# }
+
+#Verify otp
+# POST http://localhost:4000/api/v1/auth/verify-otp
+# Content-Type: application/json
+
+# {
+#   "email": "abdulazeezadekiilekun@gmail.com",
+#   "otp": "745867"
+# }
+
+#get user details
+# GET http://localhost:4000/api/v1/auth/get-user
+
+#login user
+# POST http://localhost:4000/api/v1/auth/login-user
+# Content-Type: application/json  
+
+# {
+#   "email": "abdulazeezadekiilekun@gmail.com",
+#   "password": "password123"
+# }
+
+# # logout user
+# GET http://localhost:4000/api/v1/auth/logout-user
