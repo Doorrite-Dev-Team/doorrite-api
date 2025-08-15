@@ -11,14 +11,18 @@ const swaggerDocumet = require("./swagger-output.json");
 //routes
 import userRoutes from "./modules/users/user.route";
 
-
 export const app = express();
 
 // 1️⃣ Security headers
 app.use(helmet());
 
 // 2️⃣ CORS (tweak origin or use a whitelist in production)
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 
 // 3️⃣ Rate limiting (100 reqs per 15m per IP)
 app.use(
@@ -44,10 +48,10 @@ app.get("/", (req, res) => {
   res.send("Welcome to the DoorRite API!");
 });
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocumet))
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocumet));
 
 app.get("/docs-json", (req: Request, res: Response) => {
-  res.json(swaggerDocumet)
-})
+  res.json(swaggerDocumet);
+});
 // …All routes are here…
-app.use("/api/v1/auth", userRoutes)
+app.use("/api/v1/", userRoutes);

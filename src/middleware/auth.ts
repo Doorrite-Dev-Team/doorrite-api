@@ -6,6 +6,7 @@ import {
 } from "@config/cookies";
 import prisma from "@config/db";
 import { createAccessToken, JwtPayloadShape, verifyJwt } from "@config/jwt";
+import { cleanupExpiredTokens } from "@modules/users/user.controller";
 import { NextFunction, Request, Response } from "express";
 
 // export async function requireAuth(
@@ -60,26 +61,91 @@ import { NextFunction, Request, Response } from "express";
 //   }
 // }
 
+// export async function requireAuth(
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) {
+//   const token =
+//     req.headers.authorization?.split(" ")[1] || req.cookies?.[ACCESS_COOKIE];
+//   if (!token) return res.status(401).json({ error: "No token" });
+
+//   let payload = safeVerify(token);
+//   if (payload) {
+//     req.user = payload;
+//     return next();
+//   }
+
+//   // Cleanup the expired otps
+//   await cleanupExpiredTokens();
+
+//   // Fallback to refresh
+//   const newUser = await attemptRefreshFlow(req, res);
+//   if (newUser) return next();
+
+//   return res.status(401).json({ error: "Unauthorized" });
+// }
+
+// function safeVerify(token: string): JwtPayloadShape | null {
+//   try {
+//     return verifyJwt<JwtPayloadShape>(token);
+//   } catch {
+//     return null;
+//   }
+//}
+
 export async function requireAuth(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const token =
-    req.headers.authorization?.split(" ")[1] || req.cookies?.[ACCESS_COOKIE];
-  if (!token) return res.status(401).json({ error: "No token" });
+  try {
+    const accessToken =
+      req.headers.authorization?.split(" ")[1] || req.cookies?.[ACCESS_COOKIE];
 
-  let payload = safeVerify(token);
-  if (payload) {
-    req.user = payload;
+    if (accessToken) {
+      const payload = safeVerify(accessToken);
+      if (payload) {
+        req.user = payload;
+        return next();
+      }
+    }
+
+    // If access token is invalid/missing → try refresh
+    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    if (!refreshToken) {
+      return res.status(401).json({ error: "Unauthorized — no refresh token" });
+    }
+
+    const refreshPayload = safeVerify(refreshToken);
+    if (!refreshPayload?.sub) {
+      return res.status(401).json({ error: "Invalid refresh token" });
+    }
+
+    // Verify the refresh token user still exists
+    const user = await prisma.user.findUnique({
+      where: { id: refreshPayload.sub },
+    });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid refresh token user" });
+    }
+
+    // Create new access token
+    const newAccessToken = createAccessToken({ sub: user.id, role: user.role });
+
+    // Store in cookie
+    res.cookie(ACCESS_COOKIE, newAccessToken, accessCookieOptions);
+
+    // Attach new token payload to request
+    req.user = verifyJwt<JwtPayloadShape>(newAccessToken);
+
+    await cleanupExpiredTokens();
+
     return next();
+  } catch (error) {
+    console.error("requireAuth error:", error);
+    return res.status(401).json({ error: "Unauthorized" });
   }
-
-  // Fallback to refresh
-  const newUser = await attemptRefreshFlow(req, res);
-  if (newUser) return next();
-
-  return res.status(401).json({ error: "Unauthorized" });
 }
 
 function safeVerify(token: string): JwtPayloadShape | null {
@@ -90,7 +156,10 @@ function safeVerify(token: string): JwtPayloadShape | null {
   }
 }
 
-async function attemptRefreshFlow(req: Request, res: Response): Promise<boolean> {
+export async function attemptRefreshFlow(
+  req: Request,
+  res: Response
+): Promise<boolean> {
   const refresh = req.cookies?.[REFRESH_COOKIE];
   if (!refresh) return false;
 

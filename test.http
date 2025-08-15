@@ -3,10 +3,10 @@
 # Content-Type: application/json
 
 # {
+#   "fullName": "Abdulazeez",
 #   "email": "abdulazeezadekiilekun@gmail.com",
 #   "password": "password123",
-#   "fullName": "Badmus Abdulazeez",
-#   "phoneNumber": "+2341234567890"
+#   "phoneNumber": "09037884253"
 # }
 
 #Verify otp
@@ -32,3 +32,11 @@
 
 # # logout user
 # GET http://localhost:4000/api/v1/auth/logout-user
+
+# forgotten password
+POST http://localhost:4000/api/v1/auth/forget-password
+Content-Type: application/json  
+
+{
+  "email": "abdulazeezadekiilekun@gmail.com",
+}

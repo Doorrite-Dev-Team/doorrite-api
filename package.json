@@ -1,6 +1,7 @@
 {
   "author": "",
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.1.0",
     "@prisma/client": "^6.13.0",
     "@sendgrid/mail": "^8.1.5",
     "@types/jsonwebtoken": "^9.0.10",
@@ -17,7 +18,8 @@
     "nodemailer": "^7.0.5",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1",
-    "zod": "^4.0.15"
+    "zod": "^4.0.15",
+    "zod-to-json-schema": "^3.24.6"
   },
   "description": "",
   "devDependencies": {
@@ -42,11 +44,16 @@
   "name": "doorrite-api",
   "packageManager": "pnpm@10.14.0",
   "scripts": {
-    "build": "tsc",
-    "dev": "pnpm dev:server || pnpm dev:typecheck",
+    "build": "tsc -p tsconfig.json",
+    "dev": "pnpm run dev:server",
     "dev:server": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "dev:typecheck": "tsc --noEmit --watch",
+    "postinstall": "pnpm run prisma:generate",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
     "start": "node dist/server.js",
+    "start:prod": "NODE_ENV=production node dist/server.js",
+    "swagger:generate": "ts-node src/swagger.generate.ts",
     "test": "vitest"
   },
   "version": "1.0.0"

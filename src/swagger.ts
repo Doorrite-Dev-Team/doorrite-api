@@ -6,6 +6,8 @@ const doc = {
     description: "Contain All API for the food delivery system",
   },
   host: "localhost:4000",
+  basePath: "/api/v1",
+  schemes: ["http"],
 };
 
 const outputFile = "./swagger-output.json";
