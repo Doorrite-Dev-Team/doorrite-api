@@ -45,6 +45,7 @@
   "name": "doorrite-api",
   "packageManager": "pnpm@10.14.0",
   "scripts": {
+    "postbuild": "cp src/swagger-output.json dist/",
     "build": "tsc -p tsconfig.json && tsc-alias",
     "dev": "pnpm run dev:server",
     "dev:server": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
