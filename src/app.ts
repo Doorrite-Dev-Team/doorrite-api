@@ -13,13 +13,16 @@ import userRoutes from "./modules/users/user.route";
 
 export const app = express();
 
+// IMPORTANT: Trust proxy - Add this BEFORE rate limiting
+app.set('trust proxy', 1);
+
 // 1️⃣ Security headers
 app.use(helmet());
 
 // 2️⃣ CORS (tweak origin or use a whitelist in production)
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://dooriteuser-ui.vercel.app"],
     credentials: true,
   })
 );
