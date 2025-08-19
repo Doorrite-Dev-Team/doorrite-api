@@ -1,4 +1,4 @@
-// src/config/jwt.ts
+// File: src/config/jwt.ts
 import Crypto from "crypto";
 import * as jwt from "jsonwebtoken";
 
@@ -50,4 +50,19 @@ export function makeAccessTokenForUser(userId: string, role?: string) {
 
 export function makeRefreshTokenForUser(userId: string) {
   return createRefreshToken({ sub: userId, type: "refresh" });
+}
+
+// --------------------
+// Vendor token helpers
+// --------------------
+// Vendors are separate entities in the DB. We provide convenience helpers
+// for creating vendor-scoped tokens. We include a `role` field set to
+// "vendor" to make server-side authorization checks straightforward.
+
+export function makeAccessTokenForVendor(vendorId: string) {
+  return createAccessToken({ sub: vendorId, role: "vendor", type: "access" });
+}
+
+export function makeRefreshTokenForVendor(vendorId: string) {
+  return createRefreshToken({ sub: vendorId, role: "vendor", type: "refresh" });
 }

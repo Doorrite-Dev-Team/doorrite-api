@@ -15,8 +15,6 @@ datasource db {
 // enums
 enum Role {
   CUSTOMER
-  VENDOR
-  RIDER
   ADMIN
 }
 
@@ -53,6 +51,11 @@ enum DeliveryStatus {
   DELIVERED
 }
 
+enum OtpType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 // types
 type Address {
   street     String?
@@ -65,46 +68,100 @@ type Address {
 
 // models
 
-model otp {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  code            String
-  verified        Boolean
-  expiresAt       DateTime
-  userId          String   @unique @db.ObjectId
-  user            User     @relation(fields: [userId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model Category {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  name        String @unique // "restaurant" | "groceries"
+  displayName String // "Restaurants" | "Groceries"
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subcategories Subcategory[]
+  vendors       Vendor[]
 }
+
+model Subcategory {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId  String @db.ObjectId
+  category    Category @relation(fields: [categoryId], references: [id])
+  name        String // "fast-food", "pharmacy", "supermarket"
+  displayName String // "Fast Food", "Pharmacy", "Supermarket"
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vendors Vendor[]
+
+  @@unique([categoryId, name])
+}
+
+model Otp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  code      String
+  type      OtpType
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  
+  // Reference fields - only one should be populated (no admin OTPs)
+  userId    String?  @db.ObjectId
+  vendorId  String?  @db.ObjectId
+  riderId   String?  @db.ObjectId
+  
+  user      User?    @relation(fields: [userId], references: [id])
+  vendor    Vendor?  @relation(fields: [vendorId], references: [id])
+  rider     Rider?   @relation(fields: [riderId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([vendorId])
+  @@index([riderId])
+  @@index([expiresAt])
+}
+
 model User {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  role            Role @default(CUSTOMER)
+  role            Role     @default(CUSTOMER)
   fullName        String
   email           String   @unique
   phoneNumber     String   @unique
   passwordHash    String
   profileImageUrl String?
   address         Address?
+  isVerified      Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  orders    Order[]       @relation("customer_orders")
-  payments  Payment[]
-  otp       otp?
+  orders   Order[]   @relation("customer_orders")
+  payments Payment[]
+  otps     Otp[]
 }
 
 model Vendor {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  businessName String
-  logoUrl      String?
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  email        String      @unique
+  businessName String      @unique
+  phoneNumber  String      @unique
+  passwordHash String
   address      Address
-  category     String
+  categoryId   String      @db.ObjectId
+  category     Category    @relation(fields: [categoryId], references: [id])
+  subcategoryId String?    @db.ObjectId
+  subcategory  Subcategory? @relation(fields: [subcategoryId], references: [id])
+  logoUrl      String?
   rating       Float?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive     Boolean     @default(true)
+  isVerified   Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   menuItems MenuItem[]
   orders    Order[]
+  otps      Otp[]
 }
 
 model MenuItem {
@@ -123,56 +180,58 @@ model MenuItem {
 }
 
 model Rider {
-  id              String   @id      @default(auto()) @map("_id") @db.ObjectId
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
   fullName        String
-  email           String   @unique
-  phoneNumber     String   @unique
+  email           String      @unique
+  phoneNumber     String      @unique
   passwordHash    String
-  Address          Address?
+  address         Address?
   vehicleType     VehicleType
   profileImageUrl String?
   licenseNumber   String?
-  isAvailable     Boolean  @default(true)
+  isAvailable     Boolean     @default(true)
   currentLocation Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isVerified      Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   deliveries Delivery[]
-  orders     Order[] @relation("rider_orders")
+  orders     Order[]    @relation("rider_orders")
+  otps       Otp[]
 }
 
 model Order {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  customerId    String        @db.ObjectId
-  customer      User          @relation("customer_orders", fields: [customerId], references: [id])
-  vendorId      String        @db.ObjectId
-  vendor        Vendor        @relation(fields: [vendorId], references: [id])
-  riderId       String?       @db.ObjectId
-  rider         Rider?        @relation("rider_orders", fields: [riderId], references: [id])
-  status        OrderStatus   @default(PENDING)
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  customerId      String        @db.ObjectId
+  customer        User          @relation("customer_orders", fields: [customerId], references: [id])
+  vendorId        String        @db.ObjectId
+  vendor          Vendor        @relation(fields: [vendorId], references: [id])
+  riderId         String?       @db.ObjectId
+  rider           Rider?        @relation("rider_orders", fields: [riderId], references: [id])
+  status          OrderStatus   @default(PENDING)
   deliveryAddress String
-  totalAmount   Float
-  paymentStatus PaymentStatus @default(PENDING)
-  placedAt      DateTime      @default(now())
-  deliveredAt   DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  totalAmount     Float
+  paymentStatus   PaymentStatus @default(PENDING)
+  placedAt        DateTime      @default(now())
+  deliveredAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  items   OrderItem[]
-  payment Payment?
+  items    OrderItem[]
+  payment  Payment?
   delivery Delivery?
 }
 
 model OrderItem {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId     String   @db.ObjectId
-  order       Order    @relation(fields: [orderId], references: [id])
-  menuItemId  String   @db.ObjectId
-  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
-  quantity    Int
-  price       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId    String   @db.ObjectId
+  order      Order    @relation(fields: [orderId], references: [id])
+  menuItemId String   @db.ObjectId
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  price      Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Payment {

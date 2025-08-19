@@ -1,153 +1,163 @@
 // src/middleware/requireAuth.ts
 import {
-  ACCESS_COOKIE,
-  accessCookieOptions,
-  REFRESH_COOKIE
+  getAccessTokenFromReq,
+  getRefreshTokenFromReq,
+  normalizeEntityType,
+  setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
-import { createAccessToken, JwtPayloadShape, verifyJwt } from "@config/jwt";
-import { cleanupExpiredTokens } from "@modules/users/user.controller";
-import { NextFunction, Request, Response } from "express";
+import {
+  createAccessToken,
+  createRefreshToken,
+  JwtPayloadShape,
+  verifyJwt,
+} from "@config/jwt";
+import { cleanupExpiredOTPs } from "@modules/auth/helper";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 
-// export async function requireAuth(
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) {
-//   try {
-//     const authHeader = req.headers.authorization;
-//     const token = authHeader?.split(" ")[1] ?? req.cookies?.[ACCESS_COOKIE];
-//     if (!token) return res.status(401).json({ error: "No token" });
+/**
+ * NOTE: We attach the payload to req.user.
+ * Type augmentation is omitted for brevity—cast req as any when reading/writing req.user.
+ */
 
-//     try {
-//       const payload = verifyJwt<JwtPayloadShape>(token);
-//       req.user = payload;
-//       return next();
-//     } catch (err: any) {
-//       // token invalid or expired — try refresh (convenience)
-//       const refresh = req.cookies?.[REFRESH_COOKIE];
-//       if (!refresh)
-//         return res
-//           .status(401)
-//           .json({ error: "Token expired; refresh required" });
+/**
+ * Middleware factory that requires an authenticated entity.
+ * entity: 'user' | 'vendor' | 'rider' (aliases normalized)
+ */
+export function requireAuth(entity: string = "user"): RequestHandler {
+  const canonical = normalizeEntityType(entity);
 
-//       try {
-//         const rpayload = verifyJwt<JwtPayloadShape>(refresh);
-//         if (!rpayload?.sub)
-//           return res.status(401).json({ error: "Invalid refresh token" });
+  return async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      // 1) Try access token: Authorization header OR entity-specific access cookie
+      const headerToken = req.headers.authorization?.split(" ")[1];
+      const cookieAccess = getAccessTokenFromReq(req, canonical as any);
+      const accessToken = headerToken || cookieAccess;
 
-//         const user = await prisma.user.findUnique({
-//           where: { id: rpayload.sub },
-//         });
-//         if (!user)
-//           return res.status(401).json({ error: "Invalid refresh token user" });
+      if (accessToken) {
+        const payload = safeVerify(accessToken);
+        if (payload && payloadMatchesEntity(payload, canonical)) {
+          // attach and continue
+          (req as any).user = payload;
+          await cleanupExpiredOTPs();
+          return next();
+        }
+      }
 
-//         // issue new access token
-//         const newAccess = createAccessToken({
-//           sub: rpayload.sub,
-//           role: user.role,
-//         });
-//         res.cookie(ACCESS_COOKIE, newAccess, accessCookieOptions);
-
-//         req.user = { sub: rpayload.sub, role: user.role };
-//         return next();
-//       } catch (e) {
-//         return res.status(401).json({ error: "Refresh failed" });
-//       }
-//     }
-//   } catch (e) {
-//     console.error("requireAuth error", e);
-//     return res.status(500).json({ error: "Server error" });
-//   }
-// }
-
-// export async function requireAuth(
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) {
-//   const token =
-//     req.headers.authorization?.split(" ")[1] || req.cookies?.[ACCESS_COOKIE];
-//   if (!token) return res.status(401).json({ error: "No token" });
-
-//   let payload = safeVerify(token);
-//   if (payload) {
-//     req.user = payload;
-//     return next();
-//   }
-
-//   // Cleanup the expired otps
-//   await cleanupExpiredTokens();
-
-//   // Fallback to refresh
-//   const newUser = await attemptRefreshFlow(req, res);
-//   if (newUser) return next();
-
-//   return res.status(401).json({ error: "Unauthorized" });
-// }
-
-// function safeVerify(token: string): JwtPayloadShape | null {
-//   try {
-//     return verifyJwt<JwtPayloadShape>(token);
-//   } catch {
-//     return null;
-//   }
-//}
-
-export async function requireAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const accessToken =
-      req.headers.authorization?.split(" ")[1] || req.cookies?.[ACCESS_COOKIE];
-
-    if (accessToken) {
-      const payload = safeVerify(accessToken);
-      if (payload) {
-        req.user = payload;
+      // 2) Access not present or invalid -> attempt refresh flow using entity-specific refresh cookie
+      const refreshed = await attemptRefreshFlow(req, res, canonical);
+      if (refreshed) {
+        await cleanupExpiredOTPs();
         return next();
       }
+
+      return res.status(401).json({ error: "Unauthorized" });
+    } catch (err) {
+      console.error("requireAuth error:", err);
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+  };
+}
+
+/**
+ * attemptRefreshFlow - validates the refresh token for the requested entity,
+ * ensures the entity still exists (and for vendor that it is active & verified),
+ * issues new access & refresh tokens and sets the entity cookies.
+ *
+ * Returns true if succeeded and attached req.user, false otherwise.
+ */
+export async function attemptRefreshFlow(
+  req: Request,
+  res: Response,
+  entity: string
+): Promise<boolean> {
+  try {
+    const refreshToken = getRefreshTokenFromReq(req, entity as any);
+    if (!refreshToken) return false;
+
+    // verify refresh token
+    let rpayload: JwtPayloadShape | null = null;
+    try {
+      rpayload = verifyJwt<JwtPayloadShape>(refreshToken);
+    } catch {
+      return false;
     }
 
-    // If access token is invalid/missing → try refresh
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
-    if (!refreshToken) {
-      return res.status(401).json({ error: "Unauthorized — no refresh token" });
+    if (!rpayload?.sub) return false;
+
+    // load corresponding entity from DB
+    if (entity === "vendor") {
+      const vendor = await prisma.vendor.findUnique({
+        where: { id: rpayload.sub },
+        select: { id: true, isVerified: true, isActive: true },
+      });
+      if (!vendor) return false;
+      if (!vendor.isVerified) return false;
+      if (!vendor.isActive) return false;
+
+      // create new tokens
+      const newAccess = createAccessToken({
+        sub: vendor.id,
+        role: "vendor",
+        type: "access",
+      });
+      const newRefresh = createRefreshToken({
+        sub: vendor.id,
+        type: "refresh",
+      });
+
+      // set cookies for vendor
+      setAuthCookies(res, newAccess, newRefresh, "vendor");
+
+      // attach to request
+      (req as any).user = verifyJwt<JwtPayloadShape>(newAccess);
+      return true;
     }
 
-    const refreshPayload = safeVerify(refreshToken);
-    if (!refreshPayload?.sub) {
-      return res.status(401).json({ error: "Invalid refresh token" });
+    if (entity === "rider") {
+      const rider = await prisma.rider.findUnique({
+        where: { id: rpayload.sub },
+        select: { id: true, isVerified: true },
+      });
+      if (!rider) return false;
+      if (!rider.isVerified) return false;
+
+      const newAccess = createAccessToken({
+        sub: rider.id,
+        role: "rider",
+        type: "access",
+      });
+      const newRefresh = createRefreshToken({ sub: rider.id, type: "refresh" });
+
+      setAuthCookies(res, newAccess, newRefresh, "rider");
+      (req as any).user = verifyJwt<JwtPayloadShape>(newAccess);
+      return true;
     }
 
-    // Verify the refresh token user still exists
+    // default: user
     const user = await prisma.user.findUnique({
-      where: { id: refreshPayload.sub },
+      where: { id: rpayload.sub },
+      select: { id: true, role: true },
     });
-    if (!user) {
-      return res.status(401).json({ error: "Invalid refresh token user" });
-    }
+    if (!user) return false;
 
-    // Create new access token
-    const newAccessToken = createAccessToken({ sub: user.id, role: user.role });
+    const newAccess = createAccessToken({
+      sub: user.id,
+      role: user.role,
+      type: "access",
+    });
+    const newRefresh = createRefreshToken({ sub: user.id, type: "refresh" });
 
-    // Store in cookie
-    res.cookie(ACCESS_COOKIE, newAccessToken, accessCookieOptions);
-
-    // Attach new token payload to request
-    req.user = verifyJwt<JwtPayloadShape>(newAccessToken);
-
-    await cleanupExpiredTokens();
-
-    return next();
-  } catch (error) {
-    console.error("requireAuth error:", error);
-    return res.status(401).json({ error: "Unauthorized" });
+    setAuthCookies(res, newAccess, newRefresh, "user");
+    (req as any).user = verifyJwt<JwtPayloadShape>(newAccess);
+    return true;
+  } catch (err) {
+    console.error("attemptRefreshFlow error:", err);
+    return false;
   }
 }
 
+/** verifyJwt wrapper that returns null on failure */
 function safeVerify(token: string): JwtPayloadShape | null {
   try {
     return verifyJwt<JwtPayloadShape>(token);
@@ -156,24 +166,34 @@ function safeVerify(token: string): JwtPayloadShape | null {
   }
 }
 
-export async function attemptRefreshFlow(
-  req: Request,
-  res: Response
-): Promise<boolean> {
-  const refresh = req.cookies?.[REFRESH_COOKIE];
-  if (!refresh) return false;
+/**
+ * payloadMatchesEntity - protects against cross-entity tokens
+ * e.g. user token shouldn't be accepted where vendor token is required.
+ */
+function payloadMatchesEntity(payload: JwtPayloadShape, entity: string) {
+  if (!payload) return false;
+  const role = String(payload.role || "").toLowerCase();
+  if (entity === "vendor") {
+    return role === "vendor";
+  }
+  if (entity === "rider") {
+    return role === "rider";
+  }
+  // user accepts ADMIN or CUSTOMER or missing (backward compat)
+  return role !== "vendor" && role !== "rider";
+}
 
+/**
+ * Small admin guard (use after requireAuth('user') so req.user exists)
+ */
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   try {
-    const payload = verifyJwt<JwtPayloadShape>(refresh);
-    if (!payload.sub) return false;
-    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) return false;
-
-    const newAccess = createAccessToken({ sub: payload.sub, role: user.role });
-    res.cookie(ACCESS_COOKIE, newAccess, accessCookieOptions);
-    req.user = payload; // or include role
-    return true;
-  } catch {
-    return false;
+    const payload = (req as any).user as JwtPayloadShape | undefined;
+    if (!payload || String(payload.role).toUpperCase() !== "ADMIN") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    return next();
+  } catch (err) {
+    return res.status(500).json({ error: "Server error" });
   }
 }

@@ -5,21 +5,9 @@
     "module": "commonjs",
     "outDir": "dist",
     "paths": {
-      "@adapters/*": [
-        "adapters/*"
-      ],
-      "@config/*": [
-        "config/*"
-      ],
-      "@lib/*": [
-        "lib/*"
-      ],
-      "@modules/*": [
-        "modules/*"
-      ],
-      "@shared/*": [
-        "shared/*"
-      ]
+      "@config/*": ["config/*"],
+      "@lib/*": ["lib/*"],
+      "@modules/*": ["modules/*"]
     },
     "rootDir": "src",
     "skipLibCheck": true,
