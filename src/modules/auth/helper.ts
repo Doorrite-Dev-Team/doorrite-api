@@ -5,7 +5,7 @@ import { verificationEmailTemplate } from "@lib/emailTemplates";
 import { generateNumericOtp, OTPExpiryMinutes } from "@lib/otp";
 import crypto from "crypto";
 import { Response } from "express";
-import { OtpType } from "../../generated/prisma";
+import { OtpType } from "../../../src/generated/prisma";
 
 
 export class AppError extends Error {

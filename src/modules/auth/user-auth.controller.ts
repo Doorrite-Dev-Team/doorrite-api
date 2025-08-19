@@ -26,7 +26,7 @@ import {
   validatePassword
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
-import { OtpType } from "../../generated/prisma";
+import { OtpType } from "../../../src/generated/prisma";
 
 export const createUser = async (req: Request, res: Response) => {
   try {

@@ -25,7 +25,7 @@ import {
   validatePassword,
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
-import { OtpType } from "../../generated/prisma";
+import { OtpType } from "../../../src/generated/prisma";
 
 /**
  * Local validator for vendor payload.
