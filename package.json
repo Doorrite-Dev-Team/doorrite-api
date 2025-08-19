@@ -49,6 +49,7 @@
     "dev": "pnpm run dev:server",
     "dev:server": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "dev:typecheck": "tsc --noEmit --watch",
+    "postbuild": "cp src/swagger-output.json dist/",
     "postinstall": "pnpm run prisma:generate",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",

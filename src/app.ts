@@ -6,7 +6,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
-const swaggerDocumet = require("../src/swagger-output-json");
+const swaggerDocumet = require("./swagger-output-json");
 
 //routes
 import AuthRoutes from "@modules/auth/auth.routes";
