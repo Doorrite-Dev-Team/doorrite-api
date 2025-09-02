@@ -558,3 +558,52 @@ export const cleanupExpiredOTPs = async () => {
     console.error("cleanupExpiredOTPs error:", err);
   }
 };
+
+
+/**
+ * Local validator for vendor payload.
+ * Throws AppError on invalid input.
+ *
+ * NOTE: categoryIds is now an array (many-to-many).
+ */
+export const validateVendorData = (data: any) => {
+  const { businessName, address, categoryIds, email, phoneNumber, password } =
+    data || {};
+
+  if (
+    !businessName ||
+    typeof businessName !== "string" ||
+    businessName.trim().length < 2
+  ) {
+    throw new AppError(
+      400,
+      "Business name is required and must be at least 2 characters"
+    );
+  }
+
+  if (!address || typeof address !== "object") {
+    throw new AppError(400, "Address object is required");
+  }
+
+  if (!address.street || !address.city || !address.state) {
+    throw new AppError(400, "Address must include street, city, and state");
+  }
+
+  if (
+    !Array.isArray(categoryIds) ||
+    categoryIds.length === 0 ||
+    !categoryIds.every((c: any) => typeof c === "string" && c.trim().length > 0)
+  ) {
+    throw new AppError(400, "categoryIds must be a non-empty array of IDs");
+  }
+
+  if (!isValidEmail(email)) {
+    throw new AppError(400, "Valid email is required");
+  }
+
+  if (!phoneNumber || typeof phoneNumber !== "string") {
+    throw new AppError(400, "Phone number is required");
+  }
+
+  validatePassword(password);
+};

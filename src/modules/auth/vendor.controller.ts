@@ -1,8 +1,7 @@
-// src/controllers/vendorAuth.ts
 import {
   clearAuthCookies,
   getAccessTokenFromReq,
-  setAuthCookies
+  setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
 import {
@@ -11,63 +10,19 @@ import {
   verifyJwt,
 } from "@config/jwt";
 import { hashPassword, verifyPassword } from "@lib/hash";
+import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import {
-  AppError,
   checkExistingEntity,
   createAndSendOtp,
   findEntityByIdentifier,
-  handleError,
   handlePasswordReset,
   isValidEmail,
   processOtpVerification,
-  sendSuccess,
   updateEntityPassword,
-  validatePassword,
+  validateVendorData,
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
-
-/**
- * Local validator for vendor payload.
- * Throws AppError on invalid input.
- */
-const validateVendorData = (data: any) => {
-  const { businessName, address, categoryId, email, phoneNumber, password } =
-    data || {};
-
-  if (
-    !businessName ||
-    typeof businessName !== "string" ||
-    businessName.trim().length < 2
-  ) {
-    throw new AppError(
-      400,
-      "Business name is required and must be at least 2 characters"
-    );
-  }
-
-  if (!address || typeof address !== "object") {
-    throw new AppError(400, "Address object is required");
-  }
-
-  if (!address.street || !address.city || !address.state) {
-    throw new AppError(400, "Address must include street, city, and state");
-  }
-
-  if (!categoryId || typeof categoryId !== "string") {
-    throw new AppError(400, "Category ID is required");
-  }
-
-  if (!isValidEmail(email)) {
-    throw new AppError(400, "Valid email is required");
-  }
-
-  if (!phoneNumber || typeof phoneNumber !== "string") {
-    throw new AppError(400, "Phone number is required");
-  }
-
-  validatePassword(password);
-};
 
 /* =========================
    Vendor Registration
@@ -80,8 +35,7 @@ export const createVendor = async (req: Request, res: Response) => {
       phoneNumber,
       password,
       address,
-      categoryId,
-      subcategoryId,
+      categoryIds,
       logoUrl,
     } = req.body || {};
 
@@ -92,14 +46,21 @@ export const createVendor = async (req: Request, res: Response) => {
       phoneNumber,
       password,
       address,
-      categoryId,
+      categoryIds,
     });
 
-    // ensure category exists
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId },
+    // Ensure all provided categories exist
+    const uniqueCategoryIds: string[] = Array.from(
+      new Set((categoryIds as string[]).map((c) => c.trim()))
+    );
+    const foundCategories = await prisma.category.findMany({
+      where: { id: { in: uniqueCategoryIds } },
+      select: { id: true },
     });
-    if (!category) throw new AppError(400, "Invalid categoryId");
+
+    if (foundCategories.length !== uniqueCategoryIds.length) {
+      throw new AppError(400, "One or more categoryIds are invalid");
+    }
 
     // Check if vendor (email/phone) already exists
     const registrationResult = await checkExistingEntity(
@@ -129,13 +90,24 @@ export const createVendor = async (req: Request, res: Response) => {
         phoneNumber: phoneNumber.trim(),
         passwordHash,
         address,
-        categoryId,
-        subcategoryId: subcategoryId || undefined,
         logoUrl: logoUrl || undefined,
         isVerified: false,
         isActive: false, // requires admin approval
       },
     });
+
+    // Create VendorCategory links
+    // Use Promise.all to create links; safe even if many categories
+    await Promise.all(
+      uniqueCategoryIds.map((catId) =>
+        prisma.vendorCategory.create({
+          data: {
+            vendorId: newVendor.id,
+            categoryId: catId,
+          },
+        })
+      )
+    );
 
     // Send email OTP for verification
     await createAndSendOtp(
@@ -233,7 +205,6 @@ export const loginVendor = async (req: Request, res: Response) => {
       throw new AppError(403, "Please verify your email before logging in");
 
     // must be approved by admin (isActive)
-    // vendor model uses `isActive` to indicate admin-enabled
     const dbVendor = await prisma.vendor.findUnique({
       where: { id: vendor.id },
       select: { isActive: true },
@@ -246,11 +217,9 @@ export const loginVendor = async (req: Request, res: Response) => {
     if (!isPasswordValid) throw new AppError(401, "Invalid credentials");
 
     // Issue tokens (cookies)
-    // NOTE: makeAccessTokenForVendor / makeRefreshTokenForVendor signature assumed to accept vendorId
     const access = makeAccessTokenForVendor(vendor.id);
     const refresh = makeRefreshTokenForVendor(vendor.id);
     setAuthCookies(res, access, refresh, "vendor");
-
 
     return sendSuccess(
       res,
@@ -258,8 +227,7 @@ export const loginVendor = async (req: Request, res: Response) => {
         vendor: {
           id: vendor.id,
           email: vendor.email,
-          businessName:
-            (vendor as any).fullName || (vendor as any).businessName,
+          businessName: (vendor as any).businessName,
         },
       },
       200
@@ -353,7 +321,6 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
     const access = makeAccessTokenForVendor(vendor.id);
     const refresh = makeRefreshTokenForVendor(vendor.id);
     setAuthCookies(res, access, refresh, "vendor");
-
 
     return sendSuccess(res, { accessToken: access }, 200);
   } catch (err) {

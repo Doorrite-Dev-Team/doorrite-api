@@ -1,6 +1,6 @@
 import sendmail from "@config/mail";
 import { productDeletionEmailTemplate } from "@lib/emailTemplates";
-import { AppError, handleError, sendSuccess } from "@modules/auth/helper";
+import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { Request, Response } from "express";
 
 // model MenuItem {
