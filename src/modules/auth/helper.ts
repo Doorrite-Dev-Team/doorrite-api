@@ -3,40 +3,10 @@ import prisma from "@config/db";
 import sendmail from "@config/mail";
 import { verificationEmailTemplate } from "@lib/emailTemplates";
 import { generateNumericOtp, OTPExpiryMinutes } from "@lib/otp";
+import { AppError } from "@lib/utils/AppError";
 import crypto from "crypto";
-import { Response } from "express";
-import { OtpType } from "../../../src/generated/prisma";
+import { OtpType } from "../../generated/prisma";
 
-
-export class AppError extends Error {
-  status: number;
-  details?: any;
-  constructor(status: number, message: string, details?: any) {
-    super(message);
-    this.status = status;
-    this.details = details;
-    Object.setPrototypeOf(this, AppError.prototype);
-  }
-}
-
-export const sendSuccess = (res: Response, payload: object, status = 200) =>
-  res.status(status).json({ ok: true, ...payload });
-
-export const sendFailure = (
-  res: Response,
-  status = 500,
-  message = "Server error",
-  details?: any
-) => res.status(status).json({ ok: false, error: message, details });
-
-export const handleError = (res: Response, err: unknown) => {
-  if (err instanceof AppError) {
-    return sendFailure(res, err.status || 500, err.message, err.details);
-  }
-
-  console.error("Unhandled error:", err);
-  return sendFailure(res, 500, "An unexpected error occurred");
-};
 
 /* ======================
    Validators

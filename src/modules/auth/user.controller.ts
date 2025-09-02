@@ -11,22 +11,20 @@ import {
   verifyJwt,
 } from "@config/jwt";
 import { hashPassword, verifyPassword } from "@lib/hash";
+import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import {
-  AppError,
   checkExistingEntity,
   createAndSendOtp,
   findEntityByIdentifier,
-  handleError,
   handlePasswordReset,
   isValidEmail,
   isValidNigerianPhone,
   processOtpVerification,
-  sendSuccess,
   updateEntityPassword,
   validatePassword
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
-import { OtpType } from "../../../src/generated/prisma";
+import { OtpType } from "../../generated/prisma";
 
 export const createUser = async (req: Request, res: Response) => {
   try {

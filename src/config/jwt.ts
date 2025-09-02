@@ -11,7 +11,7 @@ export const TEMP_EXPIRES = process.env.TEMP_EXPIRES || "15m";
 
 export interface JwtPayloadShape {
   sub: string;
-  role?: string;
+  role?: "user" | "vendor" | "rider" | "admin";
   type?: "temp" | "access" | "refresh";
   iat?: number;
   exp?: number;
@@ -48,6 +48,13 @@ export function makeAccessTokenForUser(userId: string, role?: string) {
   return createAccessToken({ sub: userId, role, type: "access" });
 }
 
+// --------------------
+// User/Custumer token helpers
+// --------------------
+// User/Custumers are separate entities in the DB. We provide convenience helpers
+// for creating User/Custumer-scoped tokens. We include a `role` field set to
+// "User/Custumer" to make server-side authorization checks straightforward.
+
 export function makeRefreshTokenForUser(userId: string) {
   return createRefreshToken({ sub: userId, type: "refresh" });
 }
@@ -65,4 +72,18 @@ export function makeAccessTokenForVendor(vendorId: string) {
 
 export function makeRefreshTokenForVendor(vendorId: string) {
   return createRefreshToken({ sub: vendorId, role: "vendor", type: "refresh" });
+}
+
+// --------------------
+// Rider token helpers
+// --------------------
+// Riders are separate entities in the DB. We provide convenience helpers
+// for creating Rider-scoped tokens. We include a `role` field set to
+// "Rider" to make server-side authorization checks straightforward.
+
+export function makeAccessTokenForRider(riderId: string) {
+  return createAccessToken({ sub: riderId, role: "rider", type: "access" });
+}
+export function makeRefreshTokenForRider(riderId: string) {
+  return createRefreshToken({ sub: riderId, role: "rider", type: "refresh" });
 }

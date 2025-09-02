@@ -24,7 +24,8 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
  * Middleware factory that requires an authenticated entity.
  * entity: 'user' | 'vendor' | 'rider' (aliases normalized)
  */
-export function requireAuth(entity: string = "user"): RequestHandler {
+export function requireAuth(userType: string = "user"): RequestHandler {
+  const entity = userType === "customer" ? "user" : userType.toLowerCase();
   const canonical = normalizeEntityType(entity);
 
   return async function (req: Request, res: Response, next: NextFunction) {

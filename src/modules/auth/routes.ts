@@ -1,8 +1,8 @@
 // src/routes/auth.ts
 import express from "express";
 import { requireAuth } from "middleware/auth";
-import * as userAuth from "./user-auth.controller";
-import * as vendorAuth from "./vendor-auth.controller";
+import * as userAuth from "./user.controller";
+import * as vendorAuth from "./vendor.controller";
 const router = express.Router();
 
 // #swagger.tags = ['Auth']

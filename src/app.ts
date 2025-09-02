@@ -9,9 +9,12 @@ import swaggerUi from "swagger-ui-express";
 const swaggerDocumet = require("./swagger-output.json");
 
 //routes
-import AuthRoutes from "@modules/auth/auth.routes";
-import UserRoutes from "@modules/user/user.routes";
-import { requireAuth } from "middleware/auth";
+import AuthRoutes from "@modules/auth/routes";
+import OrderRoutes from "@modules/order/routes";
+import ProductRoutes from "@modules/product/routes";
+import UserRoutes from "@modules/user/routes";
+import VendorRoutes from "@modules/vendor/routes";
+// import { requireAuth } from "middleware/auth";
 
 export const app = express();
 
@@ -63,7 +66,11 @@ app.get("/docs-json", (req: Request, res: Response) => {
 app.use("/api/v1/auth", AuthRoutes);
 
 //Private Routes
-app.use("/api/v1/user", requireAuth("user"), UserRoutes);
+app.use("/api/v1/user", UserRoutes);
+app.use("api/v1/vendor", VendorRoutes);
+app.use("api/v1/product", ProductRoutes);
+app.use("api/v1/order", OrderRoutes);
+
 
 //MiddleWare
 //404 handler
