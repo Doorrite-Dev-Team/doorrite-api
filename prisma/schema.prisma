@@ -195,6 +195,7 @@ model ProductVariant {
   name      String
   price     Float
   stock     Int?
+  isAvailable Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -1,4 +1,5 @@
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
+import { getActorFromReq } from "@lib/utils/req-res";
 import {
   calculateOrderTotal,
   getCustomerIdFromRequest,
@@ -8,33 +9,90 @@ import { Request, Response } from "express";
 
 export const getOrders = async (req: Request, res: Response) => {
   try {
-    // FIXED: Added req parameter and proper user filtering
-    const customerId = getCustomerIdFromRequest(req);
+    const actor = getActorFromReq(req);
+    if (!actor?.id) throw new AppError(401, "Unauthorized");
+
+    // Query params
+    const {
+      page = "1",
+      limit = "20",
+      status,
+      vendorId,
+      customerId,
+      claimable,
+      from,
+      to,
+    } = req.query as Record<string, string>;
+
+    const pageNum = Math.max(1, parseInt(page || "1", 10));
+    const lim = Math.min(100, Math.max(1, parseInt(limit || "20", 10)));
+    const skip = (pageNum - 1) * lim;
+
+    // Build base where clause depending on role
+    const where: any = {};
+
+    switch (actor.role) {
+      case "CUSTOMER":
+        where.customerId = actor.id;
+        break;
+      case "VENDOR":
+        where.vendorId = actor.id;
+        // allow vendor to filter by customer via query only if provided
+        if (customerId) where.customerId = customerId;
+        break;
+      case "RIDER":
+        // rider sees orders assigned to them.
+        // If claimable=true, show orders that are claimable (no rider assigned & status in ACCEPTED|PREPARING)
+        if (claimable === "true") {
+          where.riderId = null;
+          where.status = { in: ["ACCEPTED", "PREPARING"] };
+        } else {
+          where.riderId = actor.id;
+        }
+        break;
+      case "ADMIN":
+        // Admin can filter by vendorId or customerId via query
+        if (vendorId) where.vendorId = vendorId;
+        if (customerId) where.customerId = customerId;
+        break;
+      default:
+        throw new AppError(403, "Invalid role");
+    }
+
+    // Global filters
+    if (status) where.status = status;
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from);
+      if (to) where.createdAt.lte = new Date(to);
+    }
+
+    // Count + fetch
+    const total = (await prisma?.order.count({ where })) ?? 0;
 
     const orders = await prisma?.order.findMany({
-      where: { customerId }, // Filter by customer
-      take: 20,
-      include: {
-        items: {
-          include: {
-            product: true,
-            variant: true,
-          },
-        },
-        vendor: {
-          select: {
-            id: true,
-            businessName: true,
-          },
-        },
-        payment: true,
-      },
+      where,
+      take: lim,
+      skip,
       orderBy: { createdAt: "desc" },
+      include: {
+        items: { include: { product: true, variant: true } },
+        customer: { select: { id: true, fullName: true, email: true } },
+        vendor: { select: { id: true, businessName: true } },
+        payment: true,
+        delivery: true,
+        history: { orderBy: { createdAt: "desc" } },
+      },
     });
 
-    return sendSuccess(res, { orders }); // FIXED: Changed 'order' to 'orders'
-  } catch (error: any) {
-    handleError(res, error); // FIXED: Corrected parameter order
+    return sendSuccess(res, {
+      orders: orders ?? [],
+      total,
+      page: pageNum,
+      limit: lim,
+    });
+  } catch (err: any) {
+    return handleError(res, err);
   }
 };
 
@@ -42,49 +100,57 @@ export const getOrderById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    // ADDED: Get customer ID for security
-    const customerId = getCustomerIdFromRequest(req);
+    if (!id) throw new AppError(400, "Order id is required");
 
-    const order = await prisma?.order.findUnique({
-      where: {
-        id,
-        customerId, // ADDED: Ensure customer can only access their orders
-      },
+    const actor = getActorFromReq(req);
+    if (!actor?.id) throw new AppError(401, "Unauthorized");
+
+    // Build role-aware WHERE
+    const where: any = { id };
+    switch (actor.role) {
+      case "CUSTOMER":
+        where.customerId = actor.id;
+        break;
+      case "VENDOR":
+        where.vendorId = actor.id;
+        break;
+      case "RIDER":
+        // Riders may only view orders assigned to them
+        where.riderId = actor.id;
+        break;
+      case "ADMIN":
+        // Admin sees everything — no extra filter
+        break;
+      default:
+        throw new AppError(403, "Invalid role");
+    }
+
+    // Fetch with relations
+    const order = await prisma?.order.findFirst({
+      where,
       include: {
-        items: {
-          include: {
-            product: true,
-            variant: true,
-          },
-        },
+        items: { include: { product: true, variant: true } },
         customer: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
+          select: { id: true, fullName: true, email: true, phoneNumber: true },
         },
-        vendor: {
-          select: {
-            id: true,
-            businessName: true,
-          },
-        },
+        vendor: { select: { id: true, businessName: true, logoUrl: true } },
         payment: true,
         delivery: true,
-        history: {
-          orderBy: { createdAt: "desc" },
-        },
+        history: { orderBy: { createdAt: "desc" } },
       },
     });
 
-    if (!order) {
-      throw new AppError(404, "Order not found");
+    if (!order) throw new AppError(404, "Order not found or access denied");
+
+    // Optional: redact sensitive payment fields for non-admins
+    if (actor.role !== "ADMIN" && order.payment) {
+      delete (order.payment as any).transactionId;
+      // keep status/amount but remove raw provider payloads if any
     }
 
     return sendSuccess(res, { order });
   } catch (error: any) {
-    handleError(res, error); // FIXED: Corrected parameter order
+    return handleError(res, error);
   }
 };
 
@@ -306,43 +372,162 @@ export const updatePaymentStatus = async (req: Request, res: Response) => {
   }
 };
 
-// ADDED: New function to handle order status updates
 export const updateOrderStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { status, actorType = "ADMIN", note } = req.body;
+  const { status, note } = req.body;
+  const actor = getActorFromReq(req);
+
+  // Allowed transitions map (source -> allowed targets)
+  const allowedTransitions: Record<string, string[]> = {
+    PENDING: ["ACCEPTED", "CANCELLED"],
+    ACCEPTED: ["PREPARING", "CANCELLED"],
+    PREPARING: ["OUT_FOR_DELIVERY", "CANCELLED"],
+    OUT_FOR_DELIVERY: ["DELIVERED", "CANCELLED"],
+    DELIVERED: [],
+    CANCELLED: [],
+  };
+
+  // Role permissions for who can set which status
+  const rolePermissions: Record<string, string[]> = {
+    VENDOR: ["ACCEPTED", "PREPARING", "CANCELLED"],
+    RIDER: ["OUT_FOR_DELIVERY", "DELIVERED"],
+    ADMIN: [
+      "ACCEPTED",
+      "PREPARING",
+      "OUT_FOR_DELIVERY",
+      "DELIVERED",
+      "CANCELLED",
+    ],
+    CUSTOMER: ["CANCELLED"], // customer can request cancel (you may require rules)
+  };
 
   try {
-    // ADDED: Get actor ID from request (could be admin, vendor, or rider)
-    const actorId = getCustomerIdFromRequest(req); // Adjust this based on your auth system
+    if (!id) throw new AppError(400, "Order id required");
+    if (!status) throw new AppError(400, "Status required");
 
-    const result = await prisma?.$transaction(async (tx) => {
-      const order = await tx.order.update({
+    // 1. Load order (no findUnique with two keys)
+    const order = await prisma?.order.findUnique({
+      where: { id },
+      include: { history: true },
+    });
+    if (!order) throw new AppError(404, "Order not found");
+
+    // 2. Validate transition
+    const current = order.status;
+    if (
+      !allowedTransitions[current] ||
+      !allowedTransitions[current].includes(status)
+    ) {
+      throw new AppError(400, `Invalid transition: ${current} -> ${status}`);
+    }
+
+    // 3. Check actor role permission
+    const allowedByRole = rolePermissions[actor.role] || [];
+    if (!allowedByRole.includes(status)) {
+      throw new AppError(
+        403,
+        `Role ${actor.role} cannot set status to ${status}`
+      );
+    }
+
+    // 4. If status requires rider assigned (OUT_FOR_DELIVERY) ensure riderId exists
+    if (status === "OUT_FOR_DELIVERY" && !order.riderId) {
+      throw new AppError(
+        400,
+        "Order has not been assigned to a rider. Use claim endpoint."
+      );
+    }
+
+    // 5. Perform update + create history in a transaction
+    const updated = await prisma?.$transaction(async (tx) => {
+      const o = await tx.order.update({
         where: { id },
         data: { status },
-        include: {
-          items: { include: { product: true, variant: true } },
-          customer: { select: { id: true, fullName: true, email: true } },
-          vendor: { select: { id: true, businessName: true } },
-          payment: true,
-        },
+        include: { items: true, payment: true },
       });
 
-      // Create history entry
       await tx.orderHistory.create({
         data: {
           orderId: id,
           status,
-          actorId,
-          actorType,
-          note: note || `Order status updated to ${status}`,
+          actorId: actor.id,
+          actorType: actor.role,
+          note: note ?? `Status changed to ${status}`,
         },
       });
 
-      return order;
+      return o;
     });
 
-    return sendSuccess(res, { order: result });
-  } catch (error: any) {
-    handleError(res, error);
+    return sendSuccess(res, { order: updated });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+export const claimOrder = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const actor = getActorFromReq(req);
+
+  try {
+    if (!id) throw new AppError(400, "Order id is required");
+    if (!actor?.id) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "RIDER")
+      throw new AppError(403, "Only riders can claim orders");
+
+    // states that a rider is allowed to claim from
+    const claimableStatuses = ["ACCEPTED", "PREPARING"];
+
+    const result = await prisma?.$transaction(async (tx) => {
+      // atomic guarded update: only update when riderId is null AND order in claimable status
+      const updateRes = await tx.order.updateMany({
+        where: {
+          id,
+          riderId: null,
+          status: { in: claimableStatuses as any[] },
+        },
+        data: {
+          riderId: actor.id,
+          status: "OUT_FOR_DELIVERY",
+        },
+      });
+
+      // if no rows updated, someone else claimed it or it's not claimable
+      if (updateRes.count === 0) {
+        return { success: false };
+      }
+
+      // create order history entry for claim
+      await tx.orderHistory.create({
+        data: {
+          orderId: id,
+          status: "OUT_FOR_DELIVERY",
+          actorId: actor.id,
+          actorType: "RIDER",
+          note: "Rider claimed the order",
+        },
+      });
+
+      // fetch the fresh order to return
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: {
+          items: { include: { product: true, variant: true } },
+          history: { orderBy: { createdAt: "desc" } },
+          vendor: { select: { id: true, businessName: true } },
+          customer: { select: { id: true, fullName: true } },
+        },
+      });
+
+      return { success: true, order };
+    });
+
+    if (!result?.success) {
+      throw new AppError(409, "Order already claimed or not claimable");
+    }
+
+    return sendSuccess(res, { order: result?.order });
+  } catch (err) {
+    return handleError(res, err);
   }
 };

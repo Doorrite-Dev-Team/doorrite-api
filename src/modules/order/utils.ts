@@ -117,7 +117,7 @@ const getCustomerIdFromRequest = (req: Request): string => {
   // This should be extracted from your authentication middleware
   // Example: return req.user.id;
   // For now, assuming it's passed in the request body or headers
-  const customerId = req.body.customerId || req.headers["customer-id"];
+  const customerId = req.user?.sub || req.headers["customer-id"];
   if (!customerId) {
     throw new Error("Customer ID is required");
   }
@@ -126,3 +126,4 @@ const getCustomerIdFromRequest = (req: Request): string => {
 
 
 export { calculateOrderTotal, getCustomerIdFromRequest, validateCreateOrderBody };
+

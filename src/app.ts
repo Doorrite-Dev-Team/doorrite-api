@@ -13,7 +13,7 @@ import AuthRoutes from "@modules/auth/routes";
 import OrderRoutes from "@modules/order/routes";
 import ProductRoutes from "@modules/product/routes";
 import UserRoutes from "@modules/user/routes";
-import VendorRoutes from "@modules/vendor/routes";
+import vendorRoutes from "@modules/vendor/routes";
 // import { requireAuth } from "middleware/auth";
 
 export const app = express();
@@ -67,7 +67,7 @@ app.use("/api/v1/auth", AuthRoutes);
 
 //Private Routes
 app.use("/api/v1/user", UserRoutes);
-app.use("api/v1/vendor", VendorRoutes);
+app.use("api/v1/vendors", vendorRoutes);
 app.use("api/v1/product", ProductRoutes);
 app.use("api/v1/order", OrderRoutes);
 

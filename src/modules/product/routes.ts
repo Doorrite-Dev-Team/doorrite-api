@@ -1,28 +1,16 @@
-// src/routes/auth.ts
+// routes/products.ts
 import express from "express";
-import { requireAuth } from "middleware/auth";
-import * as ProductRoutes from "./controllers";
+import * as ProductController from "./controllers"; // adjust path as needed
+
 const router = express.Router();
 
-// router.get("/get-vendor", Vendor.getVendor);
-// router.get("/vendors/:id", Vendor.getVendorById);
-// router.get("/vendors", Vendor.getVendors);
-router.get("/getAll", ProductRoutes.getProducts)
-router.get("/:id", ProductRoutes.getProductsById)
-router.post("/create", requireAuth("vendor"),ProductRoutes.createProduct)
-router.put("/update", requireAuth("vendor"),ProductRoutes.updateProduct)
+// =========================
+// PUBLIC ROUTES (No Auth)
+// =========================
+// GET /api/v1/products
+router.get("/", ProductController.getProducts);
 
-
-//delete
-router.delete(
-  "/prepare-delete",
-  requireAuth("vendor"),
-  ProductRoutes.prepareProductDeletion
-);
-router.delete(
-  "permanent-delete", 
-  requireAuth("vendor"),
-  ProductRoutes.deleteProduct
-)
+// GET /api/v1/products/:id
+router.get("/:id", ProductController.getProductById);
 
 export default router;

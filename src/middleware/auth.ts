@@ -12,6 +12,7 @@ import {
   JwtPayloadShape,
   verifyJwt,
 } from "@config/jwt";
+import { AppError } from "@lib/utils/AppError";
 import { cleanupExpiredOTPs } from "@modules/auth/helper";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 
@@ -198,3 +199,131 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(500).json({ error: "Server error" });
   }
 }
+
+// Extend Request type to include vendor
+declare global {
+  namespace Express {
+    interface Request {
+      vendor?: {
+        id: string;
+        email: string;
+        businessName: string;
+        isActive: boolean;
+        isVerified: boolean;
+      };
+    }
+  }
+}
+
+// Extract token from cookies or Authorization header
+const getTokenFromRequest = (req: Request): string | null => {
+  // Check Authorization header first
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.substring(7);
+  }
+
+  // Check cookies (adjust cookie name based on your implementation)
+  const token = req.cookies?.vendor_access_token;
+  return token || null;
+};
+
+export const authenticateVendor = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFromRequest(req);
+
+    if (!token) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    // Verify JWT token
+    const payload: any = verifyJwt(token);
+    if (!payload?.sub) {
+      throw new AppError(401, "Invalid token");
+    }
+
+    // Get vendor from database
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        businessName: true,
+        isActive: true,
+        isVerified: true,
+      },
+    });
+
+    if (!vendor) {
+      throw new AppError(401, "Vendor not found");
+    }
+
+    if (!vendor.isVerified) {
+      throw new AppError(403, "Email verification required");
+    }
+
+    if (!vendor.isActive) {
+      throw new AppError(403, "Account pending admin approval");
+    }
+
+    // Attach vendor to request
+    req.vendor = vendor;
+    next();
+  } catch (error: any) {
+    if (error instanceof AppError) {
+      return res.status(error.status).json({
+        ok: false,
+        error: error.message,
+      });
+    }
+
+    return res.status(401).json({
+      ok: false,
+      error: "Authentication failed",
+    });
+  }
+};
+
+// Optional: Middleware for optional vendor authentication (for public endpoints that can show more data if authenticated)
+export const optionalVendorAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = getTokenFromRequest(req);
+
+    if (!token) {
+      return next(); // No token, continue without authentication
+    }
+
+    const payload: any = verifyJwt(token);
+    if (!payload?.sub) {
+      return next(); // Invalid token, continue without authentication
+    }
+
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        businessName: true,
+        isActive: true,
+        isVerified: true,
+      },
+    });
+
+    if (vendor && vendor.isVerified && vendor.isActive) {
+      req.vendor = vendor;
+    }
+
+    next();
+  } catch {
+    // Ignore errors and continue without authentication
+    next();
+  }
+};
