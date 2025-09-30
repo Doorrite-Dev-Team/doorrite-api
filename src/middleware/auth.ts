@@ -40,7 +40,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
         const payload = safeVerify(accessToken);
         if (payload && payloadMatchesEntity(payload, canonical)) {
           // attach and continue
-          (req as any).user = payload;
+          req.user = payload;
           await cleanupExpiredOTPs();
           return next();
         }

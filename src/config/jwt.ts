@@ -87,3 +87,35 @@ export function makeAccessTokenForRider(riderId: string) {
 export function makeRefreshTokenForRider(riderId: string) {
   return createRefreshToken({ sub: riderId, role: "rider", type: "refresh" });
 }
+
+
+/** verifyJwt wrapper that returns null on failure */
+export function safeVerify(token: string): JwtPayloadShape | null {
+  try {
+    return verifyJwt<JwtPayloadShape>(token);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * payloadMatchesEntity - protects against cross-entity tokens
+ */
+export function payloadMatchesEntity(payload: JwtPayloadShape, entity: string) {
+  if (!payload) return false;
+  const role = String(payload.role || "").toLowerCase();
+
+  if (entity === "vendor") return role === "vendor";
+  if (entity === "rider") return role === "rider";
+  if (entity === "admin") return role === "admin";
+
+  // default "user": accepts admin or customer
+  if (entity === "user") {
+    return role === "admin" || role === "customer" || !role;
+  }
+
+  // "any": always true
+  if (entity === "any") return true;
+
+  return false;
+}

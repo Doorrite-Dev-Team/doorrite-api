@@ -1,1008 +1,1049 @@
 {
-  "components": {
-    "schemas": {
-      "AdminActionRequest": {
-        "properties": {
-          "deleteRecord": {
-            "example": false,
-            "type": "boolean"
-          },
-          "reason": {
-            "example": "Missing documents",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "AuthTokens": {
-        "properties": {
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "ErrorResponse": {
-        "properties": {
-          "details": {
-            "type": "object"
-          },
-          "error": {
-            "example": "Invalid credentials",
-            "type": "string"
-          },
-          "ok": {
-            "example": false,
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "LoginRequest": {
-        "properties": {
-          "email": {
-            "example": "user@example.com",
-            "format": "email",
-            "type": "string"
-          },
-          "password": {
-            "example": "Password123",
-            "type": "string"
-          }
-        },
-        "required": ["email", "password"],
-        "type": "object"
-      },
-      "OTPRequest": {
-        "properties": {
-          "email": {
-            "example": "user@example.com",
-            "format": "email",
-            "type": "string"
-          }
-        },
-        "required": ["email"],
-        "type": "object"
-      },
-      "ResetPasswordRequest": {
-        "properties": {
-          "confirmPassword": {
-            "example": "NewPassword123",
-            "type": "string"
-          },
-          "email": {
-            "example": "user@example.com",
-            "format": "email",
-            "type": "string"
-          },
-          "password": {
-            "example": "NewPassword123",
-            "type": "string"
-          },
-          "resetToken": {
-            "example": "abcdef1234567890",
-            "type": "string"
-          }
-        },
-        "required": ["email", "password", "confirmPassword", "resetToken"],
-        "type": "object"
-      },
-      "SuccessMessage": {
-        "properties": {
-          "message": {
-            "example": "Operation successful",
-            "type": "string"
-          },
-          "ok": {
-            "example": true,
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "UserCreate": {
-        "properties": {
-          "email": {
-            "example": "user@example.com",
-            "format": "email",
-            "type": "string"
-          },
-          "fullName": {
-            "example": "Abdulazeez Badmus",
-            "type": "string"
-          },
-          "password": {
-            "example": "Password123",
-            "type": "string"
-          },
-          "phoneNumber": {
-            "example": "+2348012345678",
-            "type": "string"
-          }
-        },
-        "required": ["fullName", "email", "phoneNumber", "password"],
-        "type": "object"
-      },
-      "UserResponse": {
-        "properties": {
-          "email": {
-            "example": "user@example.com",
-            "type": "string"
-          },
-          "fullName": {
-            "example": "Abdulazeez Badmus",
-            "type": "string"
-          },
-          "id": {
-            "example": "64f0b2...",
-            "type": "string"
-          },
-          "isVerified": {
-            "example": false,
-            "type": "boolean"
-          },
-          "phoneNumber": {
-            "example": "+2348012345678",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "VendorCreate": {
-        "properties": {
-          "address": {
-            "properties": {
-              "city": {
-                "example": "Lagos",
-                "type": "string"
-              },
-              "country": {
-                "example": "Nigeria",
-                "type": "string"
-              },
-              "postalCode": {
-                "example": "100001",
-                "type": "string"
-              },
-              "state": {
-                "example": "Lagos",
-                "type": "string"
-              },
-              "street": {
-                "example": "12 Market St",
-                "type": "string"
-              }
-            },
-            "type": "object"
-          },
-          "businessName": {
-            "example": "My Restaurant",
-            "type": "string"
-          },
-          "categoryId": {
-            "example": "64f0c3...",
-            "type": "string"
-          },
-          "email": {
-            "example": "vendor@example.com",
-            "format": "email",
-            "type": "string"
-          },
-          "logoUrl": {
-            "example": "https://...",
-            "type": "string"
-          },
-          "password": {
-            "example": "VendorPass123",
-            "type": "string"
-          },
-          "phoneNumber": {
-            "example": "+2348012345678",
-            "type": "string"
-          },
-          "subcategoryId": {
-            "example": "64f0c4...",
-            "type": "string"
-          }
-        },
-        "required": [
-          "businessName",
-          "email",
-          "phoneNumber",
-          "password",
-          "address",
-          "categoryId"
-        ],
-        "type": "object"
-      },
-      "VendorListItem": {
-        "properties": {
-          "address": {
-            "type": "object"
-          },
-          "businessName": {
-            "type": "string"
-          },
-          "categoryId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "isVerified": {
-            "type": "boolean"
-          },
-          "phoneNumber": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "VendorResponse": {
-        "properties": {
-          "businessName": {
-            "example": "My Restaurant",
-            "type": "string"
-          },
-          "email": {
-            "example": "vendor@example.com",
-            "type": "string"
-          },
-          "id": {
-            "example": "64f0b2...",
-            "type": "string"
-          },
-          "isActive": {
-            "example": false,
-            "type": "boolean"
-          },
-          "isVerified": {
-            "example": false,
-            "type": "boolean"
-          },
-          "phoneNumber": {
-            "example": "+2348012345678",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "VerifyOtpRequest": {
-        "properties": {
-          "email": {
-            "example": "user@example.com",
-            "format": "email",
-            "type": "string"
-          },
-          "otp": {
-            "example": "123456",
-            "type": "string"
-          },
-          "purpose": {
-            "enum": ["verify", "reset"],
-            "example": "verify",
-            "type": "string"
-          }
-        },
-        "required": ["email", "otp"],
-        "type": "object"
-      }
-    },
-    "securitySchemes": {
-      "access_token_rider": {
-        "in": "cookie",
-        "name": "access_token_rider",
-        "type": "apiKey"
-      },
-      "access_token_user": {
-        "in": "cookie",
-        "name": "access_token_user",
-        "type": "apiKey"
-      },
-      "access_token_vendor": {
-        "in": "cookie",
-        "name": "access_token_vendor",
-        "type": "apiKey"
-      },
-      "bearerAuth": {
-        "bearerFormat": "JWT",
-        "scheme": "bearer",
-        "type": "http"
-      }
-    }
-  },
-  "info": {
-    "description": "Contain All API for the food delivery system",
-    "title": "Doorrite API",
-    "version": "1.0.0"
-  },
   "openapi": "3.0.0",
-  "paths": {
-    "/admin/vendors/{id}/approve": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Vendor approved"
-          },
-          "400": {
-            "description": "Bad request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Admin access required"
-          }
-        },
-        "security": [
-          {
-            "access_token_user": []
-          }
-        ],
-        "summary": "Approve a pending vendor (sets isActive = true) and notify vendor",
-        "tags": ["Admin"]
-      }
-    },
-    "/admin/vendors/{id}/reject": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminActionRequest"
-              }
-            }
-          },
-          "required": false
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Vendor rejected"
-          },
-          "400": {
-            "description": "Bad request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Admin access required"
-          }
-        },
-        "security": [
-          {
-            "access_token_user": []
-          }
-        ],
-        "summary": "Reject a pending vendor. Optionally delete the record.",
-        "tags": ["Admin"]
-      }
-    },
-    "/admin/vendors/pending": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "vendors": {
-                      "items": {
-                        "$ref": "#/components/schemas/VendorListItem"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "List of pending vendors"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Admin access required"
-          }
-        },
-        "security": [
-          {
-            "access_token_user": []
-          }
-        ],
-        "summary": "List vendors pending admin approval (isVerified=true, isActive=false)",
-        "tags": ["Admin"]
-      }
-    },
-    "/auth/create-otp": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OTPRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "OTP sent successfully"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation error"
-          }
-        },
-        "summary": "Generate OTP for email verification",
-        "tags": ["Auth"]
-      }
-    },
-    "/auth/create-user": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "example": "User created. OTP sent to email.",
-                      "type": "string"
-                    },
-                    "ok": {
-                      "example": true,
-                      "type": "boolean"
-                    },
-                    "userId": {
-                      "example": "64f0b2...",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "User created successfully"
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "409": {
-            "description": "Entity exists"
-          },
-          "500": {
-            "description": "Server error"
-          }
-        },
-        "summary": "Register a new user",
-        "tags": ["Auth"]
-      }
-    },
-    "/auth/forget-password": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OTPRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Password reset email sent"
-          }
-        },
-        "summary": "Request password reset",
-        "tags": ["Auth"]
-      }
-    },
-    "/auth/login-user": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthTokens"
-                }
-              }
-            },
-            "description": "Login successful"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid credentials"
-          }
-        },
-        "summary": "Login user",
-        "tags": ["Auth"]
-      }
-    },
-    "/auth/logout-user": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Logged out successfully"
-          }
-        },
-        "summary": "Logout user",
-        "tags": ["Auth"]
-      }
-    },
-    "/auth/refresh-token": {
-      "post": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthTokens"
-                }
-              }
-            },
-            "description": "Token refreshed successfully"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid refresh token"
-          }
-        },
-        "security": [
-          {
-            "access_token_user": []
-          },
-          {
-            "access_token_vendor": []
-          },
-          {
-            "access_token_rider": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Refresh access token (reads entity-specific refresh cookie)",
-        "tags": ["Auth"]
-      }
-    },
-    "/auth/reset-password": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResetPasswordRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Password reset successfully"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Passwords do not match or invalid token"
-          }
-        },
-        "summary": "Reset password",
-        "tags": ["Auth"]
-      }
-    },
-    "/auth/verify-otp": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyOtpRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "OTP verified successfully"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid OTP"
-          }
-        },
-        "summary": "Verify OTP",
-        "tags": ["Auth"]
-      }
-    },
-    "/vendor/create": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VendorCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "example": "Vendor registered. Verification code sent to email. Admin approval required before your account can be used.",
-                      "type": "string"
-                    },
-                    "ok": {
-                      "example": true,
-                      "type": "boolean"
-                    },
-                    "vendorId": {
-                      "example": "64f0b2...",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Vendor registered (email OTP sent). Admin approval required."
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "409": {
-            "description": "Vendor exists"
-          }
-        },
-        "summary": "Register a vendor (requires admin approval after email verification)",
-        "tags": ["Vendor"]
-      }
-    },
-    "/vendor/create-otp": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OTPRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "OTP sent"
-          }
-        },
-        "summary": "Send verification OTP to vendor email",
-        "tags": ["Vendor"]
-      }
-    },
-    "/vendor/forgot-password": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OTPRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Password reset code sent"
-          }
-        },
-        "summary": "Vendor request password reset (OTP sent to verified vendor email)",
-        "tags": ["Vendor"]
-      }
-    },
-    "/vendor/login": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VendorResponse"
-                }
-              }
-            },
-            "description": "Login successful (cookies set)"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid credentials"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Not verified or not approved"
-          }
-        },
-        "summary": "Vendor login (requires verified email and admin approval)",
-        "tags": ["Vendor"]
-      }
-    },
-    "/vendor/reset-password": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResetPasswordRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Password reset successfully"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid request"
-          }
-        },
-        "summary": "Vendor reset password after verifying OTP (use resetToken from verify-otp purpose=reset)",
-        "tags": ["Vendor"]
-      }
-    },
-    "/vendor/verify-otp": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyOtpRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            },
-            "description": "Email verified (pending admin approval)"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid OTP"
-          }
-        },
-        "summary": "Verify vendor OTP (email verification) — does NOT auto-login; admin approval still required",
-        "tags": ["Vendor"]
-      }
-    }
+  "info": {
+    "title": "Doorrite API",
+    "description": "Contain All API for the food delivery system",
+    "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "http://localhost:4000/api/v1"
+      "url": "http://localhost:4000",
+      "description": "Local development server"
     }
   ],
-  "tags": [
-    {
-      "description": "Authentication & OTP endpoints",
-      "name": "Auth"
+  "paths": {
+    "/": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
-    {
-      "description": "Customer / user endpoints",
-      "name": "User"
+    "/docs-json": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     },
-    {
-      "description": "Vendor registration and vendor auth",
-      "name": "Vendor"
+    "/api/v1/auth/create-user": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullName": {
+                    "example": "any"
+                  },
+                  "email": {
+                    "example": "any"
+                  },
+                  "phoneNumber": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
-    {
-      "description": "Admin actions (vendor approval etc.)",
-      "name": "Admin"
+    "/api/v1/auth/create-otp": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-otp": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "otp": {
+                    "example": "any"
+                  },
+                  "purpose": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login-user": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh-token": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout-user": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forget-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  },
+                  "confirmPassword": {
+                    "example": "any"
+                  },
+                  "resetToken": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/create-vendor": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "businessName": {
+                    "example": "any"
+                  },
+                  "email": {
+                    "example": "any"
+                  },
+                  "phoneNumber": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  },
+                  "address": {
+                    "example": "any"
+                  },
+                  "categoryIds": {
+                    "example": "any"
+                  },
+                  "logoUrl": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/create-vendor-otp": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-vendor-otp": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "otp": {
+                    "example": "any"
+                  },
+                  "purpose": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login-vendor": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh-vendor-token": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout-vendor": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forget-vendor-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-vendor-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  },
+                  "confirmPassword": {
+                    "example": "any"
+                  },
+                  "resetToken": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/create-rider": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "vehicleType": {
+                    "example": "any"
+                  },
+                  "fullName": {
+                    "example": "any"
+                  },
+                  "email": {
+                    "example": "any"
+                  },
+                  "phoneNumber": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/create-rider-otp": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-rider-otp": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "otp": {
+                    "example": "any"
+                  },
+                  "purpose": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login-rider": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh-rider-token": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout-rider": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-rider-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "oldPassword": {
+                    "example": "any"
+                  },
+                  "newPassword": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-rider-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  },
+                  "confirmPassword": {
+                    "example": "any"
+                  },
+                  "resetToken": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/user/get-user": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/product/": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vendorId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/product/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/product/{id}/prepare-delete": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/product/{id}/variants": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "example": "any"
+                  },
+                  "price": {
+                    "example": "any"
+                  },
+                  "attributes": {
+                    "example": "any"
+                  },
+                  "stock": {
+                    "example": "any"
+                  },
+                  "isAvailable": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/product/{id}/variants/{variantId}": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "where": {
+                    "example": "any"
+                  },
+                  "select": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/order/": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vendorId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimable",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/order/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/order/{id}/status": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "example": "any"
+                  },
+                  "note": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/order/{id}/claim": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
     }
-  ]
+  }
 }

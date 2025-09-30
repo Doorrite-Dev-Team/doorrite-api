@@ -1,6 +1,5 @@
 import { JwtPayloadShape } from "@config/jwt";
 
-
 declare global {
   namespace Express {
     interface Request {
@@ -10,6 +9,12 @@ declare global {
         email: string;
         businessName: string;
         isActive: boolean;
+        isVerified: boolean;
+      };
+      rider?: {
+        id: string;
+        email: string;
+        fullName: string;
         isVerified: boolean;
       };
     }

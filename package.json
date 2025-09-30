@@ -5,6 +5,7 @@
     "@prisma/client": "^6.14.0",
     "@sendgrid/mail": "^8.1.5",
     "@types/jsonwebtoken": "^9.0.10",
+    "@upstash/redis": "^1.35.4",
     "argon2": "^0.43.1",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -18,8 +19,7 @@
     "nodemailer": "^7.0.5",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1",
-    "zod": "^4.0.15",
-    "zod-to-json-schema": "^3.24.6"
+    "zod": "^4.0.15"
   },
   "description": "",
   "devDependencies": {
@@ -43,7 +43,7 @@
   "license": "ISC",
   "main": "index.js",
   "name": "doorrite-api",
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias",
     "dev": "pnpm run dev:server",
@@ -55,7 +55,7 @@
     "prisma:push": "prisma db push",
     "start": "node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
-    "swagger:generate": "ts-node src/swagger.generate.ts",
+    "swagger:generate": "ts-node -r tsconfig-paths/register src/swagger.ts",
     "test": "vitest"
   },
   "version": "1.0.0"

@@ -17,6 +17,7 @@ enum Role {
 }
 
 enum VehicleType {
+  MOTORCYCLE
   BIKE
   CAR
 }
@@ -61,73 +62,36 @@ type Address {
   state      String?
   lga        String?
   postalCode String?
+  address    String
   country    String? @default("Nigeria")
 }
 
 // models
 
-model Category {
-  id          String              @id @default(auto()) @map("_id") @db.ObjectId
-  name        String              @unique
-  displayName String
-  description String?
-  isActive    Boolean             @default(true)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+// model Otp {
+//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+//   code      String
+//   type      OtpType
+//   verified  Boolean  @default(false)
+//   expiresAt DateTime
+//   attempts  Int      @default(0)
 
-  subcategories Subcategory[]
-  vendorCategories VendorCategory[]
-}
+//   userId    String?  @db.ObjectId
+//   vendorId  String?  @db.ObjectId
+//   riderId   String?  @db.ObjectId
 
-model Subcategory {
-  id          String @id @default(auto()) @map("_id") @db.ObjectId
-  categoryId  String @db.ObjectId
-  category    Category @relation(fields: [categoryId], references: [id])
-  name        String
-  displayName String
-  description String?
-  isActive    Boolean @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+//   user      User?    @relation(fields: [userId], references: [id])
+//   vendor    Vendor?  @relation(fields: [vendorId], references: [id])
+//   rider     Rider?   @relation(fields: [riderId], references: [id])
 
-  @@unique([categoryId, name])
-}
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
 
-model VendorCategory {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  vendorId   String   @db.ObjectId
-  categoryId String   @db.ObjectId
-
-  vendor     Vendor   @relation(fields: [vendorId], references: [id])
-  category   Category @relation(fields: [categoryId], references: [id])
-
-  createdAt  DateTime @default(now())
-}
-
-model Otp {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  code      String
-  type      OtpType
-  verified  Boolean  @default(false)
-  expiresAt DateTime
-  attempts  Int      @default(0)
-
-  userId    String?  @db.ObjectId
-  vendorId  String?  @db.ObjectId
-  riderId   String?  @db.ObjectId
-
-  user      User?    @relation(fields: [userId], references: [id])
-  vendor    Vendor?  @relation(fields: [vendorId], references: [id])
-  rider     Rider?   @relation(fields: [riderId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([vendorId])
-  @@index([riderId])
-  @@index([expiresAt])
-}
+//   @@index([userId])
+//   @@index([vendorId])
+//   @@index([riderId])
+//   @@index([expiresAt])
+// }
 
 model User {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -144,7 +108,7 @@ model User {
 
   orders   Order[]   @relation("customer_orders")
   payments Payment[]
-  otps     Otp[]
+  // otps     Otp[]
   reviews  Review[]
 }
 
@@ -163,10 +127,10 @@ model Vendor {
   updatedAt    DateTime    @updatedAt
 
   // relations
-  vendorCategories VendorCategory[]
+  //vendorCategories VendorCategory[]
   products         Product[]
   orders           Order[]
-  otps             Otp[]
+  // otps             Otp[]
   reviews          Review[]
 }
 
@@ -213,14 +177,14 @@ model Rider {
   profileImageUrl String?
   licenseNumber   String?
   isAvailable     Boolean     @default(true)
-  currentLocation Json?
   isVerified      Boolean     @default(false)
+  rating          Float?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   deliveries Delivery[]
   orders     Order[]    @relation("rider_orders")
-  otps       Otp[]
+  // otps       Otp[]
   reviews    Review[]
 }
 

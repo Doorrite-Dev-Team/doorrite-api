@@ -3,6 +3,8 @@ import express from "express";
 import { requireAuth } from "middleware/auth";
 import * as userAuth from "./user.controller";
 import * as vendorAuth from "./vendor.controller";
+import * as riderAuth from "./rider.controller";
+
 const router = express.Router();
 
 // #swagger.tags = ['Auth']
@@ -43,5 +45,14 @@ router.get("/logout-vendor", requireAuth, vendorAuth.logoutVendor);
 router.post("/forget-vendor-password", vendorAuth.forgottenVendorPassword);
 router.post("/reset-vendor-password", vendorAuth.resetVendorPassword);
 
+//RIDER-AUTH ROUTES
+router.post("/create-rider", riderAuth.createRider);
+router.post("/create-rider-otp", riderAuth.createRiderOtp);
+router.post("/verify-rider-otp", riderAuth.verifyRiderOtp);
+router.post("/login-rider", riderAuth.loginRider);
+router.post("/refresh-rider-token", riderAuth.refreshRiderToken);
+router.get("/logout-rider", requireAuth, riderAuth.logoutRider);
+router.post("/forgot-rider-password", riderAuth.changeRiderPassword);
+router.post("/reset-rider-password", riderAuth.resetRiderPassword);
 
 export default router;

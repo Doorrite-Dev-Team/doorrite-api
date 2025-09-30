@@ -18,11 +18,11 @@ import {
   handlePasswordReset,
   isValidEmail,
   processOtpVerification,
-  updateEntityPassword,
-  validateVendorData,
+  validatePassword,
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
+import { createResetToken } from '@config/redis';
 
 /* =========================
    Vendor Registration
@@ -256,11 +256,12 @@ export const forgottenVendorPassword = async (req: Request, res: Response) => {
     if (!isValidEmail(email))
       throw new AppError(400, "Valid email is required");
 
-    // Send OTP for password reset — vendor must already exist and be verified
     await createAndSendOtp(email, "vendor", OtpType.PASSWORD_RESET);
+    const resetToken = await createResetToken(email, "vendor");
+
     return sendSuccess(
       res,
-      { message: "Password reset code sent to your email" },
+      { message: "Password reset code sent to your email", resetToken },
       200
     );
   } catch (err) {
@@ -270,20 +271,32 @@ export const forgottenVendorPassword = async (req: Request, res: Response) => {
 
 export const resetVendorPassword = async (req: Request, res: Response) => {
   try {
-    const { email, password, confirmPassword } = req.body || {};
+    const { email, password, confirmPassword, resetToken } = req.body || {};
 
-    const { entity, otpId } = await handlePasswordReset(
-      email,
-      password,
-      confirmPassword,
-      "vendor"
-    );
+    if (!resetToken) {
+      throw new AppError(400, "Reset token is required");
+    }
+    if (!isValidEmail(email))
+      throw new AppError(400, "Valid email is required");
+    if (!password || !confirmPassword) {
+      throw new AppError(400, "Password and confirmPassword are required");
+    }
+    if (password !== confirmPassword) {
+      throw new AppError(400, "Passwords do not match");
+    }
+    validatePassword(password);
 
+    // Hash password BEFORE calling helper (helper expects hashed value for persistence)
     const passwordHash = await hashPassword(password);
-    await updateEntityPassword(entity.id, passwordHash, "vendor");
 
-    // cleanup otp after successful reset
-    await prisma.otp.delete({ where: { id: otpId } });
+    // call helper which validates token and updates password
+    await handlePasswordReset(
+      email,
+      passwordHash,
+      passwordHash,
+      "vendor",
+      resetToken
+    );
 
     return sendSuccess(
       res,
@@ -327,3 +340,51 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
     return handleError(res, err);
   }
 };
+
+function validateVendorData({
+  businessName,
+  email,
+  phoneNumber,
+  password,
+  address,
+  categoryIds,
+}: {
+  businessName: any;
+  email: any;
+  phoneNumber: any;
+  password: any;
+  address: any;
+  categoryIds: any;
+}) {
+  if (
+    !businessName ||
+    typeof businessName !== "string" ||
+    businessName.trim().length < 2
+  ) {
+    throw new AppError(400, "Business name is required and must be at least 2 characters");
+  }
+  if (!isValidEmail(email)) {
+    throw new AppError(400, "Valid email is required");
+  }
+  if (
+    !phoneNumber ||
+    typeof phoneNumber !== "string" ||
+    phoneNumber.trim().length < 7
+  ) {
+    throw new AppError(400, "Valid phone number is required");
+  }
+  if (!password || typeof password !== "string" || password.length < 6) {
+    throw new AppError(400, "Password is required and must be at least 6 characters");
+  }
+  if (!address || typeof address !== "string" || address.trim().length < 5) {
+    throw new AppError(400, "Address is required and must be at least 5 characters");
+  }
+  if (
+    !Array.isArray(categoryIds) ||
+    categoryIds.length === 0 ||
+    !categoryIds.every((id) => typeof id === "string" && id.trim().length > 0)
+  ) {
+    throw new AppError(400, "At least one valid categoryId is required");
+  }
+}
+

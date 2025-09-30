@@ -67,10 +67,9 @@ app.use("/api/v1/auth", AuthRoutes);
 
 //Private Routes
 app.use("/api/v1/user", UserRoutes);
-app.use("api/v1/vendors", vendorRoutes);
-app.use("api/v1/product", ProductRoutes);
-app.use("api/v1/order", OrderRoutes);
-
+app.use("/api/v1/vendors", vendorRoutes);
+app.use("/api/v1/product", ProductRoutes);
+app.use("/api/v1/order", OrderRoutes);
 
 //MiddleWare
 //404 handler

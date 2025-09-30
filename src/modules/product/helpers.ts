@@ -94,5 +94,171 @@ function coerceNumber(value: any): number | null {
 }
 
 
-export { coerceNumber, getVendorIdFromRequest, isValidObjectId };
+function validateCreateProduct(body: any) {
+  const errors: { field: string; message: string }[] = [];
+  const out: any = {};
+
+  if (!body || typeof body !== "object") {
+    throw new AppError(400, "Invalid request body");
+  }
+
+  // name
+  if (
+    !body.name ||
+    typeof body.name !== "string" ||
+    body.name.trim().length < 2
+  ) {
+    errors.push({
+      field: "name",
+      message: "Product name is required (2+ chars)",
+    });
+  } else {
+    out.name = body.name.trim();
+  }
+
+  // description (optional)
+  if (body.description !== undefined) {
+    if (typeof body.description !== "string") {
+      errors.push({
+        field: "description",
+        message: "Description must be a string",
+      });
+    } else {
+      out.description = body.description.trim();
+    }
+  }
+
+  // basePrice
+  const basePrice = coerceNumber(body.basePrice);
+  if (basePrice === null || basePrice <= 0) {
+    errors.push({
+      field: "basePrice",
+      message: "basePrice is required and must be a positive number",
+    });
+  } else {
+    out.basePrice = basePrice;
+  }
+
+  // sku (optional)
+  if (body.sku !== undefined) {
+    if (typeof body.sku !== "string")
+      errors.push({ field: "sku", message: "sku must be a string" });
+    else out.sku = body.sku.trim();
+  }
+
+  // attributes (optional) - expect object or JSON
+  if (body.attributes !== undefined) {
+    if (typeof body.attributes !== "object")
+      errors.push({
+        field: "attributes",
+        message: "attributes must be a JSON object",
+      });
+    else out.attributes = body.attributes;
+  }
+
+  // isAvailable (optional)
+  if (body.isAvailable !== undefined) {
+    out.isAvailable = Boolean(body.isAvailable);
+  } else {
+    out.isAvailable = true;
+  }
+
+  // variants (optional)
+  if (body.variants !== undefined) {
+    if (!Array.isArray(body.variants)) {
+      errors.push({ field: "variants", message: "variants must be an array" });
+    } else {
+      out.variants = [];
+      body.variants.forEach((v: any, idx: number) => {
+        const vErrors: string[] = [];
+        if (!v || typeof v !== "object") {
+          vErrors.push("invalid variant object");
+        } else {
+          if (
+            !v.name ||
+            typeof v.name !== "string" ||
+            v.name.trim().length === 0
+          )
+            vErrors.push("name required");
+          const price = coerceNumber(v.price);
+          if (price === null || price <= 0)
+            vErrors.push("price required and must be > 0");
+        }
+        if (vErrors.length)
+          errors.push({
+            field: `variants[${idx}]`,
+            message: vErrors.join(", "),
+          });
+        else
+          out.variants.push({
+            name: v.name.trim(),
+            price: coerceNumber(v.price),
+            attributes: v.attributes || {},
+            stock: Number.isInteger(v.stock) ? v.stock : undefined,
+            isAvailable:
+              v.isAvailable === undefined ? true : Boolean(v.isAvailable),
+          });
+      });
+    }
+  }
+
+  if (errors.length) throw new AppError(400, "Validation failed", { errors });
+  return out;
+}
+
+function validateUpdateProduct(body: any) {
+  if (!body || typeof body !== "object")
+    throw new AppError(400, "Invalid request body");
+  const errors: { field: string; message: string }[] = [];
+  const out: any = {};
+
+  // Accept any of the create fields but all optional
+  if (body.name !== undefined) {
+    if (typeof body.name !== "string" || body.name.trim().length < 2)
+      errors.push({ field: "name", message: "name must be 2+ chars" });
+    else out.name = body.name.trim();
+  }
+
+  if (body.description !== undefined) {
+    if (typeof body.description !== "string")
+      errors.push({
+        field: "description",
+        message: "description must be string",
+      });
+    else out.description = body.description.trim();
+  }
+
+  if (body.basePrice !== undefined) {
+    const basePrice = coerceNumber(body.basePrice);
+    if (basePrice === null || basePrice <= 0)
+      errors.push({
+        field: "basePrice",
+        message: "basePrice must be a positive number",
+      });
+    else out.basePrice = basePrice;
+  }
+
+  if (body.sku !== undefined) {
+    if (typeof body.sku !== "string")
+      errors.push({ field: "sku", message: "sku must be a string" });
+    else out.sku = body.sku.trim();
+  }
+
+  if (body.attributes !== undefined) {
+    if (typeof body.attributes !== "object")
+      errors.push({
+        field: "attributes",
+        message: "attributes must be object",
+      });
+    else out.attributes = body.attributes;
+  }
+
+  if (body.isAvailable !== undefined)
+    out.isAvailable = Boolean(body.isAvailable);
+
+  if (errors.length) throw new AppError(400, "Validation failed", { errors });
+  return out;
+}
+
+export { coerceNumber, getVendorIdFromRequest, isValidObjectId, validateCreateProduct, validateUpdateProduct };
 

@@ -10,12 +10,11 @@ const router = express.Router();
 // =========================
 
 // Create a new payment (Customer after placing order)
-router.post("/create", requireAuth("CUSTOMER"), Payments.createPayment);
+// POST /api/v1/payments/
+router.post("/", requireAuth("CUSTOMER"), Payments.createPayment);
 
 // Update payment status (Vendor/Admin or webhook)
+// PATCH /api/v1/payments/:id/status
 router.patch("/:id/status", requireAuth("CUSTOMER"), Payments.updatePaymentStatus);
-
-// Get payment for a specific order (Customer/Vendor/Admin)
-router.get("/order/:orderId", Payments.getPaymentByOrder);
 
 export default router;
