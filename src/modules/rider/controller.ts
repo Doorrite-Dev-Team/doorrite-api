@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import prisma from "@config/db";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { isValidNigerianPhone } from "@modules/auth/helper";
-import { $Enums } from "generated/prisma";
+import { $Enums } from "../../generated/prisma";
 import { getActorFromReq } from "@lib/utils/req-res";
 import socketService from "@lib/socketService";
 

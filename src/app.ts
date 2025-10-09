@@ -1,4 +1,4 @@
-import { Rider, Payment } from './generated/prisma/index.d';
+// import { Rider, Payment } from './generated/prisma/index.d';
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
