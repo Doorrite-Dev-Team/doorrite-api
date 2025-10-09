@@ -13,7 +13,7 @@ import {
   verifyJwt,
 } from "@config/jwt";
 import { AppError } from "@lib/utils/AppError";
-import { cleanupExpiredOTPs } from "@modules/auth/helper";
+// import { cleanupExpiredOTPs } from "@modules/auth/helper";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 
 /**
@@ -41,7 +41,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
         if (payload && payloadMatchesEntity(payload, canonical)) {
           // attach and continue
           req.user = payload;
-          await cleanupExpiredOTPs();
+          // await cleanupExpiredOTPs();
           return next();
         }
       }
@@ -49,7 +49,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
       // 2) Access not present or invalid -> attempt refresh flow using entity-specific refresh cookie
       const refreshed = await attemptRefreshFlow(req, res, canonical);
       if (refreshed) {
-        await cleanupExpiredOTPs();
+        // await cleanupExpiredOTPs();
         return next();
       }
 

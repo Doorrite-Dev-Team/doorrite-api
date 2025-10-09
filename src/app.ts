@@ -1,3 +1,4 @@
+import { Rider, Payment } from './generated/prisma/index.d';
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -14,6 +15,9 @@ import OrderRoutes from "@modules/order/routes";
 import ProductRoutes from "@modules/product/routes";
 import UserRoutes from "@modules/user/routes";
 import vendorRoutes from "@modules/vendor/routes";
+import adminRoutes from "@modules/admin/routes";
+import RiderRoutes from "@modules/rider/routes";
+import PaymentRoutes from "@modules/payment/routes";
 // import { requireAuth } from "middleware/auth";
 
 export const app = express();
@@ -70,6 +74,9 @@ app.use("/api/v1/user", UserRoutes);
 app.use("/api/v1/vendors", vendorRoutes);
 app.use("/api/v1/product", ProductRoutes);
 app.use("/api/v1/order", OrderRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/rider", RiderRoutes);
+app.use("/api/v1/payment", PaymentRoutes);
 
 //MiddleWare
 //404 handler

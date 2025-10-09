@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { th } from "zod/v4/locales";
 
 // Types for request body
 interface CreateOrderItem {
@@ -18,12 +19,18 @@ interface CreateOrderBody {
     postalCode?: string;
     country?: string;
   };
-  paymentMethod: 'PAYSTACK' | 'CASH_ON_DELIVERY';
+  paymentMethod: "PAYSTACK" | "CASH_ON_DELIVERY";
+  // placeId is an external map/place identifier (used for geolocation and tracking)
+  placeId: string;
 }
 
 const validateCreateOrderBody = (body: any): CreateOrderBody => {
-  const { vendorId, items, deliveryAddress, paymentMethod } = body;
+  const { vendorId, items, deliveryAddress, paymentMethod, placeId } = body;
 
+  // Require external place id (string) for map tracking and a deliveryAddress object
+  if (!placeId || typeof placeId !== "string" || placeId.trim().length === 0) {
+    throw new Error("placeId is required and must be a non-empty string");
+  }
   // Check required fields
   if (!vendorId || !items || !deliveryAddress || !paymentMethod) {
     throw new Error("Missing required fields");
@@ -60,6 +67,17 @@ const validateCreateOrderBody = (body: any): CreateOrderBody => {
     throw new Error("Invalid delivery address format.");
   }
 
+  // Ensure formatted address field exists for Prisma Address.address (required)
+  if (
+    !deliveryAddress.address ||
+    typeof deliveryAddress.address !== "string" ||
+    deliveryAddress.address.trim().length === 0
+  ) {
+    throw new Error(
+      "deliveryAddress.address is required and must be a non-empty string"
+    );
+  }
+
   // Note: Based on your Address type, all fields are optional except country has a default
   // Adjust validation based on your business requirements
 
@@ -68,7 +86,7 @@ const validateCreateOrderBody = (body: any): CreateOrderBody => {
     throw new Error("Invalid payment method.");
   }
 
-  return { vendorId, items, deliveryAddress, paymentMethod };
+  return { vendorId, items, deliveryAddress, paymentMethod, placeId };
 };
 
 // Helper function to calculate order total
@@ -124,6 +142,8 @@ const getCustomerIdFromRequest = (req: Request): string => {
   return customerId as string;
 };
 
-
-export { calculateOrderTotal, getCustomerIdFromRequest, validateCreateOrderBody };
-
+export {
+  calculateOrderTotal,
+  getCustomerIdFromRequest,
+  validateCreateOrderBody,
+};

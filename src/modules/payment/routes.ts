@@ -1,20 +1,32 @@
-// src/routes/payments.ts
-import express from "express";
-import { requireAuth } from "middleware/auth";
-import * as Payments from "./controllers";
+import { Router } from "express";
+import {requireAuth as auth} from "@middleware/auth";
+import {
+  createPaymentIntent,
+  confirmPayment,
+  handleWebhook,
+  checkPaymentStatus,
+  processRefund,
+} from "./controllers";
 
-const router = express.Router();
+const router = Router();
 
-// =========================
-// PROTECTED ROUTES
-// =========================
+// Create payment intent - Initializes payment process
+router.post("/create-intent", auth("user"), createPaymentIntent);
 
-// Create a new payment (Customer after placing order)
-// POST /api/v1/payments/
-router.post("/", requireAuth("CUSTOMER"), Payments.createPayment);
+// Confirm payment after user completes payment
+router.post("/confirm", auth("user"), confirmPayment);
 
-// Update payment status (Vendor/Admin or webhook)
-// PATCH /api/v1/payments/:id/status
-router.patch("/:id/status", requireAuth("CUSTOMER"), Payments.updatePaymentStatus);
+// Handle provider webhook (no auth - verified by signature)
+router.post("/webhook", handleWebhook);
+
+// Check payment status for an order
+router.get(
+  "/:orderId/status",
+  auth("any"),
+  checkPaymentStatus
+);
+
+// Process refund (admin only)
+router.post("/:orderId/refund", auth("admin"), processRefund);
 
 export default router;

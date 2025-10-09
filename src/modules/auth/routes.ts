@@ -4,6 +4,7 @@ import { requireAuth } from "middleware/auth";
 import * as userAuth from "./user.controller";
 import * as vendorAuth from "./vendor.controller";
 import * as riderAuth from "./rider.controller";
+import DeliveryCategories, { listAllowedCategoryKeys } from "@lib/category";
 
 const router = express.Router();
 
@@ -54,5 +55,14 @@ router.post("/refresh-rider-token", riderAuth.refreshRiderToken);
 router.get("/logout-rider", requireAuth, riderAuth.logoutRider);
 router.post("/forgot-rider-password", riderAuth.changeRiderPassword);
 router.post("/reset-rider-password", riderAuth.resetRiderPassword);
+
+// Public endpoint: return in-memory vendor categories (no DB)
+router.get("/vendor-categories", (req, res) => {
+  return res.json({
+    ok: true,
+    categories: DeliveryCategories,
+    keys: listAllowedCategoryKeys(),
+  });
+});
 
 export default router;

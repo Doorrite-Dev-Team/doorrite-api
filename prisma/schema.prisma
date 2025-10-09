@@ -59,11 +59,19 @@ enum OtpType {
 type Address {
   street     String?
   city       String?
-  state      String?
+  state      String? @default("ilorin")
   lga        String?
   postalCode String?
+  // human-readable formatted address (useful for display)
   address    String
+  // geographic coordinates for mapping (latitude & longitude)
+  coordinates Coordinates?
   country    String? @default("Nigeria")
+}
+
+type Coordinates {
+  lat  Float
+  long Float
 }
 
 // models

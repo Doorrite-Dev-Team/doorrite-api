@@ -21,7 +21,7 @@ export const getUser = async (req: Request, res: Response) => {
 };
 
 // Get Current User Profile
-// GET api/v1/users/profile
+// GET api/v1/users/me
 export const getCurrentUserProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.sub;
@@ -29,9 +29,6 @@ export const getCurrentUserProfile = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        orders: true,
-      },
     });
     if (!user) throw new AppError(404, "User not found");
     return sendSuccess(res, { user }, 200);
@@ -41,7 +38,7 @@ export const getCurrentUserProfile = async (req: Request, res: Response) => {
 };
 
 // Update User Profile
-// PUT api/v1/users/profile
+// PUT api/v1/users/me
 export const updateUserProfile = async (req: Request, res: Response) => {
   const id = req.user?.sub;
   if (!id) {
@@ -119,3 +116,112 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     return handleError(res, err);
   }
 };
+
+// Get User Orders with pagination
+//response : {  "data": [...],  "pagination": {    "totalItems": 95,    "totalPages": 10,    "currentPage": 3,    "pageSize": 10,    "hasNext": true,    "hasPrev": true  }}
+// GET /users/orders/
+export const getUserOrders = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 10;
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
+    const [totalItems, orders] = await Promise.all([
+      prisma.order.count({ where: { id: userId } }),
+      prisma.order.findMany({
+        where: { id: userId },
+        include: {
+          items: {
+            include: { product: true },
+          },
+        },
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+    const totalPages = Math.ceil(totalItems / pageSize);
+
+    const pagination = {
+      totalItems,
+      totalPages,
+      currentPage: page,
+      pageSize,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    };
+
+    return sendSuccess(res, { orders, pagination }, 200);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+
+// Create User Review for vendor, rider or product
+// POST /users/reviews
+export const createUserReview = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const { targetId, targetType, rating, comment } = req.body;
+
+    // Basic validation
+    if (!targetId || !targetType || !rating) {
+      throw new AppError(400, "targetId, targetType, and rating are required");
+    }
+    if (!["vendor", "rider", "product"].includes(targetType)) {
+      throw new AppError(400, "Invalid targetType");
+    }
+    if (rating < 1 || rating > 5) {
+      throw new AppError(400, "Rating must be between 1 and 5");
+    }
+
+    const review = await prisma.review.create({
+      data: {
+        userId,
+        rating,
+        comment,
+        ...(targetType === "vendor" && { vendorId: targetId }),
+        ...(targetType === "rider" && { riderId: targetId }),
+        ...(targetType === "product" && { productId: targetId }),
+      },
+    });
+
+    return sendSuccess(res, { review }, 201);
+  } catch (error) {
+    handleError(res, error);
+  }
+}
+
+/*
+try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+    const { productId, rating, comment } = req.body;
+    if (!productId || !rating) {
+      throw new AppError(400, "Product ID and rating are required");
+    }
+
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product) throw new AppError(404, "Product not found");
+
+    const review = await prisma.review.create({
+      data: {
+        userId,
+        productId,
+        rating,
+        comment,
+      },
+    });
+
+    return sendSuccess(res, { review }, 201);
+  } catch (error) {
+    handleError(res, error);
+  }
+
+*/

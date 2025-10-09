@@ -4,6 +4,7 @@ import {
   setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
+import { validateCategoryIds } from "@lib/category";
 import {
   makeAccessTokenForVendor,
   makeRefreshTokenForVendor,
@@ -22,7 +23,7 @@ import {
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
-import { createResetToken } from '@config/redis';
+import { createResetToken } from "@config/redis";
 
 /* =========================
    Vendor Registration
@@ -49,17 +50,14 @@ export const createVendor = async (req: Request, res: Response) => {
       categoryIds,
     });
 
-    // Ensure all provided categories exist
+    // Ensure provided categoryIds are valid according to in-memory DeliveryCategories
     const uniqueCategoryIds: string[] = Array.from(
-      new Set((categoryIds as string[]).map((c) => c.trim()))
+      new Set(((categoryIds as string[]) || []).map((c) => String(c).trim()))
     );
-    const foundCategories = await prisma.category.findMany({
-      where: { id: { in: uniqueCategoryIds } },
-      select: { id: true },
-    });
 
-    if (foundCategories.length !== uniqueCategoryIds.length) {
-      throw new AppError(400, "One or more categoryIds are invalid");
+    const invalid = validateCategoryIds(uniqueCategoryIds);
+    if (invalid.length > 0) {
+      throw new AppError(400, `Invalid categoryIds: ${invalid.join(", ")}`);
     }
 
     // Check if vendor (email/phone) already exists
@@ -96,18 +94,25 @@ export const createVendor = async (req: Request, res: Response) => {
       },
     });
 
-    // Create VendorCategory links
-    // Use Promise.all to create links; safe even if many categories
-    await Promise.all(
-      uniqueCategoryIds.map((catId) =>
-        prisma.vendorCategory.create({
-          data: {
-            vendorId: newVendor.id,
-            categoryId: catId,
-          },
-        })
-      )
-    );
+    // Optionally create DB links to vendorCategory if your schema has it. This is non-blocking for validation.
+    try {
+      if (uniqueCategoryIds.length > 0 && (prisma as any).vendorCategory) {
+        await Promise.all(
+          uniqueCategoryIds.map((catId) =>
+            (prisma as any).vendorCategory.create({
+              data: {
+                vendorId: newVendor.id,
+                categoryId: catId,
+              },
+            })
+          )
+        );
+      }
+    } catch (e: Error | any) {
+      // If vendorCategory model doesn't exist or DB insert fails, continue — categories are treated in-memory
+      // Log the error for debugging but don't block vendor creation
+      console.warn("vendorCategory linking skipped:", e?.message || e);
+    }
 
     // Send email OTP for verification
     await createAndSendOtp(
@@ -361,7 +366,10 @@ function validateVendorData({
     typeof businessName !== "string" ||
     businessName.trim().length < 2
   ) {
-    throw new AppError(400, "Business name is required and must be at least 2 characters");
+    throw new AppError(
+      400,
+      "Business name is required and must be at least 2 characters"
+    );
   }
   if (!isValidEmail(email)) {
     throw new AppError(400, "Valid email is required");
@@ -374,10 +382,16 @@ function validateVendorData({
     throw new AppError(400, "Valid phone number is required");
   }
   if (!password || typeof password !== "string" || password.length < 6) {
-    throw new AppError(400, "Password is required and must be at least 6 characters");
+    throw new AppError(
+      400,
+      "Password is required and must be at least 6 characters"
+    );
   }
   if (!address || typeof address !== "string" || address.trim().length < 5) {
-    throw new AppError(400, "Address is required and must be at least 5 characters");
+    throw new AppError(
+      400,
+      "Address is required and must be at least 5 characters"
+    );
   }
   if (
     !Array.isArray(categoryIds) ||
@@ -387,4 +401,3 @@ function validateVendorData({
     throw new AppError(400, "At least one valid categoryId is required");
   }
 }
-
