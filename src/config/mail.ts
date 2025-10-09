@@ -1,46 +1,34 @@
 import "dotenv/config";
-import nodemailer from "nodemailer";
-//import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // use STARTTLS
-  requireTLS: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  tls: {
-    rejectUnauthorized: false, // only for debugging
-  },
-  logger: true,
-  debug: true,
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const sendmail = async (
+const sendMail = async (
   to: string,
   subject: string,
   text: string,
   html?: string
 ) => {
   try {
-    //send email using the transporter
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    const fromEmail = process.env.RESEND_FROM ?? "doorrite.info@gmail.com";
+
+    const response = await resend.emails.send({
+      from: fromEmail,
       to,
       subject,
       text,
       html,
     });
-    console.log("Email sent: " + info.response);
-    return info;
-  } catch (error) {
-    console.error("Error sending email:", error);
-    throw error;
+
+    console.log(
+      "✅ Email sent successfully:",
+      response.data?.id ?? "No ID returned"
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Email send failed:", error.message || error);
+    throw new Error(error.message || "Email send failed");
   }
 };
 
-export default sendmail;
+export default sendMail;

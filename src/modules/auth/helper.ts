@@ -1,7 +1,10 @@
 // src/modules/auth/helper.ts
 import prisma from "@config/db";
 import sendmail from "@config/mail";
-import { verificationEmailTemplate } from "@lib/emailTemplates";
+import {
+  passwordResetEmailTemplate,
+  verificationEmailOTPTemplate,
+} from "@lib/emailTemplates";
 
 // Redis OTP utilities
 import {
@@ -243,6 +246,7 @@ export const createAndSendOtp = async (
   // await checkRateLimit(email, `${entityType}_${String(otpType).toLowerCase()}`, 1);
 
   const entity = await findEntityByEmail(email, entityType);
+
   if (!entity) throw new AppError(404, `${entityType} not found`);
 
   if (otpType === OtpType.PASSWORD_RESET && !entity.isVerified) {
@@ -268,10 +272,17 @@ export const createAndSendOtp = async (
   }
 
   // Send email with the real code (do NOT persist real code anywhere)
-  const tpl = verificationEmailTemplate(
-    entity.fullName || entity.businessName || "",
-    redisRes.code
-  );
+  const tpl =
+    otpType === "EMAIL_VERIFICATION"
+      ? verificationEmailOTPTemplate(
+          entity.fullName || entity.businessName || "",
+          redisRes.code
+        )
+      : passwordResetEmailTemplate(
+          entity.fullName || entity.businessName || "",
+          redisRes.code
+        );
+
   try {
     await sendmail(entity.email, tpl.subject, tpl.text, tpl.html);
   } catch (err) {
@@ -497,17 +508,3 @@ export const checkExistingEntity = async (
   }
   return { shouldCreateNew: true };
 };
-
-export const generateHexToken = (len = 32) =>
-  crypto.randomBytes(len).toString("hex");
-
-/* cleanupExpiredOTPs removed (Redis TTL handles expiry) */
-
-/* Vendor validator unchanged... */
-
-/* helper to map entity ref where clauses (unchanged) */
-function getEntityRefWhere(entityType: EntityType, id: string) {
-  if (entityType === "user") return { userId: id };
-  if (entityType === "vendor") return { vendorId: id };
-  return { riderId: id };
-}

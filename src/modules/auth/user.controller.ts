@@ -24,8 +24,11 @@ import {
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
-import { createResetToken } from '@config/redis';
+import { createResetToken } from "@config/redis";
 
+/* ======================
+   Create User
+   ====================== */
 export const createUser = async (req: Request, res: Response) => {
   try {
     const { fullName, email, phoneNumber, password } = req.body || {};
@@ -88,6 +91,9 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
+/* ======================
+   OTP & Verification
+   ====================== */
 export const createOtp = async (req: Request, res: Response) => {
   try {
     const { email } = req.body || {};
@@ -128,7 +134,10 @@ export const verifyOtp = async (req: Request, res: Response) => {
       );
     } else {
       // Login the user after successful verification
-      const access = makeAccessTokenForUser(result.entity.id, result.entity.role);
+      const access = makeAccessTokenForUser(
+        result.entity.id,
+        result.entity.role
+      );
       const refresh = makeRefreshTokenForUser(result.entity.id);
       setAuthCookies(res, access, refresh, "user");
 
@@ -194,7 +203,8 @@ export const logout = async (req: Request, res: Response) => {
 export const forgottenPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body || {};
-    if (!isValidEmail(email)) throw new AppError(400, "Valid email is required");
+    if (!isValidEmail(email))
+      throw new AppError(400, "Valid email is required");
 
     await createAndSendOtp(email, "user", OtpType.PASSWORD_RESET);
     const resetToken = await createResetToken(email, "user");
@@ -217,7 +227,8 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (!resetToken) {
       throw new AppError(400, "Reset token is required");
     }
-    if (!isValidEmail(email)) throw new AppError(400, "Valid email is required");
+    if (!isValidEmail(email))
+      throw new AppError(400, "Valid email is required");
     if (!password || !confirmPassword) {
       throw new AppError(400, "Password and confirmPassword are required");
     }
@@ -230,7 +241,13 @@ export const resetPassword = async (req: Request, res: Response) => {
     const passwordHash = await hashPassword(password);
 
     // call helper which validates token and updates password
-    await handlePasswordReset(email, passwordHash, passwordHash, "user", resetToken);
+    await handlePasswordReset(
+      email,
+      passwordHash,
+      passwordHash,
+      "user",
+      resetToken
+    );
 
     return sendSuccess(
       res,

@@ -23,7 +23,8 @@ const resetKey = (type: string, identifier: string, token: string) =>
 // Utility: generate numeric code
 export function generateNumericOtp(length = OTP_LENGTH): string {
   let s = "";
-  for (let i = 0; i < length; i++) s += Math.floor(Math.random() * 10).toString();
+  for (let i = 0; i < length; i++)
+    s += Math.floor(Math.random() * 10).toString();
   return s;
 }
 
@@ -36,6 +37,7 @@ export function generateNumericOtp(length = OTP_LENGTH): string {
 export async function createOtp(type: string, identifier: string) {
   const kOtp = otpKey(type, identifier);
   const kAttempts = attemptsKey(type, identifier);
+
   const code = generateNumericOtp();
 
   // atomic set-if-not-exists + set TTL
@@ -46,7 +48,11 @@ export async function createOtp(type: string, identifier: string) {
 
   if (!setResult) {
     const ttl = await redis.ttl(kOtp);
-    return { ok: false as const, reason: "exists" as const, ttlSeconds: ttl >= 0 ? ttl : undefined };
+    return {
+      ok: false as const,
+      reason: "exists" as const,
+      ttlSeconds: ttl >= 0 ? ttl : undefined,
+    };
   }
 
   await redis.set(kAttempts, "0", { ex: OTP_TTL_SECONDS });
@@ -62,14 +68,23 @@ export async function createOtp(type: string, identifier: string) {
  *  { ok: true }
  *  { ok: false, reason: 'blocked'|'expired'|'invalid'|'blocked_after_failed', attempts?:number, remaining?:number }
  */
-export async function verifyOtp(type: string, identifier: string, code: string) {
+export async function verifyOtp(
+  type: string,
+  identifier: string,
+  code: string
+) {
   const kOtp = otpKey(type, identifier);
   const kAttempts = attemptsKey(type, identifier);
 
   const attemptsRaw = await redis.get(kAttempts);
   const attempts = attemptsRaw ? parseInt(String(attemptsRaw), 10) : 0;
   if (attempts >= MAX_ATTEMPTS) {
-    return { ok: false as const, reason: "blocked" as const, attempts, remaining: 0 };
+    return {
+      ok: false as const,
+      reason: "blocked" as const,
+      attempts,
+      remaining: 0,
+    };
   }
 
   const stored = await redis.get(kOtp);
@@ -92,10 +107,20 @@ export async function verifyOtp(type: string, identifier: string, code: string) 
   }
 
   if (newAttempts >= MAX_ATTEMPTS) {
-    return { ok: false as const, reason: "blocked_after_failed" as const, attempts: newAttempts, remaining: 0 };
+    return {
+      ok: false as const,
+      reason: "blocked_after_failed" as const,
+      attempts: newAttempts,
+      remaining: 0,
+    };
   }
 
-  return { ok: false as const, reason: "invalid" as const, attempts: newAttempts, remaining: Math.max(0, MAX_ATTEMPTS - newAttempts) };
+  return {
+    ok: false as const,
+    reason: "invalid" as const,
+    attempts: newAttempts,
+    remaining: Math.max(0, MAX_ATTEMPTS - newAttempts),
+  };
 }
 
 /**
@@ -119,7 +144,12 @@ export async function getOtpStatus(type: string, identifier: string) {
   const exists = !!existsRaw;
   const ttl = typeof ttlRaw === "number" && ttlRaw >= 0 ? ttlRaw : undefined;
   const attempts = attemptsRaw ? parseInt(String(attemptsRaw), 10) : 0;
-  return { exists, ttlSeconds: ttl, attempts, remaining: Math.max(0, MAX_ATTEMPTS - attempts) };
+  return {
+    exists,
+    ttlSeconds: ttl,
+    attempts,
+    remaining: Math.max(0, MAX_ATTEMPTS - attempts),
+  };
 }
 
 /**
@@ -128,19 +158,31 @@ export async function getOtpStatus(type: string, identifier: string) {
  * - validateResetToken(type, identifier, token) -> boolean
  * - deleteResetToken(...)
  */
-export async function createResetToken(type: string, identifier: string, ttlSeconds = 15 * 60) {
+export async function createResetToken(
+  type: string,
+  identifier: string,
+  ttlSeconds = 15 * 60
+) {
   const token = cryptoRandomHex(32);
   await redis.set(resetKey(type, identifier, token), "1", { ex: ttlSeconds });
   return { token, ttlSeconds };
 }
 
-export async function validateResetToken(type: string, identifier: string, token: string) {
+export async function validateResetToken(
+  type: string,
+  identifier: string,
+  token: string
+) {
   const k = resetKey(type, identifier, token);
   const v = await redis.get(k);
   return !!v;
 }
 
-export async function deleteResetToken(type: string, identifier: string, token: string) {
+export async function deleteResetToken(
+  type: string,
+  identifier: string,
+  token: string
+) {
   await redis.del(resetKey(type, identifier, token));
 }
 

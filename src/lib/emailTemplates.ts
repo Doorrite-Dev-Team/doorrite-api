@@ -1,97 +1,198 @@
 // src/lib/emailTemplates.ts
 
- const brandPrimary = "oklch(0.4421 0.1504 142.4953)";
- const brandBackground = "oklch(0.9859 0.0084 145.5113)";
- const brandForeground = "oklch(0.1408 0.0044 285.8229)";
- const brandSecondary = "oklch(0.8652 0.1768 90.3816)";
+const brandPrimary = "oklch(0.4421 0.1504 142.4953)";
+const brandBackground = "#f9fafb";
+const brandForeground = "#111827";
+const brandSecondary = "oklch(0.8652 0.1768 90.3816)";
 
- export function verificationEmailTemplate(fullName: string, OTP: string) {
-   const OTPExpiryMinutes = process.env.OTP_EXPIRY_MINUTES || "15";
+const baseWrapper = `
+  font-family: Inter, Arial, sans-serif;
+  background-color: ${brandBackground};
+  padding: 40px 0;
+  text-align: center;
+`;
 
-   return {
-     subject: "Doorite: Your Verification Code",
-     text: `Hi ${fullName},\n\nWelcome to Doorite! Use this code to verify your account: ${OTP}\n\nThis code is valid for ${OTPExpiryMinutes} minutes.\n\nIf you didn't request this, please ignore this email.`,
-     html: `
-      <div style="font-family: Arial, sans-serif; background-color: ${brandBackground}; padding: 20px; text-align: center;">
-        <div style="max-width: 600px; margin: auto; background-color: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); overflow: hidden;">
-          <div style="background-color: ${brandPrimary}; padding: 20px 0;">
-            <h1 style="color: white; margin: 0; font-size: 28px;">Doorite</h1>
+const baseCard = `
+  max-width: 600px;
+  margin: auto;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  overflow: hidden;
+`;
+
+const headerStyle = `
+  background-color: ${brandPrimary};
+  color: white;
+  padding: 24px 0;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+`;
+
+const footerStyle = `
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 24px;
+`;
+
+// 🔹 1. VERIFICATION EMAIL
+export function verificationEmailOTPTemplate(fullName: string, OTP: string) {
+  const OTPExpiryMinutes = process.env.OTP_EXPIRY_MINUTES || "15";
+
+  return {
+    subject: "Doorite: Verify Your Email",
+    text: `Hi ${fullName},
+
+Welcome to Doorite! Use this code to verify your account: ${OTP}
+
+This code expires in ${OTPExpiryMinutes} minutes.
+
+If you didn’t request this, please ignore this message.`,
+    html: `
+    <div style="${baseWrapper}">
+      <div style="${baseCard}">
+        <div style="${headerStyle}">Doorite</div>
+        <div style="padding: 32px; text-align: left; color: ${brandForeground};">
+          <h2 style="font-weight: 600; margin-bottom: 12px;">Welcome, ${fullName} 👋</h2>
+          <p style="font-size: 15px; line-height: 1.6;">
+            Use the verification code below to activate your account:
+          </p>
+          <div style="text-align: center; margin: 28px 0;">
+            <div style="
+              display: inline-block;
+              background-color: ${brandSecondary};
+              color: ${brandPrimary};
+              font-size: 34px;
+              font-weight: 700;
+              letter-spacing: 6px;
+              padding: 14px 28px;
+              border-radius: 8px;
+            ">${OTP}</div>
           </div>
-          <div style="padding: 20px;">
-            <p style="font-size: 16px; color: ${brandForeground};">Hi ${fullName},</p>
-            <h2 style="font-size: 20px; color: ${brandForeground}; margin-bottom: 20px;">Welcome to Doorite!</h2>
-            <p style="font-size: 16px; color: ${brandForeground};">Use the following code to verify your account:</p>
-            <div style="background-color: ${brandSecondary}; color: ${brandPrimary}; font-size: 32px; font-weight: bold; letter-spacing: 5px; padding: 15px; border-radius: 5px; display: inline-block; margin: 20px 0;">
-              ${OTP}
-            </div>
-            <p style="font-size: 14px; color: #666;">This code is valid for <strong>${OTPExpiryMinutes}</strong> minutes.</p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
-            <p style="font-size: 12px; color: #999;">If you didn't request this, please ignore this email.</p>
-          </div>
+          <p style="font-size: 14px; color: #6b7280;">
+            This code is valid for <strong>${OTPExpiryMinutes}</strong> minutes.
+          </p>
+          <hr style="border:none; border-top:1px solid #eee; margin:32px 0;">
+          <p style="font-size: 12px; color: #9ca3af;">
+            Didn’t request this? You can safely ignore this email.
+          </p>
         </div>
       </div>
-    `,
-   };
- }
+      <div style="${footerStyle}">
+        &copy; ${new Date().getFullYear()} Doorite. All rights reserved.
+      </div>
+    </div>
+  `,
+  };
+}
 
- export function productDeletionEmailTemplate(
-   vendorName: string,
-   productName: string
- ) {
-   const deletionDays = 30;
-   const appUrl = process.env.APP_URL || "#";
+// 🔹 2. PRODUCT DELETION EMAIL
+export function productDeletionEmailTemplate(
+  vendorName: string,
+  productName: string
+) {
+  const deletionDays = 30;
+  const appUrl = process.env.APP_URL || "#";
 
-   return {
-     subject: "⚠️ Product Scheduled for Deletion",
-     text: `Hi ${vendorName},
+  return {
+    subject: "⚠️ Doorite: Product Scheduled for Deletion",
+    text: `Hi ${vendorName},
 
-Your product "${productName}" has been marked as unavailable and is scheduled for deletion in ${deletionDays} days.
+Your product "${productName}" has been marked as unavailable and will be permanently deleted in ${deletionDays} days.
 
-If this was a mistake, please log in to your dashboard and reinstate it before then.
+If this was a mistake, log in to your dashboard and reinstate it before then.
 
 ${appUrl}
 
-- Support Team`,
-     html: `
-      <div style="font-family: Arial, sans-serif; background-color: ${brandBackground}; padding: 20px; text-align: center;">
-        <div style="max-width: 600px; margin: auto; background-color: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); overflow: hidden;">
-          <div style="background-color: ${brandPrimary}; padding: 20px 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">⚠️ Product Scheduled for Deletion</h1>
+– Doorite Support`,
+    html: `
+    <div style="${baseWrapper}">
+      <div style="${baseCard}">
+        <div style="${headerStyle}">Product Deletion Notice ⚠️</div>
+        <div style="padding: 32px; color: ${brandForeground}; text-align: left;">
+          <p>Hi <strong>${vendorName}</strong>,</p>
+          <p style="font-size: 15px; line-height: 1.6;">
+            Your product <strong style="color: ${brandSecondary};">${productName}</strong>
+            has been marked as unavailable and will be permanently deleted in
+            <strong>${deletionDays} days</strong>.
+          </p>
+          <p>If this was unintentional, you can restore it before the deadline.</p>
+          <div style="text-align:center; margin: 32px 0;">
+            <a href="${appUrl}" style="
+              background-color: ${brandPrimary};
+              color: white;
+              padding: 12px 24px;
+              border-radius: 6px;
+              font-weight: 600;
+              text-decoration: none;
+              display: inline-block;
+            ">Open Dashboard</a>
           </div>
-          <div style="padding: 20px; color: ${brandForeground}; text-align: left;">
-            <p style="font-size: 16px;">Hi <strong>${vendorName}</strong>,</p>
-            <p style="font-size: 15px;">
-              Your product <strong style="color: ${brandSecondary};">${productName}</strong> 
-              has been marked as <em>unavailable</em> and is scheduled for 
-              <strong>permanent deletion in ${deletionDays} days</strong>.
-            </p>
-            <p style="font-size: 15px;">If this was a mistake, please log in to your dashboard and reinstate the product before the deadline.</p>
-            <div style="margin: 25px 0; text-align: center;">
-              <a href="${appUrl}" style="display: inline-block; padding: 12px 24px; background-color: ${brandSecondary}; color: white; font-size: 16px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                Go to Dashboard
-              </a>
-            </div>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
-            <p style="font-size: 12px; color: #999;">This is an automated message. Please do not reply directly.</p>
-            <p style="font-size: 12px; color: #999;">&copy; ${new Date().getFullYear()} Your Company. All rights reserved.</p>
-          </div>
+          <hr style="border:none; border-top:1px solid #eee; margin:32px 0;">
+          <p style="font-size: 12px; color: #9ca3af;">
+            This is an automated message. Do not reply directly.
+          </p>
         </div>
       </div>
-    `,
-   };
- }
+      <div style="${footerStyle}">
+        &copy; ${new Date().getFullYear()} Doorite. All rights reserved.
+      </div>
+    </div>
+  `,
+  };
+}
 
-
+// 🔹 3. PASSWORD RESET EMAIL
 export function passwordResetEmailTemplate(
   fullName: string,
   resetLink: string
 ) {
   return {
-    subject: "Password Reset Request",
-    text: `Hi ${fullName},\n\nYou requested a password reset. Click the link below to reset your password:\n${resetLink}\n\nIf you didn't request this, ignore this email.`,
-    html: `<p>Hi ${fullName},</p>
-           <p>You requested a password reset. Click the link below to reset your password:</p>
-           <p><a href="${resetLink}">${resetLink}</a></p>
-           <p>If you didn't request this, ignore this email.</p>`,
+    subject: "Doorite: Password Reset Request",
+    text: `Hi ${fullName},
+
+You requested a password reset. Click the link below to reset your password:
+
+${resetLink}
+
+If you didn’t request this, ignore this email.`,
+    html: `
+    <div style="${baseWrapper}">
+      <div style="${baseCard}">
+        <div style="${headerStyle}">Password Reset</div>
+        <div style="padding: 32px; color: ${brandForeground}; text-align: left;">
+          <p>Hi <strong>${fullName}</strong>,</p>
+          <p style="font-size: 15px; line-height: 1.6;">
+            You requested to reset your password. Click the button below to continue:
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetLink}" style="
+              background-color: ${brandSecondary};
+              color: ${brandPrimary};
+              padding: 14px 28px;
+              border-radius: 6px;
+              font-weight: 600;
+              text-decoration: none;
+            ">Reset Password</a>
+          </div>
+          <p style="font-size: 13px; color: #6b7280;">
+            If the button doesn’t work, copy and paste this link into your browser:
+          </p>
+          <p style="font-size: 13px; color: ${brandPrimary}; word-break: break-all;">
+            ${resetLink}
+          </p>
+          <hr style="border:none; border-top:1px solid #eee; margin:32px 0;">
+          <p style="font-size: 12px; color: #9ca3af;">
+            If you didn’t request this, no action is needed.
+          </p>
+        </div>
+      </div>
+      <div style="${footerStyle}">
+        &copy; ${new Date().getFullYear()} Doorite. All rights reserved.
+      </div>
+    </div>
+  `,
   };
 }
