@@ -8,51 +8,67 @@ const router = express.Router();
 // =========================
 // PUBLIC ROUTES (No Auth)
 // =========================
-// GET /api/v1/products
 router.get("/", ProductController.getProducts);
+/* #swagger.tags = ['Product']
+ #swagger.summary = 'List all products'
+ #swagger.description = 'Retrieve a list of all available products'
+*/
 
-// GET /api/v1/products/:id
 router.get("/:id", ProductController.getProductById);
+/* #swagger.tags = ['Product']
+ #swagger.summary = 'Get a specific product'
+ #swagger.description = 'Retrieve details for a single product by its ID'
+*/
 
-// =========================
-// (Vwndor Auth Required)
-// =========================
+// // =========================
+// // (Vendor Auth Required)
+// // =========================
 
-router.use(requireAuth("vendor"));
-
-// // Create product
-// // POST /api/v1/products
+// router.use(requireAuth("vendor"));
 
 // router.post("/", ProductController.createProduct);
+// /* #swagger.tags = ['Product']
+//  #swagger.summary = 'Create a new product'
+//  #swagger.description = 'Create a new product (vendor only)'
+// */
 
-// // Update product (vendor must own product)
-// // PUT /api/v1/products/:id
 // router.put("/:id", ProductController.updateProduct);
+// /* #swagger.tags = ['Product']
+//  #swagger.summary = 'Update a product'
+//  #swagger.description = 'Update an existing product (vendor must own product)'
+// */
 
-// // Soft delete (prepare-delete)
-// // POST /api/v1/products/:id/prepare-delete
 // router.post("/:id/prepare-delete", ProductController.prepareProductDeletion);
+// /* #swagger.tags = ['Product']
+//  #swagger.summary = 'Prepare product for deletion'
+//  #swagger.description = 'Soft delete a product (prepare for permanent deletion)'
+// */
 
-// // Permanent delete
-// // DELETE /api/v1/products/:id
 // router.delete("/:id", ProductController.deleteProduct);
+// /* #swagger.tags = ['Product']
+//  #swagger.summary = 'Delete a product'
+//  #swagger.description = 'Permanently delete a product'
+// */
 
 // // =========================
 // // VARIANT MANAGEMENT (Vendor only)
 // // =========================
-// // Create variant
-// // POST /api/v1/products/:id/variants
 // router.post("/:id/variants", ProductController.createProductVariant);
+// /* #swagger.tags = ['Product']
+//  #swagger.summary = 'Create a product variant'
+//  #swagger.description = 'Create a new variant for a product'
+// */
 
-// // Update variant
-// // PUT /api/v1/products/:id/variants/:variantId
 // router.put("/:id/variants/:variantId", ProductController.updateProductVariant);
+// /* #swagger.tags = ['Product']
+//  #swagger.summary = 'Update a product variant'
+//  #swagger.description = 'Update an existing product variant'
+// */
 
-// // Delete variant
-// // DELETE /api/v1/products/:id/variants/:variantId
-// router.delete(
-//   "/:id/variants/:variantId",
-//   ProductController.deleteProductVariant
-// );
+// router.delete("/:id/variants/:variantId", ProductController.deleteProductVariant);
+// /* #swagger.tags = ['Product']
+//  #swagger.summary = 'Delete a product variant'
+//  #swagger.description = 'Delete a product variant'
+// */
 
 export default router;

@@ -10,23 +10,34 @@ import {
 
 const router = Router();
 
-// Create payment intent - Initializes payment process
 router.post("/create-intent", auth("user"), createPaymentIntent);
+/* #swagger.tags = ['Payment']
+ #swagger.summary = 'Create payment intent'
+ #swagger.description = 'Initializes the payment process for an order'
+*/
 
-// Confirm payment after user completes payment
 router.post("/confirm", auth("user"), confirmPayment);
+/* #swagger.tags = ['Payment']
+ #swagger.summary = 'Confirm payment'
+ #swagger.description = 'Confirm payment after user completes the transaction'
+*/
 
-// Handle provider webhook (no auth - verified by signature)
 router.post("/webhook", handleWebhook);
+/* #swagger.tags = ['Payment']
+ #swagger.summary = 'Handle payment webhook'
+ #swagger.description = 'Handle webhook notifications from the payment provider'
+*/
 
-// Check payment status for an order
-router.get(
-  "/:orderId/status",
-  auth("any"),
-  checkPaymentStatus
-);
+router.get("/:orderId/status", auth("any"), checkPaymentStatus);
+/* #swagger.tags = ['Payment']
+ #swagger.summary = 'Check payment status'
+ #swagger.description = 'Check the payment status for a specific order'
+*/
 
-// Process refund (admin only)
 router.post("/:orderId/refund", auth("admin"), processRefund);
+/* #swagger.tags = ['Payment']
+ #swagger.summary = 'Process refund'
+ #swagger.description = 'Process a refund for a specific order (admin only)'
+*/
 
 export default router;

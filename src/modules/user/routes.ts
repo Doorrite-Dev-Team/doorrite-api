@@ -1,22 +1,33 @@
 // src/routes/auth.ts
 import express from "express";
+import { requireAuth } from "@middleware/auth";
 import * as User from "./controllers";
 const router = express.Router();
 
 // User routes
 
-// GET api/v1/users/:id
 router.get("/:id", User.getUser);
+/* #swagger.tags = ['User']
+ #swagger.summary = 'Get user by ID'
+ #swagger.description = 'Retrieve a single user by their ID'
+*/
 
-// GET api/v1/users/me
-router.get("/me", User.getCurrentUserProfile);
+router.get("/me", requireAuth("user"), User.getCurrentUserProfile);
+/* #swagger.tags = ['User']
+ #swagger.summary = 'Get current user profile'
+ #swagger.description = 'Retrieve the profile of the currently authenticated user'
+*/
 
-// PUT api/v1/users/me
-router.put("/me", User.updateUserProfile);
+router.put("/me", requireAuth("user"), User.updateUserProfile);
+/* #swagger.tags = ['User']
+ #swagger.summary = 'Update user profile'
+ #swagger.description = 'Update the profile of the currently authenticated user'
+*/
 
-// GET api/v1/users/Order
-router.get("/orders", User.getUserOrders);
-
-
+router.get("/orders", requireAuth("user"), User.getUserOrders);
+/* #swagger.tags = ['User', 'Order']
+ #swagger.summary = 'Get user orders'
+ #swagger.description = 'Retrieve a list of orders for the authenticated user'
+*/
 
 export default router;
