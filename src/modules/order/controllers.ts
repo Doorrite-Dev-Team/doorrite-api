@@ -183,7 +183,6 @@ export const createOrder = async (req: Request, res: Response) => {
           deliveryAddress: {
             ...deliveryAddress,
             address: computedAddress,
-            placeId,
           },
           totalAmount,
           status: "PENDING",
