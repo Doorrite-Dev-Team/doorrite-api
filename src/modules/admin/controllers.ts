@@ -9,6 +9,11 @@ import socketService from "@lib/socketService";
 
 // POST /admin/login
 export const adminLogin = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Admin login'
+   * #swagger.description = 'Authenticate an admin user.'
+   */
   try {
     const { email, password } = req.body || {};
     if (!email || !password)
@@ -44,6 +49,11 @@ export const adminLogin = async (req: Request, res: Response) => {
 
 // GET /admin/vendors
 export const listVendors = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'List all vendors'
+   * #swagger.description = 'Retrieves a paginated list of all vendors.'
+   */
   try {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
@@ -66,6 +76,11 @@ export const listVendors = async (req: Request, res: Response) => {
 
 // GET /admin/vendors/:vendorId
 export const getVendor = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Get a specific vendor'
+   * #swagger.description = 'Retrieves the details of a single vendor by their ID.'
+   */
   try {
     const { vendorId } = req.params;
     if (!vendorId) throw new AppError(400, "vendorId required");
@@ -81,6 +96,11 @@ export const getVendor = async (req: Request, res: Response) => {
 
 // PATCH /admin/vendors/:vendorId/approve
 export const approveVendor = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Approve a vendor'
+   * #swagger.description = 'Approves a vendor, making them verified and active.'
+   */
   try {
     const { vendorId } = req.params;
     if (!vendorId) throw new AppError(400, "vendorId required");
@@ -98,6 +118,11 @@ export const approveVendor = async (req: Request, res: Response) => {
 
 // PATCH /admin/orders/:orderId/status
 export const updateOrderStatus = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Update order status'
+   * #swagger.description = 'Updates the status of a specific order.'
+   */
   try {
     const { orderId } = req.params;
     const { status } = req.body;
@@ -124,6 +149,11 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
 // GET /admin/reports
 export const getReports = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Get system reports'
+   * #swagger.description = 'Retrieves various system reports, such as counts and revenue.'
+   */
   try {
     // MVP reports: counts and simple revenue
     const [usersCount, vendorsCount, ordersCount, revenue] = await Promise.all([
@@ -150,6 +180,11 @@ export const getReports = async (req: Request, res: Response) => {
 // ===== Rider administration =====
 // GET /admin/riders
 export const listRiders = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'List all riders'
+   * #swagger.description = 'Retrieves a paginated list of all riders.'
+   */
   try {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
@@ -172,6 +207,11 @@ export const listRiders = async (req: Request, res: Response) => {
 
 // GET /admin/riders/:riderId
 export const getRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Get a specific rider'
+   * #swagger.description = 'Retrieves the details of a single rider by their ID.'
+   */
   try {
     const { riderId } = req.params;
     if (!riderId) throw new AppError(400, "riderId required");
@@ -187,6 +227,11 @@ export const getRider = async (req: Request, res: Response) => {
 
 // PATCH /admin/riders/:riderId/approve
 export const approveRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Approve a rider'
+   * #swagger.description = 'Approves a rider, making them verified and available.'
+   */
   try {
     const { riderId } = req.params;
     if (!riderId) throw new AppError(400, "riderId required");
@@ -204,6 +249,11 @@ export const approveRider = async (req: Request, res: Response) => {
 
 // PATCH /admin/riders/:riderId/suspend
 export const suspendRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Suspend a rider'
+   * #swagger.description = 'Suspends a rider, making them unavailable.'
+   */
   try {
     const { riderId } = req.params;
     if (!riderId) throw new AppError(400, "riderId required");

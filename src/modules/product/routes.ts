@@ -9,16 +9,8 @@ const router = express.Router();
 // PUBLIC ROUTES (No Auth)
 // =========================
 router.get("/", ProductController.getProducts);
-/* #swagger.tags = ['Product']
- #swagger.summary = 'List all products'
- #swagger.description = 'Retrieve a list of all available products'
-*/
 
 router.get("/:id", ProductController.getProductById);
-/* #swagger.tags = ['Product']
- #swagger.summary = 'Get a specific product'
- #swagger.description = 'Retrieve details for a single product by its ID'
-*/
 
 // // =========================
 // // (Vendor Auth Required)

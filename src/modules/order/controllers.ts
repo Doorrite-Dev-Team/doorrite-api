@@ -11,6 +11,11 @@ import socketService from "@lib/socketService";
 
 // GET api/v1/orders?status=&vendorId=&customerId=&page=&limit=&from=&to=
 export const getOrders = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Order']
+   * #swagger.summary = 'Get orders'
+   * #swagger.description = 'Get all orders'
+   */
   try {
     const actor = getActorFromReq(req);
     if (!actor?.id) throw new AppError(401, "Unauthorized");
@@ -88,6 +93,11 @@ export const getOrders = async (req: Request, res: Response) => {
 
 // GET /api/v1/orders/:id
 export const getOrderById = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Order']
+   * #swagger.summary = 'Get order by ID'
+   * #swagger.description = 'Get a single order by its ID'
+   */
   const { id } = req.params;
 
   try {
@@ -141,6 +151,11 @@ export const getOrderById = async (req: Request, res: Response) => {
 
 // POST /api/v1/orders
 export const createOrder = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Order']
+   * #swagger.summary = 'Create order'
+   * #swagger.description = 'Create a new order'
+   */
   try {
     const { vendorId, items, deliveryAddress, paymentMethod, placeId } =
       validateCreateOrderBody(req.body || {});
@@ -303,6 +318,11 @@ export const createOrder = async (req: Request, res: Response) => {
 
 // PATCH /orders/:orderId/cancel - Cancel order
 export const cancelOrder = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Order']
+   * #swagger.summary = 'Cancel order'
+   * #swagger.description = 'Cancel an order'
+   */
   const { id } = req.params;
   const { reason } = req.body;
   const actor = getActorFromReq(req);

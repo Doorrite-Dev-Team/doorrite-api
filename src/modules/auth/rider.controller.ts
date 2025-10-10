@@ -24,12 +24,14 @@ import {
 import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
 import { getCustomerIdFromRequest } from "@modules/order/utils";
-import { createResetToken } from '@config/redis';
+import { createResetToken } from "@config/redis";
 
-/* =========================
-   Rider Registration
-   ========================= */
 export const createRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Create a new rider'
+   * #swagger.description = 'Register a new rider account'
+   */
   try {
     const { fullName, email, phoneNumber, password } = req.body || {};
 
@@ -92,10 +94,12 @@ export const createRider = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   OTP: request & verify (rider)
-   ========================= */
 export const createRiderOtp = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Create rider OTP'
+   * #swagger.description = 'Send a one-time password to the rider'
+   */
   try {
     const { email } = req.body || {};
     if (!isValidEmail(email)) throw new AppError(400, "Valid email required");
@@ -112,6 +116,11 @@ export const createRiderOtp = async (req: Request, res: Response) => {
 };
 
 export const verifyRiderOtp = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Verify rider OTP'
+   * #swagger.description = 'Verify the one-time password for the rider'
+   */
   try {
     const { email, otp, purpose } = req.body || {};
     if (!isValidEmail(email)) throw new AppError(400, "Valid email required");
@@ -149,10 +158,12 @@ export const verifyRiderOtp = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Rider Login
-   ========================= */
 export const loginRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Rider login'
+   * #swagger.description = 'Authenticate and receive a JWT for the rider'
+   */
   try {
     const { email, password } = req.body || {};
 
@@ -193,10 +204,12 @@ export const loginRider = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Rider Logout
-   ========================= */
 export const logoutRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Rider logout'
+   * #swagger.description = 'Log out the currently authenticated rider'
+   */
   try {
     clearAuthCookies(res, "rider");
     return sendSuccess(res, { message: "Logout successful" }, 200);
@@ -205,10 +218,12 @@ export const logoutRider = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Rider Refresh Token
-   ========================= */
 export const refreshRiderToken = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Refresh rider token'
+   * #swagger.description = 'Obtain a new JWT for the rider using a refresh token'
+   */
   try {
     const refreshToken = getRefreshTokenFromReq(req, "rider");
     if (!refreshToken) {
@@ -236,10 +251,12 @@ export const refreshRiderToken = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Rider Forgot Password
-   ========================= */
 export const forgotRiderPassword = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Forgot rider password'
+   * #swagger.description = 'Initiate the password reset process for the rider'
+   */
   try {
     const { email } = req.body || {};
     if (!isValidEmail(email)) throw new AppError(400, "Valid email required");
@@ -256,10 +273,12 @@ export const forgotRiderPassword = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Rider Reset Password
-   ========================= */
 export const resetRiderPassword = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Reset rider password'
+   * #swagger.description = 'Reset the rider password with a valid token'
+   */
   try {
     const { email, password, confirmPassword, resetToken } = req.body || {};
 
@@ -298,10 +317,12 @@ export const resetRiderPassword = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Rider Change Password (Logged in)
-   ========================= */
 export const changeRiderPassword = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Rider']
+   * #swagger.summary = 'Forgot rider password'
+   * #swagger.description = 'Initiate the password reset process for the rider'
+   */
   try {
     const { oldPassword, newPassword } = req.body || {};
     const riderId = req.rider?.id; // Assuming rider ID is available from auth middleware

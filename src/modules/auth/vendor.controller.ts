@@ -25,10 +25,12 @@ import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
 import { createResetToken } from "@config/redis";
 
-/* =========================
-   Vendor Registration
-   ========================= */
 export const createVendor = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Create a new vendor'
+   * #swagger.description = 'Register a new vendor account'
+   */
   try {
     const {
       businessName,
@@ -135,10 +137,12 @@ export const createVendor = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   OTP: request & verify (vendor)
-   ========================= */
 export const createVendorOtp = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Create vendor OTP'
+   * #swagger.description = 'Send a one-time password to the vendor'
+   */
   try {
     const { email } = req.body || {};
     if (!isValidEmail(email)) throw new AppError(400, "Valid email required");
@@ -155,6 +159,11 @@ export const createVendorOtp = async (req: Request, res: Response) => {
 };
 
 export const verifyVendorOtp = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Verify vendor OTP'
+   * #swagger.description = 'Verify the one-time password for the vendor'
+   */
   try {
     const { email, otp, purpose } = req.body || {};
     if (!isValidEmail(email)) throw new AppError(400, "Valid email required");
@@ -192,10 +201,12 @@ export const verifyVendorOtp = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Login / Logout (vendor)
-   ========================= */
 export const loginVendor = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Vendor login'
+   * #swagger.description = 'Authenticate and receive a JWT for the vendor'
+   */
   try {
     const { identifier, password } = req.body || {}; // identifier = email or phone
 
@@ -243,6 +254,11 @@ export const loginVendor = async (req: Request, res: Response) => {
 };
 
 export const logoutVendor = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Vendor logout'
+   * #swagger.description = 'Log out the currently authenticated vendor'
+   */
   try {
     clearAuthCookies(res, "vendor");
 
@@ -252,10 +268,12 @@ export const logoutVendor = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Password Reset (vendor)
-   ========================= */
 export const forgottenVendorPassword = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Forgot vendor password'
+   * #swagger.description = 'Initiate the password reset process for the vendor'
+   */
   try {
     const { email } = req.body || {};
     if (!isValidEmail(email))
@@ -275,6 +293,11 @@ export const forgottenVendorPassword = async (req: Request, res: Response) => {
 };
 
 export const resetVendorPassword = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Reset vendor password'
+   * #swagger.description = 'Reset the vendor password with a valid token'
+   */
   try {
     const { email, password, confirmPassword, resetToken } = req.body || {};
 
@@ -316,10 +339,12 @@ export const resetVendorPassword = async (req: Request, res: Response) => {
   }
 };
 
-/* =========================
-   Token Refresh (vendor)
-   ========================= */
 export const refreshVendorToken = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Auth', 'Auth Vendor']
+   * #swagger.summary = 'Refresh vendor token'
+   * #swagger.description = 'Obtain a new JWT for the vendor using a refresh token'
+   */
   try {
     const raw = getAccessTokenFromReq(req, "vendor");
     if (!raw) throw new AppError(401, "No refresh token");

@@ -72,7 +72,12 @@
     },
     "/api/v1/auth/create-user": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "Create a new user",
+        "description": "Register a new user account",
         "responses": {
           "default": {
             "description": ""
@@ -105,7 +110,12 @@
     },
     "/api/v1/auth/create-otp": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "Create OTP",
+        "description": "Send a one-time password to the user",
         "responses": {
           "default": {
             "description": ""
@@ -129,7 +139,12 @@
     },
     "/api/v1/auth/verify-otp": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "Verify OTP",
+        "description": "Verify the one-time password",
         "responses": {
           "default": {
             "description": ""
@@ -159,7 +174,12 @@
     },
     "/api/v1/auth/login-user": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "User login",
+        "description": "Authenticate and receive a JWT",
         "responses": {
           "default": {
             "description": ""
@@ -186,7 +206,12 @@
     },
     "/api/v1/auth/refresh-token": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "Refresh token",
+        "description": "Obtain a new JWT using a refresh token",
         "responses": {
           "default": {
             "description": ""
@@ -196,7 +221,12 @@
     },
     "/api/v1/auth/logout-user": {
       "get": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "User logout",
+        "description": "Log out the currently authenticated user",
         "responses": {
           "default": {
             "description": ""
@@ -206,7 +236,12 @@
     },
     "/api/v1/auth/forget-password": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "Forgot password",
+        "description": "Initiate the password reset process",
         "responses": {
           "default": {
             "description": ""
@@ -230,7 +265,12 @@
     },
     "/api/v1/auth/reset-password": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
+        "summary": "Reset password",
+        "description": "Reset the user password with a valid token",
         "responses": {
           "default": {
             "description": ""
@@ -263,7 +303,12 @@
     },
     "/api/v1/auth/create-vendor": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Create a new vendor",
+        "description": "Register a new vendor account",
         "responses": {
           "default": {
             "description": ""
@@ -305,7 +350,12 @@
     },
     "/api/v1/auth/create-vendor-otp": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Create vendor OTP",
+        "description": "Send a one-time password to the vendor",
         "responses": {
           "default": {
             "description": ""
@@ -329,7 +379,12 @@
     },
     "/api/v1/auth/verify-vendor-otp": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Verify vendor OTP",
+        "description": "Verify the one-time password for the vendor",
         "responses": {
           "default": {
             "description": ""
@@ -359,7 +414,12 @@
     },
     "/api/v1/auth/login-vendor": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Vendor login",
+        "description": "Authenticate and receive a JWT for the vendor",
         "responses": {
           "default": {
             "description": ""
@@ -386,7 +446,12 @@
     },
     "/api/v1/auth/refresh-vendor-token": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Refresh vendor token",
+        "description": "Obtain a new JWT for the vendor using a refresh token",
         "responses": {
           "default": {
             "description": ""
@@ -396,7 +461,12 @@
     },
     "/api/v1/auth/logout-vendor": {
       "get": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Vendor logout",
+        "description": "Log out the currently authenticated vendor",
         "responses": {
           "default": {
             "description": ""
@@ -406,7 +476,12 @@
     },
     "/api/v1/auth/forget-vendor-password": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Forgot vendor password",
+        "description": "Initiate the password reset process for the vendor",
         "responses": {
           "default": {
             "description": ""
@@ -430,7 +505,12 @@
     },
     "/api/v1/auth/reset-vendor-password": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
+        "summary": "Reset vendor password",
+        "description": "Reset the vendor password with a valid token",
         "responses": {
           "default": {
             "description": ""
@@ -463,7 +543,12 @@
     },
     "/api/v1/auth/create-rider": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Create a new rider",
+        "description": "Register a new rider account",
         "responses": {
           "default": {
             "description": ""
@@ -499,7 +584,12 @@
     },
     "/api/v1/auth/create-rider-otp": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Create rider OTP",
+        "description": "Send a one-time password to the rider",
         "responses": {
           "default": {
             "description": ""
@@ -523,7 +613,12 @@
     },
     "/api/v1/auth/verify-rider-otp": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Verify rider OTP",
+        "description": "Verify the one-time password for the rider",
         "responses": {
           "default": {
             "description": ""
@@ -553,7 +648,12 @@
     },
     "/api/v1/auth/login-rider": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Rider login",
+        "description": "Authenticate and receive a JWT for the rider",
         "responses": {
           "default": {
             "description": ""
@@ -580,7 +680,12 @@
     },
     "/api/v1/auth/refresh-rider-token": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Refresh rider token",
+        "description": "Obtain a new JWT for the rider using a refresh token",
         "responses": {
           "default": {
             "description": ""
@@ -590,7 +695,12 @@
     },
     "/api/v1/auth/logout-rider": {
       "get": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Rider logout",
+        "description": "Log out the currently authenticated rider",
         "responses": {
           "default": {
             "description": ""
@@ -600,7 +710,12 @@
     },
     "/api/v1/auth/forgot-rider-password": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Forgot rider password",
+        "description": "Initiate the password reset process for the rider",
         "responses": {
           "default": {
             "description": ""
@@ -627,7 +742,12 @@
     },
     "/api/v1/auth/reset-rider-password": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
+        "summary": "Reset rider password",
+        "description": "Reset the rider password with a valid token",
         "responses": {
           "default": {
             "description": ""
@@ -664,7 +784,7 @@
           "Auth"
         ],
         "summary": "Get vendor categories",
-        "description": "Retrieve a list of all vendor categories",
+        "description": "Retrieve a list of available vendor categories and their keys.",
         "responses": {
           "200": {
             "description": "OK"
@@ -763,7 +883,11 @@
     },
     "/api/v1/vendors/{id}": {
       "get": {
-        "description": "",
+        "tags": [
+          "Vendor"
+        ],
+        "summary": "Get vendor details",
+        "description": "Fetches a single vendor by their ID.",
         "parameters": [
           {
             "name": "id",
@@ -783,7 +907,11 @@
     },
     "/api/v1/vendors/me": {
       "get": {
-        "description": "",
+        "tags": [
+          "Vendor"
+        ],
+        "summary": "Get current vendor's profile",
+        "description": "Fetches the profile of the currently authenticated vendor, including their products and orders.",
         "parameters": [
           {
             "name": "authorization",
@@ -800,13 +928,73 @@
         }
       },
       "put": {
-        "description": "",
+        "tags": [
+          "Vendor"
+        ],
+        "summary": "Update current vendor's profile",
+        "description": "Updates the profile of the currently authenticated vendor.",
         "parameters": [
           {
             "name": "authorization",
             "in": "header",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Vendor profile data to update",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "object"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "businessName": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "phoneNumber": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "address": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "object"
+                        }
+                      }
+                    },
+                    "logoUrl": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         ],
@@ -819,7 +1007,11 @@
     },
     "/api/v1/vendors/products": {
       "get": {
-        "description": "",
+        "tags": [
+          "Vendor"
+        ],
+        "summary": "Get vendor's products with pagination",
+        "description": "Fetches a paginated list of products for the currently authenticated vendor.",
         "parameters": [
           {
             "name": "authorization",
@@ -831,15 +1023,17 @@
           {
             "name": "page",
             "in": "query",
+            "description": "Page number",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "limit",
             "in": "query",
+            "description": "Number of items per page",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           }
         ],
@@ -850,13 +1044,27 @@
         }
       },
       "post": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
+        "summary": "Create a new product",
+        "description": "Creates a new product for the authenticated vendor.",
         "parameters": [
           {
             "name": "authorization",
             "in": "header",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Product data to create",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CreateProduct"
             }
           }
         ],
@@ -869,7 +1077,12 @@
     },
     "/api/v1/vendors/products/{id}": {
       "put": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
+        "summary": "Update a product",
+        "description": "Updates an existing product for the authenticated vendor.",
         "parameters": [
           {
             "name": "id",
@@ -877,13 +1090,23 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Product ID"
           },
           {
             "name": "authorization",
             "in": "header",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Product data to update",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UpdateProduct"
             }
           }
         ],
@@ -894,7 +1117,12 @@
         }
       },
       "delete": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
+        "summary": "Delete a product",
+        "description": "Deletes a product for the authenticated vendor. Fails if the product has been ordered.",
         "parameters": [
           {
             "name": "id",
@@ -902,7 +1130,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Product ID"
           },
           {
             "name": "authorization",
@@ -921,7 +1150,12 @@
     },
     "/api/v1/vendors/products/{id}/variants/{variantId}": {
       "put": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
+        "summary": "Update a product variant",
+        "description": "Updates a specific product variant.",
         "parameters": [
           {
             "name": "id",
@@ -929,7 +1163,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Product ID"
           },
           {
             "name": "variantId",
@@ -937,7 +1172,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Variant ID"
           },
           {
             "name": "authorization",
@@ -958,7 +1194,16 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "where": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
                     "example": "any"
                   },
                   "select": {
@@ -971,7 +1216,12 @@
         }
       },
       "delete": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
+        "summary": "Delete a product variant",
+        "description": "Deletes a specific product variant. Fails if the variant has been ordered.",
         "parameters": [
           {
             "name": "id",
@@ -979,7 +1229,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Product ID"
           },
           {
             "name": "variantId",
@@ -987,7 +1238,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Variant ID"
           },
           {
             "name": "authorization",
@@ -1006,7 +1258,12 @@
     },
     "/api/v1/vendors/orders": {
       "get": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Orders"
+        ],
+        "summary": "Get vendor's orders with pagination",
+        "description": "Fetches a paginated list of orders for the currently authenticated vendor.",
         "parameters": [
           {
             "name": "authorization",
@@ -1018,15 +1275,17 @@
           {
             "name": "page",
             "in": "query",
+            "description": "Page number",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "limit",
             "in": "query",
+            "description": "Number of items per page",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           }
         ],
@@ -1039,7 +1298,12 @@
     },
     "/api/v1/vendors/orders/{orderId}": {
       "get": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Orders"
+        ],
+        "summary": "Get a single order for the vendor",
+        "description": "Fetches details of a specific order belonging to the currently authenticated vendor.",
         "parameters": [
           {
             "name": "orderId",
@@ -1047,7 +1311,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Order ID"
           },
           {
             "name": "authorization",
@@ -1066,7 +1331,12 @@
     },
     "/api/v1/vendors/orders/{orderId}/status": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Vendor",
+          "Vendor Orders"
+        ],
+        "summary": "Update order status",
+        "description": "Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, or CANCELLED.",
         "parameters": [
           {
             "name": "orderId",
@@ -1074,7 +1344,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Order ID"
           },
           {
             "name": "authorization",
@@ -1089,13 +1360,27 @@
             "description": "Unauthorized"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "status": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
                     "example": "any"
                   },
                   "note": {
@@ -1110,20 +1395,26 @@
     },
     "/api/v1/vendors/": {
       "get": {
-        "description": "",
+        "tags": [
+          "Vendor"
+        ],
+        "summary": "Get all vendors with pagination",
+        "description": "Fetches a paginated list of all vendors.",
         "parameters": [
           {
             "name": "page",
             "in": "query",
+            "description": "Page number",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "limit",
             "in": "query",
+            "description": "Number of items per page",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           }
         ],
@@ -1340,7 +1631,11 @@
     },
     "/api/v1/admin/login": {
       "post": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin login",
+        "description": "Authenticate an admin user.",
         "responses": {
           "default": {
             "description": ""
@@ -1367,7 +1662,11 @@
     },
     "/api/v1/admin/vendors": {
       "get": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List all vendors",
+        "description": "Retrieves a paginated list of all vendors.",
         "parameters": [
           {
             "name": "page",
@@ -1393,7 +1692,11 @@
     },
     "/api/v1/admin/vendors/{vendorId}": {
       "get": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a specific vendor",
+        "description": "Retrieves the details of a single vendor by their ID.",
         "parameters": [
           {
             "name": "vendorId",
@@ -1413,7 +1716,11 @@
     },
     "/api/v1/admin/vendors/{vendorId}/approve": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approve a vendor",
+        "description": "Approves a vendor, making them verified and active.",
         "parameters": [
           {
             "name": "vendorId",
@@ -1433,7 +1740,11 @@
     },
     "/api/v1/admin/riders": {
       "get": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List all riders",
+        "description": "Retrieves a paginated list of all riders.",
         "parameters": [
           {
             "name": "page",
@@ -1459,7 +1770,11 @@
     },
     "/api/v1/admin/riders/{riderId}": {
       "get": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a specific rider",
+        "description": "Retrieves the details of a single rider by their ID.",
         "parameters": [
           {
             "name": "riderId",
@@ -1479,7 +1794,11 @@
     },
     "/api/v1/admin/riders/{riderId}/approve": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approve a rider",
+        "description": "Approves a rider, making them verified and available.",
         "parameters": [
           {
             "name": "riderId",
@@ -1499,7 +1818,11 @@
     },
     "/api/v1/admin/riders/{riderId}/suspend": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Suspend a rider",
+        "description": "Suspends a rider, making them unavailable.",
         "parameters": [
           {
             "name": "riderId",
@@ -1519,7 +1842,11 @@
     },
     "/api/v1/admin/orders/{orderId}/status": {
       "patch": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update order status",
+        "description": "Updates the status of a specific order.",
         "parameters": [
           {
             "name": "orderId",
@@ -1553,7 +1880,11 @@
     },
     "/api/v1/admin/reports": {
       "get": {
-        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get system reports",
+        "description": "Retrieves various system reports, such as counts and revenue.",
         "responses": {
           "default": {
             "description": ""

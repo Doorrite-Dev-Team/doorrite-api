@@ -13,6 +13,11 @@ import {
 //Get Vendor Details
 //GET /api/vendors/:id
 export const getVendorById = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = 'Get vendor details'
+   * #swagger.description = 'Fetches a single vendor by their ID.'
+   */
   try {
     const vendorId = req.params.id;
 
@@ -41,6 +46,11 @@ export const getVendorById = async (req: Request, res: Response) => {
 //Get Current Vendor Profile
 //GET /api/vendors/me
 export const getCurrentVendorProfile = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = "Get current vendor's profile"
+   * #swagger.description = 'Fetches the profile of the currently authenticated vendor, including their products and orders.'
+   */
   try {
     const vendorId = req.vendor?.id; // Assuming vendor ID is available from auth middleware
     if (!vendorId) {
@@ -68,6 +78,13 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
 //Get All Vendors with pagination
 //GET /api/vendors
 export const getAllVendors = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = 'Get all vendors with pagination'
+   * #swagger.description = 'Fetches a paginated list of all vendors.'
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   */
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -104,6 +121,12 @@ export const getAllVendors = async (req: Request, res: Response) => {
 //Update Vendor Profile
 // PUT api/v1/vendors/me
 export const updateVendorProfile = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = "Update current vendor's profile"
+   * #swagger.description = 'Updates the profile of the currently authenticated vendor.'
+   * #swagger.parameters['body'] = { in: 'body', description: 'Vendor profile data to update', required: true, schema: { type: 'object', properties: { businessName: { type: 'string' }, phoneNumber: { type: 'string' }, address: { type: 'object' }, logoUrl: { type: 'string' } } } }
+   */
   const vendorId = req.vendor?.id;
   if (!vendorId) throw new AppError(401, "Authentication required");
 
@@ -177,6 +200,13 @@ type Address {
 // Get Vendor's Products with Pagination
 // GET /api/vendors/products/?page=&limit=
 export const getVendorProducts = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = "Get vendor's products with pagination"
+   * #swagger.description = 'Fetches a paginated list of products for the currently authenticated vendor.'
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   */
   try {
     const vendorId = req.vendor?.id;
     if (!vendorId) {
@@ -213,6 +243,12 @@ export const getVendorProducts = async (req: Request, res: Response) => {
 
 // POST /api/v1/products
 export const createProduct = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Products']
+   * #swagger.summary = 'Create a new product'
+   * #swagger.description = 'Creates a new product for the authenticated vendor.'
+   * #swagger.parameters['body'] = { in: 'body', description: 'Product data to create', required: true, schema: { $ref: '#/components/schemas/CreateProduct' } }
+   */
   try {
     const vendorId = req.user?.sub;
     if (!vendorId) throw new AppError(401, "Authentication required");
@@ -280,6 +316,13 @@ export const createProduct = async (req: Request, res: Response) => {
 
 // PUT /api/v1/vendors/products/:id
 export const updateProduct = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Products']
+   * #swagger.summary = 'Update a product'
+   * #swagger.description = 'Updates an existing product for the authenticated vendor.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Product data to update', required: true, schema: { $ref: '#/components/schemas/UpdateProduct' } }
+   */
   try {
     const vendorId = req.user?.sub;
     const { id: productId } = req.params;
@@ -357,6 +400,12 @@ export const updateProduct = async (req: Request, res: Response) => {
 
 // DELETE /api/v1/vendors/products/:id
 export const deleteProduct = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Products']
+   * #swagger.summary = 'Delete a product'
+   * #swagger.description = 'Deletes a product for the authenticated vendor. Fails if the product has been ordered.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   */
   try {
     const vendorId = req.user?.sub;
     const { id: productId } = req.params;
@@ -397,6 +446,13 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
 // POST /api/v1/vendors/products/:id/variants
 export const createProductVariant = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Products']
+   * #swagger.summary = 'Create a product variant'
+   * #swagger.description = 'Creates a new variant for a specific product.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to create', required: true, schema: { $ref: '#/components/schemas/CreateVariant' } }
+   */
   try {
     const vendorId = req.user?.sub;
     const { id: productId } = req.params;
@@ -450,6 +506,14 @@ export const createProductVariant = async (req: Request, res: Response) => {
 
 // PUT /api/v1/vendors/products/:id/variants/:variantId
 export const updateProductVariant = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Products']
+   * #swagger.summary = 'Update a product variant'
+   * #swagger.description = 'Updates a specific product variant.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.parameters['variantId'] = { in: 'path', description: 'Variant ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to update', required: true, schema: { $ref: '#/components/schemas/UpdateVariant' } }
+   */
   try {
     const vendorId = req.user?.sub;
     const { id: productId, variantId } = req.params;
@@ -514,6 +578,13 @@ export const updateProductVariant = async (req: Request, res: Response) => {
 
 // DELETE /api/v1/vendors/products/:id/variants/:variantId
 export const deleteProductVariant = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Products']
+   * #swagger.summary = 'Delete a product variant'
+   * #swagger.description = 'Deletes a specific product variant. Fails if the variant has been ordered.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.parameters['variantId'] = { in: 'path', description: 'Variant ID', required: true, type: 'string' }
+   */
   try {
     const vendorId = req.user?.sub;
     const { id: productId, variantId } = req.params;
@@ -554,6 +625,13 @@ export const deleteProductVariant = async (req: Request, res: Response) => {
 
 //GET /vendor/orders/?page=&limit= - List vendor orders
 export const getVendorOrders = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Orders']
+   * #swagger.summary = "Get vendor's orders with pagination"
+   * #swagger.description = 'Fetches a paginated list of orders for the currently authenticated vendor.'
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   */
   try {
     const vendorId = req.vendor?.id;
     if (!vendorId) {
@@ -590,6 +668,12 @@ export const getVendorOrders = async (req: Request, res: Response) => {
 
 // GET /vendor/orders/:orderId - Get order details
 export const getVendorOrderById = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Orders']
+   * #swagger.summary = "Get a single order for the vendor"
+   * #swagger.description = 'Fetches details of a specific order belonging to the currently authenticated vendor.'
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
   try {
     const vendorId = req.vendor?.id;
     const { orderId } = req.params;
@@ -626,6 +710,14 @@ export const getVendorOrderById = async (req: Request, res: Response) => {
 
 // PATCH /vendor/orders/:orderId/status
 export const updateOrderStatus = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Orders']
+   * #swagger.summary = 'Update order status'
+   * #swagger.description = 'Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, or CANCELLED.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'CANCELLED'] }, note: { type: 'string' } } } }
+   */
   try {
     const vendorId = req.vendor?.id;
     const { orderId } = req.params;
@@ -691,7 +783,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       order: result,
     });
   } catch (error) {
-    return handleError(res, error);
+    handleError(res, error);
   }
 };
 
