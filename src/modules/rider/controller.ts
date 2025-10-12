@@ -15,6 +15,12 @@ type LocationUpdate = {
 // Get Rider by ID
 // GET /riders/:id
 export const getRiderById = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider']
+   * #swagger.summary = 'Get a single rider by ID'
+   * #swagger.description = 'Retrieves public information about a specific rider.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Rider ID', required: true, type: 'string' }
+   */
   try {
     const { id } = req.params;
     const rider = await prisma.rider.findUnique({
@@ -34,6 +40,12 @@ export const getRiderById = async (req: Request, res: Response) => {
 // Get Current Rider Profile
 // GET /riders/me
 export const getCurrentRiderProfile = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider']
+   * #swagger.summary = 'Get current rider profile'
+   * #swagger.description = 'Retrieves the profile of the currently authenticated rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   */
   try {
     const riderId = req.rider?.id; // Assuming rider ID is available from auth middleware
     if (!riderId) {
@@ -60,6 +72,13 @@ export const getCurrentRiderProfile = async (req: Request, res: Response) => {
 // Get All Riders with Pagination
 // Get /riders
 export const getAllRiders = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider']
+   * #swagger.summary = 'Get all riders'
+   * #swagger.description = 'Retrieves a paginated list of all riders.'
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', required: false, type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', required: false, type: 'integer' }
+   */
   try {
     const { page = "1", limit = "20" } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page));
@@ -86,6 +105,13 @@ export const getAllRiders = async (req: Request, res: Response) => {
 // Update Rider Profile
 // PUT api/v1/riders/me
 export const updateRiderProfile = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider']
+   * #swagger.summary = 'Update rider profile'
+   * #swagger.description = 'Updates the profile of the currently authenticated rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['body'] = { in: 'body', description: 'Rider profile data', required: true, schema: { type: 'object', properties: { fullName: { type: 'string' }, phoneNumber: { type: 'string' }, profileImageUrl: { type: 'string' }, vehicleType: { type: 'string' }, licenseNumber: { type: 'string' }, currentLocation: { type: 'object' }, address: { type: 'object' } } } }
+   */
   const riderId = req.rider?.id;
   if (!riderId) throw new AppError(401, "Authentication required");
 
@@ -172,6 +198,16 @@ export const updateRiderProfile = async (req: Request, res: Response) => {
  * @access  Private - Rider only
  */
 export const getRiderOrders = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider Orders']
+   * #swagger.summary = 'Get rider orders'
+   * #swagger.description = 'Retrieves a list of orders for the rider. Can be filtered by status or to show claimable orders.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', required: false, type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', required: false, type: 'integer' }
+   * #swagger.parameters['status'] = { in: 'query', description: 'Filter by order status', required: false, type: 'string' }
+   * #swagger.parameters['claimable'] = { in: 'query', description: 'Set to true to get claimable orders', required: false, type: 'boolean' }
+   */
   try {
     const riderId = req.rider?.id;
     if (!riderId) throw new AppError(401, "Unauthorized");
@@ -228,6 +264,13 @@ export const getRiderOrders = async (req: Request, res: Response) => {
 // Get rider's order by ID
 // GET /api/v1/riders/orders/:id
 export const getRiderOrderById = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider Orders']
+   * #swagger.summary = 'Get a specific order by ID'
+   * #swagger.description = 'Retrieves details of a specific order assigned to the rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
   try {
     const riderId = req.rider?.id;
     if (!riderId) throw new AppError(401, "Authentication required");
@@ -256,6 +299,13 @@ export const getRiderOrderById = async (req: Request, res: Response) => {
  * @access  Private - Rider only
  */
 export const claimOrder = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider Orders']
+   * #swagger.summary = 'Claim an order'
+   * #swagger.description = 'Allows a rider to claim an available order for delivery.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
   const { id } = req.params;
   const actor = getActorFromReq(req);
 
@@ -318,6 +368,13 @@ export const claimOrder = async (req: Request, res: Response) => {
  * @access  Private - Rider only
  */
 export const updateLocation = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider']
+   * #swagger.summary = 'Update rider location'
+   * #swagger.description = 'Updates the real-time location of the rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['body'] = { in: 'body', description: 'Location data', required: true, schema: { type: 'object', properties: { latitude: { type: 'number' }, longitude: { type: 'number' } } } }
+   */
   const { latitude, longitude } = req.body;
   const riderId = req.rider?.id;
 
@@ -377,6 +434,13 @@ export const updateLocation = async (req: Request, res: Response) => {
  * @access  Private - Rider only
  */
 export const toggleAvailability = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider']
+   * #swagger.summary = 'Toggle rider availability'
+   * #swagger.description = 'Sets the rider as available or unavailable for new orders.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['body'] = { in: 'body', description: 'Availability status', required: true, schema: { type: 'object', properties: { available: { type: 'boolean' } } } }
+   */
   const { available } = req.body;
   const riderId = req.rider?.id;
 
@@ -408,6 +472,16 @@ export const toggleAvailability = async (req: Request, res: Response) => {
  * @access  Private - Rider only
  */
 export const getDeliveryHistory = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider']
+   * #swagger.summary = 'Get delivery history'
+   * #swagger.description = 'Retrieves the delivery history for the authenticated rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', required: false, type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', required: false, type: 'integer' }
+   * #swagger.parameters['from'] = { in: 'query', description: 'Start date for filtering', required: false, type: 'string', format: 'date-time' }
+   * #swagger.parameters['to'] = { in: 'query', description: 'End date for filtering', required: false, type: 'string', format: 'date-time' }
+   */
   const riderId = req.rider?.id;
   const {
     page = "1",
@@ -473,6 +547,13 @@ export const getDeliveryHistory = async (req: Request, res: Response) => {
  * @access  Private - Rider only
  */
 export const declineOrder = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider Orders']
+   * #swagger.summary = 'Decline an order'
+   * #swagger.description = 'Allows a rider to decline an assigned order.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
   try {
     const riderId = req.rider?.id;
     if (!riderId) throw new AppError(401, "Authentication required");

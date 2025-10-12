@@ -10,6 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+generator jsonSchema {
+  provider = "prisma-json-schema-generator"
+  output = "../src"
+}
+
 // enums
 enum Role {
   CUSTOMER
@@ -131,6 +136,7 @@ model Vendor {
   rating       Float?
   isActive     Boolean     @default(true)
   isVerified   Boolean     @default(false)
+  isApproved   Boolean     @default(false)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -186,6 +192,7 @@ model Rider {
   licenseNumber   String?
   isAvailable     Boolean     @default(true)
   isVerified      Boolean     @default(false)
+  isApproved      Boolean     @default(false)
   rating          Float?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt

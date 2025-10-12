@@ -1,26 +1,22 @@
 import swaggerAutogen from "swagger-autogen";
 
 const doc = {
+  $schema: "http://json-schema.org/draft-07/schema#",
+  openapi: "3.1.0",
   info: {
     title: "Doorrite API",
-    description: "Contain All API for the food delivery system",
+    description: "All API endpoints for the Doorrite food delivery system.",
     version: "1.0.0",
   },
   servers: [
-    {
-      url: "http://localhost:4000",
-      description: "Local development server",
-    },
+    { url: "http://localhost:4000", description: "Local development server" },
     {
       url: "https://doorrite-api.onrender.com",
       description: "Production server",
     },
   ],
   tags: [
-    {
-      name: "Auth",
-      description: "Authentication endpoints (users, vendors, riders)",
-    },
+    { name: "Auth", description: "Authentication endpoints" },
     { name: "User", description: "Customer endpoints" },
     { name: "Vendor", description: "Vendor endpoints" },
     { name: "Product", description: "Product endpoints" },
@@ -31,10 +27,19 @@ const doc = {
   ],
   components: {
     securitySchemes: {
-      bearerAuth: {
-        type: "http",
-        scheme: "bearer",
-        bearerFormat: "JWT",
+      cookieAuth: {
+        type: "apiKey",
+        in: "cookie",
+        name: "access_token", // name of your JWT cookie (adjust as needed)
+        description:
+          "JWT Access Token stored in HttpOnly cookie. Automatically sent with requests after login.",
+      },
+      requestToken: {
+        type: "apiKey",
+        in: "cookie",
+        name: "request_token", // optional: if you use a separate refresh/request cookie
+        description:
+          "Temporary request token used for request validation or refreshing JWT session.",
       },
     },
     schemas: {
@@ -54,33 +59,36 @@ const doc = {
           password: { type: "string", example: "securepassword" },
         },
       },
-      PaymentIntent: {
-        type: "object",
-        properties: {
-          orderId: { type: "string", example: "order_abc123" },
-        },
-      },
-      ConfirmPayment: {
-        type: "object",
-        properties: {
-          reference: { type: "string", example: "psk_abc123" },
-        },
-      },
-      RefundRequest: {
-        type: "object",
-        properties: {
-          amount: { type: "number", example: 1000 },
-          reason: { type: "string", example: "Customer requested refund" },
-        },
-      },
+      // PaymentIntent: {
+      //   type: "object",
+      //   properties: {
+      //     orderId: { type: "string", example: "order_abc123" },
+      //   },
+      // },
+      // ConfirmPayment: {
+      //   type: "object",
+      //   properties: {
+      //     reference: { type: "string", example: "psk_abc123" },
+      //   },
+      // },
+      // RefundRequest: {
+      //   type: "object",
+      //   properties: {
+      //     amount: { type: "number", example: 1000 },
+      //     reason: { type: "string", example: "Customer requested refund" },
+      //   },
+      // },
     },
   },
+  security: [
+    {
+      cookieAuth: [],
+      requestToken: [],
+    },
+  ],
 };
 
 const outputFile = "./swagger-output.json";
-const routes = ["./app.ts"]; // Pointing to the app's entry point is the most robust way to capture all routes.
+const routes = ["./app.ts"];
 
-/* NOTE: If you are using the express Router, you must pass in the 'routes' only the
-root file where the route starts, such as index.js, app.js, routes.js, etc ... */
-
-swaggerAutogen({ openapi: "3.0.0" })(outputFile, routes, doc);
+swaggerAutogen({ openapi: "3.1.0" })(outputFile, routes, doc);

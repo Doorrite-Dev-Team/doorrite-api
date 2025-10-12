@@ -490,21 +490,61 @@ export const checkExistingEntity = async (
   phoneNumber: string,
   entityType: EntityType
 ) => {
+
   const existing = await checkEntityExists(email, phoneNumber, entityType);
-  if (existing) {
+
+  // --- Case 1: No existing entity at all
+  if (!existing) {
+    return { shouldCreateNew: true };
+  }
+
+  const emailMatches = existing.email === email;
+  const phoneMatches = existing.phoneNumber === phoneNumber;
+
+  // --- Case 2: Both match
+  if (emailMatches && phoneMatches) {
     if (!existing.isVerified) {
-      await createAndSendOtp(
-        existing.email,
-        entityType,
-        OtpType.EMAIL_VERIFICATION
-      );
+      await createAndSendOtp(existing.email, entityType, OtpType.EMAIL_VERIFICATION);
       return {
         message: `${entityType} exists but not verified. New OTP sent to email.`,
         entityId: existing.id,
         shouldCreateNew: false,
       };
     }
-    throw new AppError(409, `${entityType} already exists. Please login`);
+    // Registration already complete → redirect to login
+    // throw new AppError(409, `${entityType} already exists. Please login`);
+    console.error(`${entityType} already registered. Redirecting to login...`);
+    return { shouldCreateNew: false, redirectToLogin: true };
   }
-  return { shouldCreateNew: true };
+
+  // --- Case 3: One matches, but the other doesn't
+  if (!existing.isVerified) {
+    // Delete unverified/incomplete registration before recreating
+    await deleteIncompleteEntity(existing.id, entityType);
+    console.log(
+      `Deleted previous unverified ${entityType} with mismatched credentials.`
+    );
+    return { shouldCreateNew: true };
+  }
+
+  // --- Case 4: Verified but mismatched → registration complete
+  // So user must login instead of registering again
+  // throw new AppError(409, `${entityType} already registered. Please login`);
+  console.error(
+    `${entityType} is verified but credentials mismatch. Redirecting to login...`
+  );
+  return { shouldCreateNew: false, redirectToLogin: true };
+};
+
+export const deleteIncompleteEntity = async (id: string, entityType: EntityType) => {
+  switch (entityType) {
+    case "user":
+      return prisma.user.delete({ where: { id } });
+    case "vendor":
+      return prisma.vendor.delete({ where: { id } });
+    case "rider":
+      return prisma.rider.delete({ where: { id } });
+    default:
+      throw new AppError(400, "Invalid entity type");
+  }
 };

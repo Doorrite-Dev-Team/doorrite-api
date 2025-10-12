@@ -8,6 +8,13 @@ import socketService from "@lib/socketService";
 
 // POST /payments/create-intent
 export const createPaymentIntent = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Payment']
+   * #swagger.summary = 'Create a payment intent'
+   * #swagger.description = 'Creates a payment intent for an order.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['body'] = { in: 'body', description: 'Order ID', required: true, schema: { type: 'object', properties: { orderId: { type: 'string' } } } }
+   */
   try {
     const { orderId } = req.body;
     const actor = getActorFromReq(req);
@@ -93,6 +100,13 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
 
 // POST /payments/confirm
 export const confirmPayment = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Payment']
+   * #swagger.summary = 'Confirm a payment'
+   * #swagger.description = 'Confirms a payment using the payment reference.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['body'] = { in: 'body', description: 'Payment reference', required: true, schema: { type: 'object', properties: { reference: { type: 'string' } } } }
+   */
   try {
     const { reference } = req.body;
     const actor = getActorFromReq(req);
@@ -176,6 +190,11 @@ export const confirmPayment = async (req: Request, res: Response) => {
 
 // POST /payments/webhook
 export const handleWebhook = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Payment']
+   * #swagger.summary = 'Handle Paystack webhook'
+   * #swagger.description = 'Handles webhook events from Paystack.'
+   */
   try {
     const rawBody = JSON.stringify(req.body);
     const signature = req.headers["x-paystack-signature"] as string | undefined;
@@ -211,6 +230,13 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
 // GET /payments/:orderId/status
 export const checkPaymentStatus = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Payment']
+   * #swagger.summary = 'Check payment status'
+   * #swagger.description = 'Checks the payment status for an order.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
   try {
     const { orderId } = req.params;
     const actor = getActorFromReq(req);
@@ -252,6 +278,14 @@ export const checkPaymentStatus = async (req: Request, res: Response) => {
 
 // POST /payments/:orderId/refund
 export const processRefund = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Payment']
+   * #swagger.summary = 'Process a refund'
+   * #swagger.description = 'Processes a refund for an order. Only admins can perform this action.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Refund details', required: true, schema: { type: 'object', properties: { reason: { type: 'string' }, amount: { type: 'number' } } } }
+   */
   try {
     const { orderId } = req.params;
     const { reason, amount } = req.body;
@@ -353,6 +387,14 @@ export const processRefund = async (req: Request, res: Response) => {
 
 // PATCH /payments/:id/status
 export const updatePaymentStatus = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Payment']
+   * #swagger.summary = 'Update payment status'
+   * #swagger.description = 'Updates the status of a payment. This is for internal use.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Payment ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Status update', required: true, schema: { type: 'object', properties: { status: { type: 'string' } } } }
+   */
   try {
     const { id } = req.params;
     const { status } = req.body; // e.g. "paid" | "failed"
@@ -375,6 +417,13 @@ export const updatePaymentStatus = async (req: Request, res: Response) => {
 
 // GET /payments/order/:orderId
 export const getPaymentByOrder = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Payment']
+   * #swagger.summary = 'Get payment by order'
+   * #swagger.description = 'Gets the payment associated with an order.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
   try {
     const { orderId } = req.params;
 

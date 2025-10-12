@@ -451,7 +451,7 @@ export const createProductVariant = async (req: Request, res: Response) => {
    * #swagger.summary = 'Create a product variant'
    * #swagger.description = 'Creates a new variant for a specific product.'
    * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to create', required: true, schema: { $ref: '#/components/schemas/CreateVariant' } }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to create', required: true}
    */
   try {
     const vendorId = req.user?.sub;
@@ -512,7 +512,7 @@ export const updateProductVariant = async (req: Request, res: Response) => {
    * #swagger.description = 'Updates a specific product variant.'
    * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
    * #swagger.parameters['variantId'] = { in: 'path', description: 'Variant ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to update', required: true, schema: { $ref: '#/components/schemas/UpdateVariant' } }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to update', required: true}
    */
   try {
     const vendorId = req.user?.sub;

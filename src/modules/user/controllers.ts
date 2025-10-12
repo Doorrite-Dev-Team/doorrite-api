@@ -6,12 +6,16 @@ import { Request, Response } from "express";
 // Get User by ID
 // GET api/v1/users/:id
 export const getUser = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User']
+   * #swagger.summary = 'Get user by ID'
+   * #swagger.description = 'Retrieves a user by their ID.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'User ID', required: true, type: 'string' }
+   */
   try {
-    const userId = req.user?.sub;
-    if (!userId) throw new AppError(401, "Unauthorized");
-
+    const { id } = req.params;
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id },
     });
     if (!user) throw new AppError(404, "User not found");
     return sendSuccess(res, { user }, 200);
@@ -23,6 +27,12 @@ export const getUser = async (req: Request, res: Response) => {
 // Get Current User Profile
 // GET api/v1/users/me
 export const getCurrentUserProfile = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User']
+   * #swagger.summary = 'Get current user profile'
+   * #swagger.description = 'Retrieves the profile of the currently authenticated user.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   */
   try {
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
@@ -40,6 +50,13 @@ export const getCurrentUserProfile = async (req: Request, res: Response) => {
 // Update User Profile
 // PUT api/v1/users/me
 export const updateUserProfile = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User']
+   * #swagger.summary = 'Update user profile'
+   * #swagger.description = 'Updates the profile of the currently authenticated user.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['body'] = { in: 'body', description: 'User profile data', required: true, schema: { type: 'object', properties: { fullName: { type: 'string' }, phoneNumber: { type: 'string' }, profileImageUrl: { type: 'string' }, address: { type: 'object' } } } }
+   */
   const id = req.user?.sub;
   if (!id) {
     return handleError(res, new AppError(400, "User ID is required"));
@@ -121,6 +138,14 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 //response : {  "data": [...],  "pagination": {    "totalItems": 95,    "totalPages": 10,    "currentPage": 3,    "pageSize": 10,    "hasNext": true,    "hasPrev": true  }}
 // GET /users/orders/
 export const getUserOrders = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User', 'User Orders']
+   * #swagger.summary = 'Get user orders'
+   * #swagger.description = 'Retrieves a paginated list of orders for the currently authenticated user.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
+   * #swagger.parameters['pageSize'] = { in: 'query', description: 'Page size', type: 'integer' }
+   */
   try {
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
@@ -164,6 +189,13 @@ export const getUserOrders = async (req: Request, res: Response) => {
 // Create User Review for vendor, rider or product
 // POST /users/reviews
 export const createUserReview = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User', 'User Reviews']
+   * #swagger.summary = 'Create a review'
+   * #swagger.description = 'Creates a review for a vendor, rider, or product.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['body'] = { in: 'body', description: 'Review data', required: true, schema: { type: 'object', properties: { targetId: { type: 'string' }, targetType: { type: 'string', enum: ['vendor', 'rider', 'product'] }, rating: { type: 'integer', minimum: 1, maximum: 5 }, comment: { type: 'string' } } } }
+   */
   try {
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");

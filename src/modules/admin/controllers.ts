@@ -107,7 +107,7 @@ export const approveVendor = async (req: Request, res: Response) => {
 
     const vendor = await prisma.vendor.update({
       where: { id: vendorId },
-      data: { isVerified: true, isActive: true },
+      data: { isApproved: true, isActive: true },
     });
 
     return sendSuccess(res, { vendor });
@@ -238,7 +238,7 @@ export const approveRider = async (req: Request, res: Response) => {
 
     const rider = await prisma.rider.update({
       where: { id: riderId },
-      data: { isVerified: true, isAvailable: true },
+      data: { isApproved: true, isAvailable: true },
     });
 
     return sendSuccess(res, { rider });

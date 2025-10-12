@@ -1,8 +1,8 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.1.0",
   "info": {
     "title": "Doorrite API",
-    "description": "Contain All API for the food delivery system",
+    "description": "All API endpoints for the Doorrite food delivery system.",
     "version": "1.0.0"
   },
   "servers": [
@@ -18,7 +18,7 @@
   "tags": [
     {
       "name": "Auth",
-      "description": "Authentication endpoints (users, vendors, riders)"
+      "description": "Authentication endpoints"
     },
     {
       "name": "User",
@@ -72,10 +72,7 @@
     },
     "/api/v1/auth/create-user": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "Create a new user",
         "description": "Register a new user account",
         "responses": {
@@ -110,10 +107,7 @@
     },
     "/api/v1/auth/create-otp": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "Create OTP",
         "description": "Send a one-time password to the user",
         "responses": {
@@ -139,10 +133,7 @@
     },
     "/api/v1/auth/verify-otp": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "Verify OTP",
         "description": "Verify the one-time password",
         "responses": {
@@ -174,10 +165,7 @@
     },
     "/api/v1/auth/login-user": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "User login",
         "description": "Authenticate and receive a JWT",
         "responses": {
@@ -206,10 +194,7 @@
     },
     "/api/v1/auth/refresh-token": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "Refresh token",
         "description": "Obtain a new JWT using a refresh token",
         "responses": {
@@ -221,10 +206,7 @@
     },
     "/api/v1/auth/logout-user": {
       "get": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "User logout",
         "description": "Log out the currently authenticated user",
         "responses": {
@@ -236,10 +218,7 @@
     },
     "/api/v1/auth/forget-password": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "Forgot password",
         "description": "Initiate the password reset process",
         "responses": {
@@ -265,10 +244,7 @@
     },
     "/api/v1/auth/reset-password": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth User"
-        ],
+        "tags": ["Auth", "Auth User"],
         "summary": "Reset password",
         "description": "Reset the user password with a valid token",
         "responses": {
@@ -303,10 +279,7 @@
     },
     "/api/v1/auth/create-vendor": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Create a new vendor",
         "description": "Register a new vendor account",
         "responses": {
@@ -350,10 +323,7 @@
     },
     "/api/v1/auth/create-vendor-otp": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Create vendor OTP",
         "description": "Send a one-time password to the vendor",
         "responses": {
@@ -379,10 +349,7 @@
     },
     "/api/v1/auth/verify-vendor-otp": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Verify vendor OTP",
         "description": "Verify the one-time password for the vendor",
         "responses": {
@@ -414,10 +381,7 @@
     },
     "/api/v1/auth/login-vendor": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Vendor login",
         "description": "Authenticate and receive a JWT for the vendor",
         "responses": {
@@ -446,10 +410,7 @@
     },
     "/api/v1/auth/refresh-vendor-token": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Refresh vendor token",
         "description": "Obtain a new JWT for the vendor using a refresh token",
         "responses": {
@@ -461,10 +422,7 @@
     },
     "/api/v1/auth/logout-vendor": {
       "get": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Vendor logout",
         "description": "Log out the currently authenticated vendor",
         "responses": {
@@ -476,10 +434,7 @@
     },
     "/api/v1/auth/forget-vendor-password": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Forgot vendor password",
         "description": "Initiate the password reset process for the vendor",
         "responses": {
@@ -505,10 +460,7 @@
     },
     "/api/v1/auth/reset-vendor-password": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Vendor"
-        ],
+        "tags": ["Auth", "Auth Vendor"],
         "summary": "Reset vendor password",
         "description": "Reset the vendor password with a valid token",
         "responses": {
@@ -543,10 +495,7 @@
     },
     "/api/v1/auth/create-rider": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Create a new rider",
         "description": "Register a new rider account",
         "responses": {
@@ -584,10 +533,7 @@
     },
     "/api/v1/auth/create-rider-otp": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Create rider OTP",
         "description": "Send a one-time password to the rider",
         "responses": {
@@ -613,10 +559,7 @@
     },
     "/api/v1/auth/verify-rider-otp": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Verify rider OTP",
         "description": "Verify the one-time password for the rider",
         "responses": {
@@ -648,10 +591,7 @@
     },
     "/api/v1/auth/login-rider": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Rider login",
         "description": "Authenticate and receive a JWT for the rider",
         "responses": {
@@ -680,10 +620,7 @@
     },
     "/api/v1/auth/refresh-rider-token": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Refresh rider token",
         "description": "Obtain a new JWT for the rider using a refresh token",
         "responses": {
@@ -695,10 +632,7 @@
     },
     "/api/v1/auth/logout-rider": {
       "get": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Rider logout",
         "description": "Log out the currently authenticated rider",
         "responses": {
@@ -710,10 +644,7 @@
     },
     "/api/v1/auth/forgot-rider-password": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Forgot rider password",
         "description": "Initiate the password reset process for the rider",
         "responses": {
@@ -742,10 +673,7 @@
     },
     "/api/v1/auth/reset-rider-password": {
       "post": {
-        "tags": [
-          "Auth",
-          "Auth Rider"
-        ],
+        "tags": ["Auth", "Auth Rider"],
         "summary": "Reset rider password",
         "description": "Reset the rider password with a valid token",
         "responses": {
@@ -780,9 +708,7 @@
     },
     "/api/v1/auth/vendor-categories": {
       "get": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Get vendor categories",
         "description": "Retrieve a list of available vendor categories and their keys.",
         "responses": {
@@ -794,7 +720,9 @@
     },
     "/api/v1/user/{id}": {
       "get": {
-        "description": "",
+        "tags": ["User"],
+        "summary": "Get user by ID",
+        "description": "Retrieves a user by their ID.",
         "parameters": [
           {
             "name": "id",
@@ -802,7 +730,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "User ID"
           }
         ],
         "responses": {
@@ -814,7 +743,9 @@
     },
     "/api/v1/user/me": {
       "get": {
-        "description": "",
+        "tags": ["User"],
+        "summary": "Get current user profile",
+        "description": "Retrieves the profile of the currently authenticated user.",
         "parameters": [
           {
             "name": "authorization",
@@ -828,10 +759,17 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "put": {
-        "description": "",
+        "tags": ["User"],
+        "summary": "Update user profile",
+        "description": "Updates the profile of the currently authenticated user.",
         "parameters": [
           {
             "name": "authorization",
@@ -839,18 +777,81 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "User profile data",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "object"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "fullName": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "phoneNumber": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "profileImageUrl": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "address": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         ],
         "responses": {
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/user/orders": {
       "get": {
-        "description": "",
+        "tags": ["User", "User Orders"],
+        "summary": "Get user orders",
+        "description": "Retrieves a paginated list of orders for the currently authenticated user.",
         "parameters": [
           {
             "name": "authorization",
@@ -862,15 +863,17 @@
           {
             "name": "page",
             "in": "query",
+            "description": "Page number",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Page size",
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           }
         ],
@@ -878,14 +881,17 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/vendors/{id}": {
       "get": {
-        "tags": [
-          "Vendor"
-        ],
+        "tags": ["Vendor"],
         "summary": "Get vendor details",
         "description": "Fetches a single vendor by their ID.",
         "parameters": [
@@ -907,9 +913,7 @@
     },
     "/api/v1/vendors/me": {
       "get": {
-        "tags": [
-          "Vendor"
-        ],
+        "tags": ["Vendor"],
         "summary": "Get current vendor's profile",
         "description": "Fetches the profile of the currently authenticated vendor, including their products and orders.",
         "parameters": [
@@ -928,9 +932,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Vendor"
-        ],
+        "tags": ["Vendor"],
         "summary": "Update current vendor's profile",
         "description": "Updates the profile of the currently authenticated vendor.",
         "parameters": [
@@ -1007,9 +1009,7 @@
     },
     "/api/v1/vendors/products": {
       "get": {
-        "tags": [
-          "Vendor"
-        ],
+        "tags": ["Vendor"],
         "summary": "Get vendor's products with pagination",
         "description": "Fetches a paginated list of products for the currently authenticated vendor.",
         "parameters": [
@@ -1044,10 +1044,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Vendor",
-          "Vendor Products"
-        ],
+        "tags": ["Vendor", "Vendor Products"],
         "summary": "Create a new product",
         "description": "Creates a new product for the authenticated vendor.",
         "parameters": [
@@ -1062,10 +1059,7 @@
             "name": "body",
             "in": "body",
             "description": "Product data to create",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/CreateProduct"
-            }
+            "required": true
           }
         ],
         "responses": {
@@ -1077,10 +1071,7 @@
     },
     "/api/v1/vendors/products/{id}": {
       "put": {
-        "tags": [
-          "Vendor",
-          "Vendor Products"
-        ],
+        "tags": ["Vendor", "Vendor Products"],
         "summary": "Update a product",
         "description": "Updates an existing product for the authenticated vendor.",
         "parameters": [
@@ -1104,10 +1095,7 @@
             "name": "body",
             "in": "body",
             "description": "Product data to update",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UpdateProduct"
-            }
+            "required": true
           }
         ],
         "responses": {
@@ -1117,10 +1105,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Vendor",
-          "Vendor Products"
-        ],
+        "tags": ["Vendor", "Vendor Products"],
         "summary": "Delete a product",
         "description": "Deletes a product for the authenticated vendor. Fails if the product has been ordered.",
         "parameters": [
@@ -1150,10 +1135,7 @@
     },
     "/api/v1/vendors/products/{id}/variants/{variantId}": {
       "put": {
-        "tags": [
-          "Vendor",
-          "Vendor Products"
-        ],
+        "tags": ["Vendor", "Vendor Products"],
         "summary": "Update a product variant",
         "description": "Updates a specific product variant.",
         "parameters": [
@@ -1216,10 +1198,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Vendor",
-          "Vendor Products"
-        ],
+        "tags": ["Vendor", "Vendor Products"],
         "summary": "Delete a product variant",
         "description": "Deletes a specific product variant. Fails if the variant has been ordered.",
         "parameters": [
@@ -1258,10 +1237,7 @@
     },
     "/api/v1/vendors/orders": {
       "get": {
-        "tags": [
-          "Vendor",
-          "Vendor Orders"
-        ],
+        "tags": ["Vendor", "Vendor Orders"],
         "summary": "Get vendor's orders with pagination",
         "description": "Fetches a paginated list of orders for the currently authenticated vendor.",
         "parameters": [
@@ -1298,10 +1274,7 @@
     },
     "/api/v1/vendors/orders/{orderId}": {
       "get": {
-        "tags": [
-          "Vendor",
-          "Vendor Orders"
-        ],
+        "tags": ["Vendor", "Vendor Orders"],
         "summary": "Get a single order for the vendor",
         "description": "Fetches details of a specific order belonging to the currently authenticated vendor.",
         "parameters": [
@@ -1331,10 +1304,7 @@
     },
     "/api/v1/vendors/orders/{orderId}/status": {
       "patch": {
-        "tags": [
-          "Vendor",
-          "Vendor Orders"
-        ],
+        "tags": ["Vendor", "Vendor Orders"],
         "summary": "Update order status",
         "description": "Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, or CANCELLED.",
         "parameters": [
@@ -1395,9 +1365,7 @@
     },
     "/api/v1/vendors/": {
       "get": {
-        "tags": [
-          "Vendor"
-        ],
+        "tags": ["Vendor"],
         "summary": "Get all vendors with pagination",
         "description": "Fetches a paginated list of all vendors.",
         "parameters": [
@@ -1508,7 +1476,9 @@
     },
     "/api/v1/order/": {
       "get": {
-        "description": "",
+        "tags": ["Order"],
+        "summary": "Get orders",
+        "description": "Get all orders",
         "parameters": [
           {
             "name": "page",
@@ -1567,7 +1537,9 @@
         }
       },
       "post": {
-        "description": "",
+        "tags": ["Order"],
+        "summary": "Create order",
+        "description": "Create a new order",
         "responses": {
           "default": {
             "description": ""
@@ -1577,7 +1549,9 @@
     },
     "/api/v1/order/{id}": {
       "get": {
-        "description": "",
+        "tags": ["Order"],
+        "summary": "Get order by ID",
+        "description": "Get a single order by its ID",
         "parameters": [
           {
             "name": "id",
@@ -1597,7 +1571,9 @@
     },
     "/api/v1/order/{id}/cancel": {
       "patch": {
-        "description": "",
+        "tags": ["Order"],
+        "summary": "Cancel order",
+        "description": "Cancel an order",
         "parameters": [
           {
             "name": "id",
@@ -1631,9 +1607,7 @@
     },
     "/api/v1/admin/login": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Admin login",
         "description": "Authenticate an admin user.",
         "responses": {
@@ -1662,9 +1636,7 @@
     },
     "/api/v1/admin/vendors": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "List all vendors",
         "description": "Retrieves a paginated list of all vendors.",
         "parameters": [
@@ -1692,9 +1664,7 @@
     },
     "/api/v1/admin/vendors/{vendorId}": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Get a specific vendor",
         "description": "Retrieves the details of a single vendor by their ID.",
         "parameters": [
@@ -1716,9 +1686,7 @@
     },
     "/api/v1/admin/vendors/{vendorId}/approve": {
       "patch": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Approve a vendor",
         "description": "Approves a vendor, making them verified and active.",
         "parameters": [
@@ -1740,9 +1708,7 @@
     },
     "/api/v1/admin/riders": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "List all riders",
         "description": "Retrieves a paginated list of all riders.",
         "parameters": [
@@ -1770,9 +1736,7 @@
     },
     "/api/v1/admin/riders/{riderId}": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Get a specific rider",
         "description": "Retrieves the details of a single rider by their ID.",
         "parameters": [
@@ -1794,9 +1758,7 @@
     },
     "/api/v1/admin/riders/{riderId}/approve": {
       "patch": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Approve a rider",
         "description": "Approves a rider, making them verified and available.",
         "parameters": [
@@ -1818,9 +1780,7 @@
     },
     "/api/v1/admin/riders/{riderId}/suspend": {
       "patch": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Suspend a rider",
         "description": "Suspends a rider, making them unavailable.",
         "parameters": [
@@ -1842,9 +1802,7 @@
     },
     "/api/v1/admin/orders/{orderId}/status": {
       "patch": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Update order status",
         "description": "Updates the status of a specific order.",
         "parameters": [
@@ -1880,9 +1838,7 @@
     },
     "/api/v1/admin/reports": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Get system reports",
         "description": "Retrieves various system reports, such as counts and revenue.",
         "responses": {
@@ -1894,7 +1850,9 @@
     },
     "/api/v1/rider/{id}": {
       "get": {
-        "description": "",
+        "tags": ["Rider"],
+        "summary": "Get a single rider by ID",
+        "description": "Retrieves public information about a specific rider.",
         "parameters": [
           {
             "name": "id",
@@ -1902,7 +1860,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Rider ID"
           }
         ],
         "responses": {
@@ -1914,171 +1873,9 @@
     },
     "/api/v1/rider/me": {
       "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      },
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/rider/orders": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "claimable",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/rider/orders/{id}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/rider/claim/{id}": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/rider/decline/{id}": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/rider/location": {
-      "post": {
-        "description": "",
+        "tags": ["Rider"],
+        "summary": "Get current rider profile",
+        "description": "Retrieves the profile of the currently authenticated rider.",
         "parameters": [
           {
             "name": "authorization",
@@ -2093,13 +1890,327 @@
             "description": "Unauthorized"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": ["Rider"],
+        "summary": "Update rider profile",
+        "description": "Updates the profile of the currently authenticated rider.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Rider profile data",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "object"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "fullName": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "phoneNumber": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "profileImageUrl": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "vehicleType": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "licenseNumber": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    },
+                    "currentLocation": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "object"
+                        }
+                      }
+                    },
+                    "address": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/rider/orders": {
+      "get": {
+        "tags": ["Rider Orders"],
+        "summary": "Get rider orders",
+        "description": "Retrieves a list of orders for the rider. Can be filtered by status or to show claimable orders.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by order status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimable",
+            "in": "query",
+            "description": "Set to true to get claimable orders",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/rider/orders/{id}": {
+      "get": {
+        "tags": ["Rider Orders"],
+        "summary": "Get a specific order by ID",
+        "description": "Retrieves details of a specific order assigned to the rider.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Order ID"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/rider/claim/{id}": {
+      "post": {
+        "tags": ["Rider Orders"],
+        "summary": "Claim an order",
+        "description": "Allows a rider to claim an available order for delivery.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Order ID"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/rider/decline/{id}": {
+      "post": {
+        "tags": ["Rider Orders"],
+        "summary": "Decline an order",
+        "description": "Allows a rider to decline an assigned order.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Order ID"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/rider/location": {
+      "post": {
+        "tags": ["Rider"],
+        "summary": "Update rider location",
+        "description": "Updates the real-time location of the rider.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "latitude": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
                     "example": "any"
                   },
                   "longitude": {
@@ -2114,7 +2225,9 @@
     },
     "/api/v1/rider/availability": {
       "patch": {
-        "description": "",
+        "tags": ["Rider"],
+        "summary": "Toggle rider availability",
+        "description": "Sets the rider as available or unavailable for new orders.",
         "parameters": [
           {
             "name": "authorization",
@@ -2129,13 +2242,27 @@
             "description": "Unauthorized"
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "available": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
                     "example": "any"
                   }
                 }
@@ -2147,7 +2274,9 @@
     },
     "/api/v1/rider/history": {
       "get": {
-        "description": "",
+        "tags": ["Rider"],
+        "summary": "Get delivery history",
+        "description": "Retrieves the delivery history for the authenticated rider.",
         "parameters": [
           {
             "name": "authorization",
@@ -2159,20 +2288,27 @@
           {
             "name": "page",
             "in": "query",
+            "description": "Page number",
+            "required": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "limit",
             "in": "query",
+            "description": "Number of items per page",
+            "required": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "from",
             "in": "query",
+            "description": "Start date for filtering",
+            "required": false,
+            "format": "date-time",
             "schema": {
               "type": "string"
             }
@@ -2180,6 +2316,9 @@
           {
             "name": "to",
             "in": "query",
+            "description": "End date for filtering",
+            "required": false,
+            "format": "date-time",
             "schema": {
               "type": "string"
             }
@@ -2189,12 +2328,19 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/rider/": {
       "get": {
-        "description": "",
+        "tags": ["Rider"],
+        "summary": "Get all riders",
+        "description": "Retrieves a paginated list of all riders.",
         "parameters": [
           {
             "name": "authorization",
@@ -2206,15 +2352,19 @@
           {
             "name": "page",
             "in": "query",
+            "description": "Page number",
+            "required": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
             "name": "limit",
             "in": "query",
+            "description": "Number of items per page",
+            "required": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           }
         ],
@@ -2227,19 +2377,36 @@
     },
     "/api/v1/payment/create-intent": {
       "post": {
-        "description": "",
+        "tags": ["Payment"],
+        "summary": "Create a payment intent",
+        "description": "Creates a payment intent for an order.",
+        "parameters": [],
         "responses": {
           "default": {
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "orderId": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
                     "example": "any"
                   }
                 }
@@ -2251,19 +2418,36 @@
     },
     "/api/v1/payment/confirm": {
       "post": {
-        "description": "",
+        "tags": ["Payment"],
+        "summary": "Confirm a payment",
+        "description": "Confirms a payment using the payment reference.",
+        "parameters": [],
         "responses": {
           "default": {
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "reference": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
                     "example": "any"
                   }
                 }
@@ -2275,7 +2459,9 @@
     },
     "/api/v1/payment/webhook": {
       "post": {
-        "description": "",
+        "tags": ["Payment"],
+        "summary": "Handle Paystack webhook",
+        "description": "Handles webhook events from Paystack.",
         "parameters": [
           {
             "name": "x-paystack-signature",
@@ -2311,7 +2497,9 @@
     },
     "/api/v1/payment/{orderId}/status": {
       "get": {
-        "description": "",
+        "tags": ["Payment"],
+        "summary": "Check payment status",
+        "description": "Checks the payment status for an order.",
         "parameters": [
           {
             "name": "orderId",
@@ -2319,27 +2507,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/v1/payment/{orderId}/refund": {
-      "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "orderId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            },
+            "description": "Order ID"
           }
         ],
         "responses": {
@@ -2347,13 +2516,55 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payment/{orderId}/refund": {
+      "post": {
+        "tags": ["Payment"],
+        "summary": "Process a refund",
+        "description": "Processes a refund for an order. Only admins can perform this action.",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Order ID"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "reason": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
                     "example": "any"
                   },
                   "amount": {
@@ -2369,10 +2580,17 @@
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "access_token",
+        "description": "JWT Access Token stored in HttpOnly cookie. Automatically sent with requests after login."
+      },
+      "requestToken": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "request_token",
+        "description": "Temporary request token used for request validation or refreshing JWT session."
       }
     },
     "schemas": {
@@ -2481,101 +2699,14 @@
             }
           }
         }
-      },
-      "PaymentIntent": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "orderId": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "example": {
-                    "type": "string",
-                    "example": "order_abc123"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "ConfirmPayment": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "reference": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "example": {
-                    "type": "string",
-                    "example": "psk_abc123"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "RefundRequest": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "amount": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "number"
-                  },
-                  "example": {
-                    "type": "number",
-                    "example": 1000
-                  }
-                }
-              },
-              "reason": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "example": {
-                    "type": "string",
-                    "example": "Customer requested refund"
-                  }
-                }
-              }
-            }
-          }
-        }
       }
     }
-  }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "security": [
+    {
+      "cookieAuth": [],
+      "requestToken": []
+    }
+  ]
 }
