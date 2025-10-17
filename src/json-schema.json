@@ -145,6 +145,16 @@
           "items": {
             "$ref": "#/definitions/Review"
           }
+        },
+        "wallet": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Wallet"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -349,6 +359,16 @@
           "items": {
             "$ref": "#/definitions/Review"
           }
+        },
+        "wallet": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Wallet"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -716,42 +736,73 @@
         }
       }
     },
+    "Wallet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "balance": {
+          "type": "number",
+          "default": 0
+        },
+        "totalEarned": {
+          "type": "number",
+          "default": 0
+        },
+        "totalWithdrawn": {
+          "type": "number",
+          "default": 0
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "vendor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Vendor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rider": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Rider"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "Address": {
       "type": "object",
       "properties": {
-        "street": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "city": {
-          "type": [
-            "string",
-            "null"
-          ]
+        "address": {
+          "type": "string"
         },
         "state": {
           "type": [
             "string",
             "null"
           ],
-          "default": "ilorin"
+          "default": "Ilorin"
         },
-        "lga": {
+        "country": {
           "type": [
             "string",
             "null"
-          ]
-        },
-        "postalCode": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "address": {
-          "type": "string"
+          ],
+          "default": "Nigeria"
         },
         "coordinates": {
           "anyOf": [
@@ -762,13 +813,6 @@
               "type": "null"
             }
           ]
-        },
-        "country": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": "Nigeria"
         }
       }
     },
@@ -818,6 +862,9 @@
     },
     "orderHistory": {
       "$ref": "#/definitions/OrderHistory"
+    },
+    "wallet": {
+      "$ref": "#/definitions/Wallet"
     }
   }
 }

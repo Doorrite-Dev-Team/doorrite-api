@@ -1,4 +1,5 @@
 import prisma from "@config/db";
+import { addressSchema } from "@lib/utils/address";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { isValidNigerianPhone } from "@modules/auth/helper";
 import { Request, Response } from "express";
@@ -95,11 +96,8 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     errors.push("Full name cannot be empty");
   }
 
-  if (
-    data.address &&
-    (typeof data.address !== "object" || Array.isArray(data.address))
-  ) {
-    errors.push("Address must be a valid JSON object");
+  if (data.address && !addressSchema.safeParse(data.address).success) {
+    errors.push("Invalid address format");
   }
 
   if (data.profileImageUrl && typeof data.profileImageUrl !== "string") {
@@ -185,7 +183,6 @@ export const getUserOrders = async (req: Request, res: Response) => {
   }
 };
 
-
 // Create User Review for vendor, rider or product
 // POST /users/reviews
 export const createUserReview = async (req: Request, res: Response) => {
@@ -228,7 +225,7 @@ export const createUserReview = async (req: Request, res: Response) => {
   } catch (error) {
     handleError(res, error);
   }
-}
+};
 
 /*
 try {

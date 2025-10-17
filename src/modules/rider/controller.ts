@@ -5,6 +5,7 @@ import { isValidNigerianPhone } from "@modules/auth/helper";
 import { $Enums } from "../../generated/prisma";
 import { getActorFromReq } from "@lib/utils/req-res";
 import socketService from "@lib/socketService";
+import { addressSchema } from "@lib/utils/address";
 
 type LocationUpdate = {
   latitude: number;
@@ -151,11 +152,8 @@ export const updateRiderProfile = async (req: Request, res: Response) => {
     errors.push("License number must be a non-empty string");
   }
 
-  if (
-    (data.address && typeof data.address !== "object") ||
-    Array.isArray(data.address)
-  ) {
-    errors.push("Address must be a valid JSON object");
+  if (data.address && !addressSchema.safeParse(data.address).success) {
+    errors.push("Invalid address format");
   }
 
   if (
@@ -393,10 +391,7 @@ export const updateLocation = async (req: Request, res: Response) => {
     const addressUpdate: any = {};
     if (rider.address) {
       addressUpdate.address = rider.address.address || "";
-      addressUpdate.city = rider.address.city || undefined;
-      addressUpdate.state = rider.address.state || undefined;
-      addressUpdate.lga = rider.address.lga || undefined;
-      addressUpdate.postalCode = rider.address.postalCode || undefined;
+      addressUpdate.state = rider.address.state || "ilorin";
       addressUpdate.coordinates = { lat: latitude, long: longitude };
     }
 

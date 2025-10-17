@@ -22,8 +22,9 @@ import {
   validatePassword,
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
-import { OtpType } from "../../generated/prisma";
 import { createResetToken } from "@config/redis";
+import { addressSchema } from "@lib/utils/address";
+import { OtpType } from "generated/prisma";
 
 export const createVendor = async (req: Request, res: Response) => {
   /**
@@ -371,7 +372,7 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
   }
 };
 
-function validateVendorData({
+export function validateVendorData({
   businessName,
   email,
   phoneNumber,
@@ -386,6 +387,7 @@ function validateVendorData({
   address: any;
   categoryIds: any;
 }) {
+  // Business name
   if (
     !businessName ||
     typeof businessName !== "string" ||
@@ -396,9 +398,13 @@ function validateVendorData({
       "Business name is required and must be at least 2 characters"
     );
   }
+
+  // Email
   if (!isValidEmail(email)) {
     throw new AppError(400, "Valid email is required");
   }
+
+  // Phone
   if (
     !phoneNumber ||
     typeof phoneNumber !== "string" ||
@@ -406,18 +412,32 @@ function validateVendorData({
   ) {
     throw new AppError(400, "Valid phone number is required");
   }
+
+  // Password
   if (!password || typeof password !== "string" || password.length < 6) {
     throw new AppError(
       400,
       "Password is required and must be at least 6 characters"
     );
   }
-  if (!address || typeof address !== "string" || address.trim().length < 5) {
-    throw new AppError(
-      400,
-      "Address is required and must be at least 5 characters"
-    );
+
+  // Address — supports object or string (for backward compatibility)
+  try {
+    if (typeof address === "string") {
+      if (address.trim().length < 5) {
+        throw new Error("Address string too short");
+      }
+    } else {
+      const parsed = addressSchema.safeParse(address);
+      if (!parsed.success) {
+        throw new AppError(400, parsed.error.message ?? "Invalid address");
+      }
+    }
+  } catch (err: any) {
+    throw new AppError(400, `Invalid address: ${err.message || err}`);
   }
+
+  // Category IDs
   if (
     !Array.isArray(categoryIds) ||
     categoryIds.length === 0 ||

@@ -9,6 +9,7 @@ import {
   validateCreateProduct,
   validateUpdateProduct,
 } from "./helpers";
+import { addressSchema } from "@lib/utils/address";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -171,11 +172,10 @@ type Address {
 
   if (
     data.address &&
-    (typeof data.address !== "object" ||
-      Array.isArray(data.address) ||
-      data.address.address.trim() === "")
+    !addressSchema.safeParse(data.address).success &&
+    typeof data.address !== "string"
   ) {
-    errors.push("Address must be a valid JSON object");
+    errors.push("Invalid address format");
   }
 
   if (data.logoUrl && typeof data.logoUrl !== "string") {

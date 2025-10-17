@@ -19,7 +19,6 @@ import {
 } from "@config/redis";
 
 import { AppError } from "@lib/utils/AppError";
-import crypto from "crypto";
 import { OtpType } from "../../generated/prisma";
 
 /* Validators (unchanged) */
@@ -231,7 +230,6 @@ export const checkEntityExists = async (
 /* ======================
    OTP Management (Redis only)
    ====================== */
-
 /**
  * createAndSendOtp
  * - uses Redis via createOtp(...) to issue OTP
@@ -490,7 +488,6 @@ export const checkExistingEntity = async (
   phoneNumber: string,
   entityType: EntityType
 ) => {
-
   const existing = await checkEntityExists(email, phoneNumber, entityType);
 
   // --- Case 1: No existing entity at all
@@ -504,7 +501,11 @@ export const checkExistingEntity = async (
   // --- Case 2: Both match
   if (emailMatches && phoneMatches) {
     if (!existing.isVerified) {
-      await createAndSendOtp(existing.email, entityType, OtpType.EMAIL_VERIFICATION);
+      await createAndSendOtp(
+        existing.email,
+        entityType,
+        OtpType.EMAIL_VERIFICATION
+      );
       return {
         message: `${entityType} exists but not verified. New OTP sent to email.`,
         entityId: existing.id,
@@ -536,7 +537,10 @@ export const checkExistingEntity = async (
   return { shouldCreateNew: false, redirectToLogin: true };
 };
 
-export const deleteIncompleteEntity = async (id: string, entityType: EntityType) => {
+export const deleteIncompleteEntity = async (
+  id: string,
+  entityType: EntityType
+) => {
   switch (entityType) {
     case "user":
       return prisma.user.delete({ where: { id } });

@@ -23,8 +23,8 @@ import {
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
-import { getCustomerIdFromRequest } from "@modules/order/utils";
 import { createResetToken } from "@config/redis";
+import { getActorFromReq } from "@lib/utils/req-res";
 
 export const createRider = async (req: Request, res: Response) => {
   /**
@@ -325,8 +325,7 @@ export const changeRiderPassword = async (req: Request, res: Response) => {
    */
   try {
     const { oldPassword, newPassword } = req.body || {};
-    const riderId = req.rider?.id; // Assuming rider ID is available from auth middleware
-    getCustomerIdFromRequest;
+    const riderId = req.rider?.id || getActorFromReq(req).id;
 
     if (!riderId) {
       throw new AppError(401, "Unauthorized: Rider ID not found.");

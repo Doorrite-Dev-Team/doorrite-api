@@ -1,13 +1,10 @@
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { getActorFromReq } from "@lib/utils/req-res";
-import {
-  calculateOrderTotal,
-  getCustomerIdFromRequest,
-  validateCreateOrderBody,
-} from "@modules/order/utils";
+import { createOrderSchema, calculateOrderTotal } from "@modules/order/utils";
 import { Request, Response } from "express";
 import prisma from "@config/db";
 import socketService from "@lib/socketService";
+import { ZodError } from "zod/v3";
 
 // GET api/v1/orders?status=&vendorId=&customerId=&page=&limit=&from=&to=
 export const getOrders = async (req: Request, res: Response) => {
@@ -157,48 +154,33 @@ export const createOrder = async (req: Request, res: Response) => {
    * #swagger.description = 'Create a new order'
    */
   try {
-    const { vendorId, items, deliveryAddress, paymentMethod, placeId } =
-      validateCreateOrderBody(req.body || {});
-    const customerId = getCustomerIdFromRequest(req);
+    // ✅ Validate request body using Zod (throws if invalid)
+    const parsed = createOrderSchema.parse(req.body || {});
+    const { vendorId, items, deliveryAddress, paymentMethod } = parsed;
 
+    // ✅ Get authenticated user
+    const { id: customerId } = getActorFromReq(req);
+    if (!customerId) throw new AppError(401, "Unauthorized");
+
+    // ✅ Run transactional logic
     const result = await prisma.$transaction(async (tx) => {
       // 1. Verify vendor exists
-      const vendor = await tx.vendor.findUnique({
-        where: { id: vendorId },
-      });
-      if (!vendor) {
-        throw new AppError(404, "Vendor not found");
-      }
+      const vendor = await tx.vendor.findUnique({ where: { id: vendorId } });
+      if (!vendor) throw new AppError(404, "Vendor not found");
 
       // 2. Verify customer exists
-      const customer = await tx.user.findUnique({
-        where: { id: customerId },
-      });
-      if (!customer) {
-        throw new AppError(404, "Customer not found");
-      }
+      const customer = await tx.user.findUnique({ where: { id: customerId } });
+      if (!customer) throw new AppError(404, "Customer not found");
 
       // 3. Calculate total amount
       const totalAmount = await calculateOrderTotal(items);
 
-      // 4. Create the order
-      const computedAddress =
-        (deliveryAddress as any)?.address &&
-        (deliveryAddress as any).address.trim().length > 0
-          ? (deliveryAddress as any).address
-          : `${deliveryAddress.street || ""} ${deliveryAddress.city || ""} ${
-              deliveryAddress.lga || ""
-            }`.trim() || placeId;
-
+      // 5. Create order
       const order = await tx.order.create({
         data: {
           customerId,
           vendorId,
-          // Persist deliveryAddress with placeId for mapping/tracking
-          deliveryAddress: {
-            ...deliveryAddress,
-            address: computedAddress,
-          },
+          deliveryAddress,
           totalAmount,
           status: "PENDING",
           paymentStatus: "PENDING",
@@ -210,25 +192,23 @@ export const createOrder = async (req: Request, res: Response) => {
                   include: { variants: true },
                 });
 
-                if (!product) {
+                if (!product)
                   throw new AppError(
                     404,
                     `Product ${item.productId} not found`
                   );
-                }
 
-                // If variant specified, validate and use its price
+                // Handle variant price
                 let price = product.basePrice;
                 if (item.variantId) {
                   const variant = product.variants.find(
                     (v) => v.id === item.variantId
                   );
-                  if (!variant) {
+                  if (!variant)
                     throw new AppError(
                       404,
                       `Variant ${item.variantId} not found for product ${item.productId}`
                     );
-                  }
                   price = variant.price;
                 }
 
@@ -236,39 +216,22 @@ export const createOrder = async (req: Request, res: Response) => {
                   productId: item.productId,
                   variantId: item.variantId,
                   quantity: item.quantity,
-                  price: price, // Add this if 'price' is required by your Prisma schema
+                  price,
                   unitPrice: price,
                   subtotal: price * item.quantity,
-                  // If 'product' relation is required, add: product: { connect: { id: item.productId } }
                 };
               })
             ),
           },
         },
         include: {
-          items: {
-            include: {
-              product: true,
-              variant: true,
-            },
-          },
-          customer: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-            },
-          },
-          vendor: {
-            select: {
-              id: true,
-              businessName: true,
-            },
-          },
+          items: { include: { product: true, variant: true } },
+          customer: { select: { id: true, fullName: true, email: true } },
+          vendor: { select: { id: true, businessName: true } },
         },
       });
 
-      // 5. Create payment record if using PAYSTACK
+      // 6. Create payment if Paystack
       let payment = null;
       if (paymentMethod === "PAYSTACK") {
         payment = await tx.payment.create({
@@ -282,7 +245,7 @@ export const createOrder = async (req: Request, res: Response) => {
         });
       }
 
-      // 6. Create order history entry
+      // 7. Record history
       await tx.orderHistory.create({
         data: {
           orderId: order.id,
@@ -293,24 +256,36 @@ export const createOrder = async (req: Request, res: Response) => {
         },
       });
 
-      const resultObj = { order, payment };
-      // Emit order created
-      socketService.emitOrderUpdate(resultObj.order);
-      return resultObj;
+      socketService.emitOrderUpdate(order);
+      return { order, payment };
     });
 
+    // ✅ Send response
     return sendSuccess(
       res,
       {
-        order: result?.order,
-        payment: result?.payment,
-        nextAction: result?.payment
+        order: result.order,
+        payment: result.payment,
+        nextAction: result.payment
           ? "INITIALIZE_PAYSTACK_PAYMENT"
           : "ORDER_PLACED_COD",
       },
       201
     );
   } catch (error: any) {
+    // ✅ Graceful Zod validation error handling
+    if (error instanceof ZodError) {
+      const formatted = error.errors.map((e) => ({
+        path: e.path.join("."),
+        message: e.message,
+      }));
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid request body",
+        errors: formatted,
+      });
+    }
+
     console.error("Error creating order:", error);
     handleError(res, error);
   }
@@ -326,7 +301,8 @@ export const cancelOrder = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { reason } = req.body;
   const actor = getActorFromReq(req);
-  const customerId = getCustomerIdFromRequest(req);
+  const { id: customerId } = getActorFromReq(req);
+  if (!customerId) throw new AppError(401, "Unauthorized");
   try {
     if (!id) throw new AppError(400, "Order id is required");
     if (!reason) throw new AppError(400, "Cancellation reason is required");

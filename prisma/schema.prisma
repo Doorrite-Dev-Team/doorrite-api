@@ -1,5 +1,8 @@
-// Prisma MongoDB Schema (updated for multi-product marketplace)
-// Generator + datasource
+// ===============================
+// Prisma MongoDB Schema
+// ===============================
+
+// --- Generators ---
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -12,10 +15,12 @@ datasource db {
 
 generator jsonSchema {
   provider = "prisma-json-schema-generator"
-  output = "../src"
+  output   = "../src"
 }
 
-// enums
+// ===============================
+// ENUMS
+// ===============================
 enum Role {
   CUSTOMER
   ADMIN
@@ -60,52 +65,24 @@ enum OtpType {
   PASSWORD_RESET
 }
 
-// types
+// ===============================
+// TYPES
+// ===============================
 type Address {
-  street     String?
-  city       String?
-  state      String? @default("ilorin")
-  lga        String?
-  postalCode String?
-  // human-readable formatted address (useful for display)
-  address    String
-  // geographic coordinates for mapping (latitude & longitude)
-  coordinates Coordinates?
-  country    String? @default("Nigeria")
+  address      String         // Human-readable formatted address
+  state        String? @default("Ilorin")
+  country      String? @default("Nigeria")
+  coordinates  Coordinates?
 }
 
 type Coordinates {
-  lat  Float
-  long Float
+  lat   Float
+  long  Float
 }
 
-// models
-
-// model Otp {
-//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-//   code      String
-//   type      OtpType
-//   verified  Boolean  @default(false)
-//   expiresAt DateTime
-//   attempts  Int      @default(0)
-
-//   userId    String?  @db.ObjectId
-//   vendorId  String?  @db.ObjectId
-//   riderId   String?  @db.ObjectId
-
-//   user      User?    @relation(fields: [userId], references: [id])
-//   vendor    Vendor?  @relation(fields: [vendorId], references: [id])
-//   rider     Rider?   @relation(fields: [riderId], references: [id])
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   @@index([userId])
-//   @@index([vendorId])
-//   @@index([riderId])
-//   @@index([expiresAt])
-// }
-
+// ===============================
+// MODELS
+// ===============================
 model User {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
   role            Role     @default(CUSTOMER)
@@ -121,7 +98,6 @@ model User {
 
   orders   Order[]   @relation("customer_orders")
   payments Payment[]
-  // otps     Otp[]
   reviews  Review[]
 }
 
@@ -140,12 +116,11 @@ model Vendor {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  // relations
-  //vendorCategories VendorCategory[]
-  products         Product[]
-  orders           Order[]
-  // otps             Otp[]
-  reviews          Review[]
+  // Relations
+  products  Product[]
+  orders    Order[]
+  reviews   Review[]
+  wallet    Wallet?
 }
 
 model Product {
@@ -167,17 +142,17 @@ model Product {
 }
 
 model ProductVariant {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  productId String  @db.ObjectId
-  product   Product @relation(fields: [productId], references: [id])
-  name      String
-  price     Float
-  stock     Int?
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId   String   @db.ObjectId
+  product     Product  @relation(fields: [productId], references: [id])
+  name        String
+  price       Float
+  stock       Int?
   isAvailable Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  orderItems OrderItem[]
+  orderItems  OrderItem[]
 }
 
 model Rider {
@@ -199,8 +174,8 @@ model Rider {
 
   deliveries Delivery[]
   orders     Order[]    @relation("rider_orders")
-  // otps       Otp[]
   reviews    Review[]
+  wallet     Wallet?
 }
 
 model Order {
@@ -281,12 +256,12 @@ model Review {
   user   User   @relation(fields: [userId], references: [id])
 
   productId String? @db.ObjectId
-  vendorId   String? @db.ObjectId
-  riderId    String? @db.ObjectId
+  vendorId  String? @db.ObjectId
+  riderId   String? @db.ObjectId
 
   product Product? @relation(fields: [productId], references: [id])
-  vendor   Vendor? @relation(fields: [vendorId], references: [id])
-  rider    Rider?  @relation(fields: [riderId], references: [id])
+  vendor  Vendor?  @relation(fields: [vendorId], references: [id])
+  rider   Rider?   @relation(fields: [riderId], references: [id])
 }
 
 model OrderHistory {
@@ -298,4 +273,22 @@ model OrderHistory {
   actorType String?     // "VENDOR" | "RIDER" | "SYSTEM" | "ADMIN"
   note      String?
   createdAt DateTime    @default(now())
+}
+
+// ===============================
+// WALLET MODEL
+// ===============================
+model Wallet {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  balance         Float    @default(0)
+  totalEarned     Float    @default(0)
+  totalWithdrawn  Float    @default(0)
+  lastUpdated     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  vendorId String? @unique @db.ObjectId
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+
+  riderId  String? @unique @db.ObjectId
+  rider    Rider?  @relation(fields: [riderId], references: [id])
 }

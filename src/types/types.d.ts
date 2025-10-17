@@ -9,11 +9,12 @@ type User = {
   passwordHash: string;
   profileImageUrl?: string | null;
   address?: {
-    street: string | null;
-    city: string | null;
-    state: string | null;
-    lga: string | null;
-    postalCode: string | null;
-    country: string | null;
+    address: string;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+    state?: string;
+    country?: string;
   } | null;
 };
