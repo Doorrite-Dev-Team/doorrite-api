@@ -24,7 +24,7 @@ import {
 import { Request, Response } from "express";
 import { createResetToken } from "@config/redis";
 import { addressSchema } from "@lib/utils/address";
-import { Address, OtpType } from "generated/prisma";
+import { Address, OtpType } from "../../generated/prisma";
 
 export const createVendor = async (req: Request, res: Response) => {
   /**
