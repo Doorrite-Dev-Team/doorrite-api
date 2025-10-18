@@ -24,7 +24,7 @@ import {
 import { Request, Response } from "express";
 import { createResetToken } from "@config/redis";
 import { addressSchema } from "@lib/utils/address";
-import { OtpType } from "generated/prisma";
+import { Address, OtpType } from "generated/prisma";
 
 export const createVendor = async (req: Request, res: Response) => {
   /**
@@ -90,7 +90,8 @@ export const createVendor = async (req: Request, res: Response) => {
         businessName: businessName.trim(),
         phoneNumber: phoneNumber.trim(),
         passwordHash,
-        address,
+        address:
+          typeof address === "string" ? { address } : (address as Address),
         logoUrl: logoUrl || undefined,
         isVerified: false,
         isActive: false, // requires admin approval

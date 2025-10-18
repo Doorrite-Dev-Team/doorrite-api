@@ -1,5 +1,5 @@
 // src/routes/auth.ts
-import express from "express";
+import express, { type Response } from "express";
 import { requireAuth } from "middleware/auth";
 import * as userAuth from "./user.controller";
 import * as vendorAuth from "./vendor.controller";
@@ -70,7 +70,7 @@ router.post("/forgot-rider-password", riderAuth.changeRiderPassword);
 router.post("/reset-rider-password", riderAuth.resetRiderPassword);
 
 // Public endpoint: return in-memory vendor categories (no DB)
-router.get("/vendor-categories", (req, res) => {
+router.get("/vendor-categories", (_, res: Response) => {
   /**
    * #swagger.tags = ['Auth']
    * #swagger.summary = 'Get vendor categories'
