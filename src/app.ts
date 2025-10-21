@@ -29,9 +29,18 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // 2️⃣ CORS (tweak origin or use a whitelist in production)
+
+const oldVercel = "https://dooriteuser-ui.vercel.app";
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://dooriteuser-ui.vercel.app"],
+    origin: [
+      "http://localhost:3000",
+      oldVercel,
+      "https://doorrite-admin.netlify.app/",
+      "https://doorrite-rider-ui.netlify.app/",
+      "https://doorrite-vendor-ui.netlify.app/",
+      "https://doorrite-user-ui.netlify.app/",
+    ],
     credentials: true,
   })
 );
