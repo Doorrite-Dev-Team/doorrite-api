@@ -1,4 +1,5 @@
 import swaggerAutogen from "swagger-autogen";
+const prismaSchema = require("./json-schema.json");
 
 const doc = {
   $schema: "http://json-schema.org/draft-07/schema#",
@@ -59,25 +60,7 @@ const doc = {
           password: { type: "string", example: "securepassword" },
         },
       },
-      // PaymentIntent: {
-      //   type: "object",
-      //   properties: {
-      //     orderId: { type: "string", example: "order_abc123" },
-      //   },
-      // },
-      // ConfirmPayment: {
-      //   type: "object",
-      //   properties: {
-      //     reference: { type: "string", example: "psk_abc123" },
-      //   },
-      // },
-      // RefundRequest: {
-      //   type: "object",
-      //   properties: {
-      //     amount: { type: "number", example: 1000 },
-      //     reason: { type: "string", example: "Customer requested refund" },
-      //   },
-      // },
+      ...(prismaSchema as any).definition,
     },
   },
   security: [
