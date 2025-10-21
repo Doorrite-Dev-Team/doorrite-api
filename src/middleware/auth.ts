@@ -145,7 +145,7 @@ export async function attemptRefreshFlow(
 
     const newAccess = createAccessToken({
       sub: user.id,
-      role: user.role,
+      role: user.role === "CUSTOMER" ? "user" : "admin",
       type: "access",
     });
     const newRefresh = createRefreshToken({ sub: user.id, type: "refresh" });

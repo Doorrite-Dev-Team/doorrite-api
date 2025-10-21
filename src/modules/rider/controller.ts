@@ -71,7 +71,7 @@ export const getCurrentRiderProfile = async (req: Request, res: Response) => {
 };
 
 // Get All Riders with Pagination
-// Get /riders
+// Get /riders/?page=&limit=
 export const getAllRiders = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Rider']

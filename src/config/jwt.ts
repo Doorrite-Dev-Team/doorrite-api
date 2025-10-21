@@ -9,17 +9,21 @@ export const ACCESS_EXPIRES = process.env.ACCESS_EXPIRES || "15m";
 export const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || "30d";
 export const TEMP_EXPIRES = process.env.TEMP_EXPIRES || "15m";
 
+type Entity = "user" | "vendor" | "rider" | "admin";
+type JwtType = "temp" | "access" | "refresh";
 export interface JwtPayloadShape {
   sub: string;
-  role?: "user" | "vendor" | "rider" | "admin";
-  type?: "temp" | "access" | "refresh";
+  role?: Entity;
+  type?: JwtType;
   iat?: number;
   exp?: number;
 }
 
-export function createAccessToken(payload: object) {
+export function createAccessToken(
+  payload: Omit<JwtPayloadShape, "iat" | "exp">
+) {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: ACCESS_EXPIRES,
+    expiresIn: payload.role === "admin" ? "2d" : ACCESS_EXPIRES,
   } as jwt.SignOptions);
 }
 
@@ -44,7 +48,7 @@ export function generateOpaqueToken(len = 48) {
   return Crypto.randomBytes(len).toString("hex");
 }
 
-export function makeAccessTokenForUser(userId: string, role?: string) {
+export function makeAccessTokenForUser(userId: string, role?: Entity) {
   return createAccessToken({ sub: userId, role, type: "access" });
 }
 
@@ -87,7 +91,6 @@ export function makeAccessTokenForRider(riderId: string) {
 export function makeRefreshTokenForRider(riderId: string) {
   return createRefreshToken({ sub: riderId, role: "rider", type: "refresh" });
 }
-
 
 /** verifyJwt wrapper that returns null on failure */
 export function safeVerify(token: string): JwtPayloadShape | null {

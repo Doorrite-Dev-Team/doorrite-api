@@ -301,7 +301,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     });
     if (!user) throw new AppError(401, "Invalid user");
 
-    const access = makeAccessTokenForUser(user.id, user.role);
+    const access = makeAccessTokenForUser(user.id, "user");
     const refresh = makeRefreshTokenForUser(user.id);
     setAuthCookies(res, access, refresh, "user");
 

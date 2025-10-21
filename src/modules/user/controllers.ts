@@ -25,6 +25,39 @@ export const getUser = async (req: Request, res: Response) => {
   }
 };
 
+// Get All Users with pagination
+// GET api/v1/users/?page=&limit=
+export const getAllUsers = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User']
+   * #swagger.summary = 'Get all users'
+   *
+   */
+  try {
+    const { page = "1", limit = "20" } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(page));
+    const lim = Math.min(100, Math.max(1, parseInt(limit)));
+    const skip = (pageNum - 1) * lim;
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        take: lim,
+        skip,
+        orderBy: { createdAt: "desc" },
+        include: {
+          reviews: true,
+        },
+      }),
+      prisma.user.count(),
+    ]);
+    return sendSuccess(res, {
+      users,
+      pagination: { total, page: pageNum, limit: lim },
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 // Get Current User Profile
 // GET api/v1/users/me
 export const getCurrentUserProfile = async (req: Request, res: Response) => {

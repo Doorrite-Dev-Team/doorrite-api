@@ -269,6 +269,103 @@ export const suspendRider = async (req: Request, res: Response) => {
   }
 };
 
+// ======= User administration ======
+// GET admin/users/?page=&limit=
+export const getAllUsers = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User']
+   * #swagger.summary = 'Get all users'
+   *
+   */
+  try {
+    const { page = "1", limit = "20" } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(page));
+    const lim = Math.min(100, Math.max(1, parseInt(limit)));
+    const skip = (pageNum - 1) * lim;
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        take: lim,
+        skip,
+        orderBy: { createdAt: "desc" },
+        include: {
+          reviews: true,
+        },
+      }),
+      prisma.user.count(),
+    ]);
+    return sendSuccess(res, {
+      users,
+      pagination: { total, page: pageNum, limit: lim },
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+//DELETE /admin/vendor/:vendorId
+export const deleteVendor = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Delete a Vendor'
+   * #swagger.description = 'Deletes a Vendor, making them unavailable.'
+   */
+
+  try {
+    const { vendorId } = req.params;
+    if (!vendorId) throw new AppError(400, "vendorId required");
+
+    const vendor = await prisma.vendor.delete({
+      where: { id: vendorId },
+    });
+
+    return sendSuccess(res, { vendor });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+//DELETE /admin/rider/:riderId
+export const deleteRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Delete a rider'
+   * #swagger.description = 'Deletes a rider, making them unavailable.'
+   */
+
+  try {
+    const { riderId } = req.params;
+    if (!riderId) throw new AppError(400, "riderId required");
+
+    const rider = await prisma.rider.delete({
+      where: { id: riderId },
+    });
+
+    return sendSuccess(res, { rider });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+//DELETE /admin/user/:userId
+export const deleteUser = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Delete a User'
+   * #swagger.description = 'Deletes a User, making them unavailable.'
+   */
+  try {
+    const { userId } = req.params;
+    if (!userId) throw new AppError(400, "userId required");
+
+    const user = await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    return sendSuccess(res, { user });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 export default {
   adminLogin,
   listVendors,
