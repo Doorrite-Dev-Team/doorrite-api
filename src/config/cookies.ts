@@ -37,23 +37,26 @@ export const refreshCookieOptions = {
  * Supported entity/account types.
  * 'customer' (or common typo 'custumer') maps to 'user'.
  */
-export type EntityType = "user" | "vendor" | "rider" | "customer" | "custumer";
+export type EntityType = "user" | "vendor" | "rider" | "admin";
 
 /** Normalize alias/typo to canonical entity type */
-export const normalizeEntityType = (t: string): "user" | "vendor" | "rider" => {
+export const normalizeEntityType = (
+  t: string
+): "user" | "vendor" | "rider" | "admin" => {
   const lowercase = String(t || "").toLowerCase();
   if (lowercase === "vendor") return "vendor";
   if (lowercase === "rider") return "rider";
+  if (lowercase === "admin") return "admin";
   // treat customer/custumer as user
   return "user";
 };
 
 /** Cookie name helpers */
 export const getAccessCookieName = (entity: EntityType) =>
-  `access_token_${normalizeEntityType(entity)}`;
+  `access_token_${normalizeEntityType(entity === "admin" ? "user" : entity)}`;
 
 export const getRefreshCookieName = (entity: EntityType) =>
-  `refresh_token_${normalizeEntityType(entity)}`;
+  `refresh_token_${normalizeEntityType(entity === "admin" ? "user" : entity)}`;
 
 /**
  * Set both auth cookies for a specific entity type.

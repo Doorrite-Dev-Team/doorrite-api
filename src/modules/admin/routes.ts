@@ -6,7 +6,7 @@ const router = Router();
 
 router.post("/login", ctrl.adminLogin);
 
-router.use(requireAdmin);
+router.use(requireAuth("admin"), requireAdmin);
 
 //Admin Only Strict route
 

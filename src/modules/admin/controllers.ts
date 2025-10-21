@@ -47,7 +47,7 @@ export const adminLogin = async (req: Request, res: Response) => {
   }
 };
 
-// GET /admin/vendors
+// GET /admin/vendor
 export const listVendors = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Admin']
@@ -156,20 +156,23 @@ export const getReports = async (req: Request, res: Response) => {
    */
   try {
     // MVP reports: counts and simple revenue
-    const [usersCount, vendorsCount, ordersCount, revenue] = await Promise.all([
-      prisma.user.count(),
-      prisma.vendor.count(),
-      prisma.order.count(),
-      prisma.order.aggregate({
-        _sum: { totalAmount: true },
-        where: { paymentStatus: "SUCCESSFUL" },
-      }),
-    ]);
+    const [usersCount, vendorsCount, ordersCount, ridersCount, revenue] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.vendor.count(),
+        prisma.order.count(),
+        prisma.rider.count(),
+        prisma.order.aggregate({
+          _sum: { totalAmount: true },
+          where: { paymentStatus: "SUCCESSFUL" },
+        }),
+      ]);
 
     return sendSuccess(res, {
       usersCount,
       vendorsCount,
       ordersCount,
+      ridersCount,
       revenue: revenue._sum,
     });
   } catch (err: any) {
@@ -278,25 +281,20 @@ export const getAllUsers = async (req: Request, res: Response) => {
    *
    */
   try {
-    const { page = "1", limit = "20" } = req.query as Record<string, string>;
-    const pageNum = Math.max(1, parseInt(page));
-    const lim = Math.min(100, Math.max(1, parseInt(limit)));
-    const skip = (pageNum - 1) * lim;
-    const [users, total] = await Promise.all([
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+    const skip = (page - 1) * limit;
+
+    const [total, users] = await Promise.all([
+      prisma.user.count(),
       prisma.user.findMany({
-        take: lim,
+        take: limit,
         skip,
         orderBy: { createdAt: "desc" },
-        include: {
-          reviews: true,
-        },
       }),
-      prisma.user.count(),
     ]);
-    return sendSuccess(res, {
-      users,
-      pagination: { total, page: pageNum, limit: lim },
-    });
+
+    return sendSuccess(res, { users, total, page, limit });
   } catch (error) {
     handleError(res, error);
   }

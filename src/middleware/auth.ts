@@ -35,6 +35,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
       const headerToken = req.headers.authorization?.split(" ")[1];
       const cookieAccess = getAccessTokenFromReq(req, canonical as any);
       const accessToken = headerToken || cookieAccess;
+      // console.log("Access Token:", accessToken);
 
       if (accessToken) {
         const payload = safeVerify(accessToken);
@@ -181,6 +182,9 @@ function payloadMatchesEntity(payload: JwtPayloadShape, entity: string) {
   if (entity === "rider") {
     return role === "rider";
   }
+  if (entity === "admin") {
+    return role === "admin";
+  }
   // user accepts ADMIN or CUSTOMER or missing (backward compat)
   return role !== "vendor" && role !== "rider";
 }
@@ -191,6 +195,7 @@ function payloadMatchesEntity(payload: JwtPayloadShape, entity: string) {
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   try {
     const payload = (req as any).user as JwtPayloadShape | undefined;
+    // console.log(payload, req.user);
     if (!payload || String(payload.role).toUpperCase() !== "ADMIN") {
       return res.status(403).json({ error: "Admin access required" });
     }
