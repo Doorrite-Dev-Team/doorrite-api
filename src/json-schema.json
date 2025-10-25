@@ -409,6 +409,12 @@
         "deliveryAddress": {
           "$ref": "#/definitions/Address"
         },
+        "deliveryVerificationCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "totalAmount": {
           "type": "number"
         },

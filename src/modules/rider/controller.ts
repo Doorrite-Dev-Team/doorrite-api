@@ -6,6 +6,7 @@ import { $Enums } from "../../generated/prisma";
 import { getActorFromReq } from "@lib/utils/req-res";
 import socketService from "@lib/socketService";
 import { addressSchema } from "@lib/utils/address";
+import { createOCCode } from "@config/redis";
 
 type LocationUpdate = {
   latitude: number;
@@ -14,7 +15,7 @@ type LocationUpdate = {
 };
 
 // Get Rider by ID
-// GET /riders/:id
+// GET /riders/:orderId
 export const getRiderById = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Rider']
@@ -260,7 +261,7 @@ export const getRiderOrders = async (req: Request, res: Response) => {
 };
 
 // Get rider's order by ID
-// GET /api/v1/riders/orders/:id
+// GET /api/v1/riders/orders/:orderId
 export const getRiderOrderById = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Rider Orders']
@@ -276,7 +277,7 @@ export const getRiderOrderById = async (req: Request, res: Response) => {
     if (actor.role !== "RIDER" && actor.role !== "ADMIN") {
       throw new AppError(403, "Forbidden: Access is denied");
     }
-    const { id } = req.params;
+    const { orderId: id } = req.params;
     const order = await prisma.order.findUnique({
       where: { id },
       include: { items: true, customer: true, vendor: true, rider: true },
@@ -293,7 +294,7 @@ export const getRiderOrderById = async (req: Request, res: Response) => {
 
 /**
  * @desc    Claim an order for delivery
- * @route   POST /api/rider/claim/:id/
+ * @route   POST /api/rider/orders/:orderId/claim
  * @access  Private - Rider only
  */
 export const claimOrder = async (req: Request, res: Response) => {
@@ -304,7 +305,7 @@ export const claimOrder = async (req: Request, res: Response) => {
    * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
    */
-  const { id } = req.params;
+  const { orderId: id } = req.params;
   const actor = getActorFromReq(req);
 
   try {
@@ -312,6 +313,11 @@ export const claimOrder = async (req: Request, res: Response) => {
     if (!actor?.id) throw new AppError(401, "Unauthorized");
     if (actor.role !== "RIDER")
       throw new AppError(403, "Only riders can claim orders");
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+    });
+    if (!order) throw new AppError(404, "Order Does not Exist");
 
     const result = await prisma.$transaction(async (tx) => {
       // atomic guarded update: only update when riderId is null AND order in claimable status
@@ -357,6 +363,124 @@ export const claimOrder = async (req: Request, res: Response) => {
     return sendSuccess(res, { order: result?.order });
   } catch (err) {
     return handleError(res, err);
+  }
+};
+
+/**
+ * @desc    Generate 6 digit code for order confirmation
+ * @route   GET /api/rider/orders/:orderId/gen-code
+ * @access  Private - Rider only
+ */
+export const generateVendorOrderCode = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider Orders']
+   * #swagger.summary = 'Generate 6 digit code for order confirmation'
+   * #swagger.description = 'Used for Verifying if the rider is the actual rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
+
+  try {
+    const { orderId: id } = req.params;
+    const actor = getActorFromReq(req);
+
+    if (!id) throw new AppError(400, "Order id is required");
+    if (!actor?.id) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "RIDER")
+      throw new AppError(403, "Only riders can claim orders");
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+    });
+    if (!order) throw new AppError(404, "Order Does not Exist");
+    if (order.riderId !== actor.id) throw new AppError(401, "Unauthorize");
+
+    const data = await createOCCode(order.riderId, order.vendorId, order.id);
+    if (!data.ok) throw new AppError(500, "Error Generating Code");
+
+    return sendSuccess(res, { ...data });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+/**
+ * @desc    Verify 6 digit code to complete delivery (for rider)
+ * @route   POST /api/v1/riders/orders/:orderId/verify-delivery
+ * @access  Private - Rider only
+ */
+
+export const verifyCustomerDelivery = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Rider Orders']
+   * #swagger.summary = 'Verify 6 digit code to complete delivery'
+   * #swagger.description = 'Used by the rider to submit the code received from the customer.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = {
+   * in: 'body',
+   * description: 'Scanned verification code',
+   * required: true,
+   * schema: {
+   * type: 'object',
+   * properties: {
+   * scannedCode: { type: 'string', example: '123456' }
+   * }
+   * }
+   * }
+   */
+
+  try {
+    const { orderId } = req.params;
+    const { scannedCode } = req.body;
+    const actor = getActorFromReq(req);
+
+    if (!orderId) throw new AppError(400, "Order ID is required");
+    if (!scannedCode) throw new AppError(400, "Verification code is required");
+    if (!actor?.id) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "RIDER")
+      throw new AppError(403, "Only riders can verify deliveries");
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) throw new AppError(404, "Order not found");
+    if (order.riderId !== actor.id)
+      throw new AppError(403, "You are not the assigned rider for this order");
+
+    if (order.status !== "OUT_FOR_DELIVERY") {
+      throw new AppError(
+        400,
+        "This order is not currently out for delivery. Current status: " +
+          order.status
+      );
+    }
+
+    if (!order.deliveryVerificationCode) {
+      throw new AppError(
+        500,
+        "Verification code has not been generated for this order."
+      );
+    }
+
+    // The core verification check
+    if (order.deliveryVerificationCode !== scannedCode) {
+      throw new AppError(400, "Invalid verification code");
+    }
+
+    // Success! Update order status and nullify the code so it can't be reused.
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: "DELIVERED",
+        deliveryVerificationCode: null, // Important for security
+      },
+    });
+
+    return sendSuccess(res, { message: "Delivery successfully verified" });
+  } catch (error) {
+    handleError(res, error);
   }
 };
 
@@ -534,11 +658,11 @@ export const getDeliveryHistory = async (req: Request, res: Response) => {
 };
 
 // Decline Order
-// POST /api/v1/riders/orders/:id/decline
+// POST /api/v1/riders/orders/:orderId/decline
 
 /**
  * @desc    POST rider declines an assigned order
- * @route   POST /api/rider/decline/:id/
+ * @route   POST /api/rider/orders/:orderId/decline
  * @access  Private - Rider only
  */
 export const declineOrder = async (req: Request, res: Response) => {
@@ -556,7 +680,7 @@ export const declineOrder = async (req: Request, res: Response) => {
     // if (actor.role !== "RIDER") {
     //   throw new AppError(403, "Only riders can decline orders");
     // }
-    const { id } = req.params;
+    const { orderId: id } = req.params;
     if (!id) throw new AppError(400, "Order id is required");
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) throw new AppError(404, "Order not found");

@@ -12,15 +12,29 @@ router.put("/me", requireAuth("rider"), riderController.updateRiderProfile);
 
 router.get("/orders", requireAuth("rider"), riderController.getRiderOrders);
 
+router.post(
+  "/orders/:orderId/claim",
+  requireAuth("rider"),
+  riderController.claimOrder
+);
+
 router.get(
-  "/orders/:id",
+  "/orders/:orderId",
   requireAuth("rider"),
   riderController.getRiderOrderById
 );
 
-router.post("/claim/:id", requireAuth("rider"), riderController.claimOrder);
+router.get(
+  "/orders/:orderId/confirm",
+  requireAuth("rider"),
+  riderController.generateVendorOrderCode
+);
 
-router.post("/decline/:id", requireAuth("rider"), riderController.declineOrder);
+router.post(
+  "/orders/:orderId/decline",
+  requireAuth("rider"),
+  riderController.declineOrder
+);
 
 router.post("/location", requireAuth("rider"), riderController.updateLocation);
 

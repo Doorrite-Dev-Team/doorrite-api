@@ -1,6 +1,10 @@
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { getActorFromReq } from "@lib/utils/req-res";
-import { createOrderSchema, calculateOrderTotal } from "@modules/order/utils";
+import {
+  createOrderSchema,
+  calculateOrderTotal,
+  generateCode,
+} from "@modules/order/utils";
 import { Request, Response } from "express";
 import prisma from "@config/db";
 import socketService from "@lib/socketService";
@@ -386,6 +390,65 @@ export const cancelOrder = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Error canceling order:", error);
 
+    handleError(res, error);
+  }
+};
+
+/**
+ * @desc    Get 6 digit delivery verification code (for customer)
+ * @route   GET /api/v1/users/orders/:orderId/verification
+ * @access  Private - User (Customer) only
+ */
+export const getCustomerVerificationCode = async (
+  req: Request,
+  res: Response
+) => {
+  /**
+   * #swagger.tags = ['User Orders']
+   * #swagger.summary = 'Get 6 digit delivery verification code'
+   * #swagger.description = 'Used by the customer to get the code to show the rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   */
+
+  try {
+    const { orderId } = req.params;
+    const actor = getActorFromReq(req);
+
+    if (!orderId) throw new AppError(400, "Order ID is required");
+    if (!actor?.id) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "USER")
+      throw new AppError(403, "Only customers can access this");
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) throw new AppError(404, "Order not found");
+    if (order.customerId !== actor.id)
+      throw new AppError(403, "You are not authorized to view this order");
+
+    // Only allow code generation/retrieval when it's out for delivery
+    if (order.status !== "OUT_FOR_DELIVERY") {
+      throw new AppError(
+        400,
+        "Verification code is only available when order is out for delivery"
+      );
+    }
+
+    let code = order.deliveryVerificationCode;
+
+    // If code doesn't exist, generate and save it
+    if (!code) {
+      code = generateCode();
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { deliveryVerificationCode: code },
+      });
+    }
+
+    return sendSuccess(res, { verificationCode: code });
+  } catch (error) {
     handleError(res, error);
   }
 };

@@ -59,6 +59,9 @@ export const calculateOrderTotal = async (
   return total;
 };
 
+export const generateCode = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
+
 // Type inference (for use elsewhere)
 export type CreateOrderBody = z.infer<typeof createOrderSchema>;
 export type CreateOrderItem = z.infer<typeof orderItemSchema>;

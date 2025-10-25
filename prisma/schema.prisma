@@ -188,6 +188,7 @@ model Order {
   rider           Rider?        @relation("rider_orders", fields: [riderId], references: [id])
   status          OrderStatus   @default(PENDING)
   deliveryAddress Address
+  deliveryVerificationCode  String?
   totalAmount     Float
   paymentStatus   PaymentStatus @default(PENDING)
   placedAt        DateTime      @default(now())

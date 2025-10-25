@@ -10,6 +10,7 @@ import {
   validateUpdateProduct,
 } from "./helpers";
 import { addressSchema } from "@lib/utils/address";
+import { verifyOCCode } from "@config/redis";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -63,6 +64,7 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
       include: {
         products: true,
         orders: true,
+        wallet: true,
       },
     });
 
@@ -623,7 +625,7 @@ export const deleteProductVariant = async (req: Request, res: Response) => {
   }
 };
 
-//GET /vendor/orders/?page=&limit= - List vendor orders
+//GET /vendors/orders/?page=&limit= - List vendor orders
 export const getVendorOrders = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor', 'Vendor Orders']
@@ -666,7 +668,7 @@ export const getVendorOrders = async (req: Request, res: Response) => {
   }
 };
 
-// GET /vendor/orders/:orderId - Get order details
+// GET /vendors/orders/:orderId - Get order details
 export const getVendorOrderById = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor', 'Vendor Orders']
@@ -708,7 +710,7 @@ export const getVendorOrderById = async (req: Request, res: Response) => {
   }
 };
 
-// PATCH /vendor/orders/:orderId/status
+// PATCH /vendors/orders/:orderId/status
 export const updateOrderStatus = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor', 'Vendor Orders']
@@ -787,72 +789,51 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
   }
 };
 
-// POST /vendor/orders/:orderId/assign-rider
-// export const assignRiderToOrder = async (req: Request, res: Response) => {
-//   try {
-//     const vendorId = req.vendor?.id;
-//     const { orderId } = req.params;
-//     const { riderId } = req.body;
+// Post /vendors/orders/:orderId/confirm-rider
+export const confirmOrderRider = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Order']
+   * #swagger.summary = 'Confirm if the Rider is Legit'
+   * #swagger.description = Confirms the  order rider by verifying code.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to create', required: true}
+   */
 
-//     if (!vendorId) throw new AppError(401, "Unauthorized");
-//     if (!orderId) throw new AppError(400, "Order ID is required");
-//     if (!riderId) throw new AppError(400, "Rider ID is required");
+  try {
+    const vendorId = req.vendor?.id;
+    const { orderId } = req.params;
+    const { code } = req.body;
 
-//     // Verify order belongs to vendor
-//     const order = await prisma.order.findFirst({
-//       where: { id: orderId, vendorId },
-//     });
+    if (!vendorId) throw new AppError(401, "Unauthorized");
+    if (!orderId) throw new AppError(400, "Order ID is required");
+    if (!code || code.length !== 6)
+      throw new AppError(
+        400,
+        "6 digit Code is required Kindly Ask the rider for their code"
+      );
 
-//     if (!order) throw new AppError(404, "Order not found");
-//     if (order.riderId)
-//       throw new AppError(400, "Order already has a rider assigned");
+    // Verify order belongs to vendor
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, vendorId },
+    });
 
-//     // Verify rider exists and is available
-//     const rider = await prisma.rider.findUnique({
-//       where: { id: riderId },
-//       select: { id: true, isActive: true, isAvailable: true },
-//     });
+    if (!order) throw new AppError(404, "Order not found");
+    if (!order.riderId) throw new AppError(404, "No Assigned Rider Yet");
 
-//     if (!rider) throw new AppError(404, "Rider not found");
-//     if (!rider.isActive) throw new AppError(400, "Rider is not active");
-//     if (!rider.isAvailable) throw new AppError(400, "Rider is not available");
+    const response = await verifyOCCode(
+      order.riderId,
+      order.vendorId,
+      order.id,
+      code
+    );
+    if (response.ok === (false as const))
+      throw new AppError(
+        500,
+        `Failed to verify the rider's code: ${response.reason}`
+      );
 
-//     const result = await prisma.$transaction(async (tx) => {
-//       const updated = await tx.order.update({
-//         where: { id: orderId },
-//         data: {
-//           riderId,
-//           status: "OUT_FOR_DELIVERY",
-//         },
-//         include: {
-//           items: true,
-//           customer: {
-//             select: { id: true, fullName: true, email: true },
-//           },
-//           rider: {
-//             select: { id: true, fullName: true, phoneNumber: true },
-//           },
-//         },
-//       });
-
-//       await tx.orderHistory.create({
-//         data: {
-//           orderId,
-//           status: "OUT_FOR_DELIVERY",
-//           actorId: vendorId,
-//           actorType: "VENDOR",
-//           note: `Assigned rider ${riderId} to order`,
-//         },
-//       });
-
-//       return updated;
-//     });
-
-//     return sendSuccess(res, {
-//       message: "Rider assigned successfully",
-//       order: result,
-//     });
-//   } catch (error) {
-//     return handleError(res, error);
-//   }
-// };
+    return sendSuccess(res, { ...response });
+  } catch (error) {
+    handleError(res, error);
+  }
+};

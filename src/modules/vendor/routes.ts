@@ -58,6 +58,12 @@ router.get(
   vendorController.getVendorOrderById
 );
 
+router.post(
+  "orders/:orderId/confirm-rider",
+  requireAuth("vendor"),
+  vendorController.confirmOrderRider
+);
+
 router.patch(
   "/orders/:orderId/status",
   requireAuth("vendor"),
