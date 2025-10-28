@@ -17,7 +17,7 @@ import UserRoutes from "@modules/user/routes";
 import vendorRoutes from "@modules/vendor/routes";
 import adminRoutes from "@modules/admin/routes";
 import RiderRoutes from "@modules/rider/routes";
-import PaymentRoutes from "@modules/payment/routes";
+import PublicRoutes from "@modules/public/routes";
 // import { requireAuth } from "middleware/auth";
 
 export const app = express();
@@ -85,16 +85,18 @@ app.use("/api/v1/product", ProductRoutes);
 app.use("/api/v1/order", OrderRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/rider", RiderRoutes);
-app.use("/api/v1/payment", PaymentRoutes);
+app.use("/api/v1/");
+app.use("/api/v1/public", PublicRoutes);
 
 //MiddleWare
 //404 handler
-app.use((req: Request, res: Response) => {
+
+app.use((_: Request, res: Response) => {
   res.status(404).json({ ok: false, error: "Not found" });
 });
 
 //Global error handler (simple)
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, _: Request, res: Response, next: NextFunction) => {
   console.error("Unhandled error:", err);
   res.status(err?.status || 500).json({
     ok: false,

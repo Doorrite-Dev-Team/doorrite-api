@@ -153,7 +153,12 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     const updatedUser = await prisma.user.update({
       where: { id },
-      data, // ✅ only whitelisted fields
+      data: {
+        ...data,
+        address: {
+          push: data.address,
+        },
+      }, // ✅ only whitelisted fields
     });
 
     return sendSuccess(res, {

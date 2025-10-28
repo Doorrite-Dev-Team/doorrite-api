@@ -4,7 +4,7 @@ import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { isValidNigerianPhone } from "@modules/auth/helper";
 import { $Enums } from "../../generated/prisma";
 import { getActorFromReq } from "@lib/utils/req-res";
-import socketService from "@lib/socketService";
+// import socketService from "@lib/socketService";
 import { addressSchema } from "@lib/utils/address";
 import { createOCCode } from "@config/redis";
 
@@ -182,7 +182,12 @@ export const updateRiderProfile = async (req: Request, res: Response) => {
 
   const updatedRider = await prisma.rider.update({
     where: { id: riderId },
-    data,
+    data: {
+      ...data,
+      address: {
+        push: data.address,
+      },
+    },
   });
 
   return sendSuccess(res, {
@@ -274,7 +279,7 @@ export const getRiderOrderById = async (req: Request, res: Response) => {
     const riderId = req.rider?.id;
     if (!riderId) throw new AppError(401, "Authentication required");
     const actor = getActorFromReq(req);
-    if (actor.role !== "RIDER" && actor.role !== "ADMIN") {
+    if (actor.role !== "rider" && actor.role !== "admin") {
       throw new AppError(403, "Forbidden: Access is denied");
     }
     const { orderId: id } = req.params;
@@ -283,7 +288,7 @@ export const getRiderOrderById = async (req: Request, res: Response) => {
       include: { items: true, customer: true, vendor: true, rider: true },
     });
     if (!order) throw new AppError(404, "Order not found");
-    if (actor.role === "RIDER" && order.riderId !== riderId) {
+    if (actor.role !== "rider" && order.riderId !== riderId) {
       throw new AppError(403, "You do not have access to this order");
     }
     return sendSuccess(res, { order });
@@ -310,8 +315,8 @@ export const claimOrder = async (req: Request, res: Response) => {
 
   try {
     if (!id) throw new AppError(400, "Order id is required");
-    if (!actor?.id) throw new AppError(401, "Unauthorized");
-    if (actor.role !== "RIDER")
+    if (!actor) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "rider")
       throw new AppError(403, "Only riders can claim orders");
 
     const order = await prisma.order.findUnique({
@@ -385,8 +390,8 @@ export const generateVendorOrderCode = async (req: Request, res: Response) => {
     const actor = getActorFromReq(req);
 
     if (!id) throw new AppError(400, "Order id is required");
-    if (!actor?.id) throw new AppError(401, "Unauthorized");
-    if (actor.role !== "RIDER")
+    if (!actor) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "rider")
       throw new AppError(403, "Only riders can claim orders");
 
     const order = await prisma.order.findUnique({
@@ -437,8 +442,8 @@ export const verifyCustomerDelivery = async (req: Request, res: Response) => {
 
     if (!orderId) throw new AppError(400, "Order ID is required");
     if (!scannedCode) throw new AppError(400, "Verification code is required");
-    if (!actor?.id) throw new AppError(401, "Unauthorized");
-    if (actor.role !== "RIDER")
+    if (!actor) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "rider")
       throw new AppError(403, "Only riders can verify deliveries");
 
     const order = await prisma.order.findUnique({
@@ -484,68 +489,68 @@ export const verifyCustomerDelivery = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * @desc    Update rider's current location
- * @route   POST /api/rider/location
- * @access  Private - Rider only
- */
-export const updateLocation = async (req: Request, res: Response) => {
-  /**
-   * #swagger.tags = ['Rider']
-   * #swagger.summary = 'Update rider location'
-   * #swagger.description = 'Updates the real-time location of the rider.'
-   * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['body'] = { in: 'body', description: 'Location data', required: true, schema: { type: 'object', properties: { latitude: { type: 'number' }, longitude: { type: 'number' } } } }
-   */
-  const { latitude, longitude } = req.body;
-  const riderId = req.rider?.id;
+// /**
+//  * @desc    Update rider's current location
+//  * @route   POST /api/rider/location
+//  * @access  Private - Rider only
+//  */
+// export const updateLocation = async (req: Request, res: Response) => {
+//   /**
+//    * #swagger.tags = ['Rider']
+//    * #swagger.summary = 'Update rider location'
+//    * #swagger.description = 'Updates the real-time location of the rider.'
+//    * #swagger.security = [{ "bearerAuth": [] }]
+//    * #swagger.parameters['body'] = { in: 'body', description: 'Location data', required: true, schema: { type: 'object', properties: { latitude: { type: 'number' }, longitude: { type: 'number' } } } }
+//    */
+//   const { latitude, longitude } = req.body;
+//   const riderId = req.rider?.id;
 
-  try {
-    if (!riderId) throw new AppError(401, "Unauthorized");
-    if (typeof latitude !== "number" || typeof longitude !== "number")
-      throw new AppError(
-        400,
-        "Latitude and longitude are required and must be numbers"
-      );
+//   try {
+//     if (!riderId) throw new AppError(401, "Unauthorized");
+//     if (typeof latitude !== "number" || typeof longitude !== "number")
+//       throw new AppError(
+//         400,
+//         "Latitude and longitude are required and must be numbers"
+//       );
 
-    // Persist coordinates inside the rider.address.coordinates if address exists
-    const rider = await prisma.rider.findUnique({ where: { id: riderId } });
-    if (!rider) throw new AppError(404, "Rider not found");
+//     // Persist coordinates inside the rider.address.coordinates if address exists
+//     const rider = await prisma.rider.findUnique({ where: { id: riderId } });
+//     if (!rider) throw new AppError(404, "Rider not found");
 
-    const addressUpdate: any = {};
-    if (rider.address) {
-      addressUpdate.address = rider.address.address || "";
-      addressUpdate.state = rider.address.state || "ilorin";
-      addressUpdate.coordinates = { lat: latitude, long: longitude };
-    }
+//     const addressUpdate: any = {};
+//     if (rider.address) {
+//       addressUpdate.address = rider.address.address || "";
+//       addressUpdate.state = rider.address.state || "ilorin";
+//       addressUpdate.coordinates = { lat: latitude, long: longitude };
+//     }
 
-    const data: any = {};
-    if (rider.address) {
-      data.address = addressUpdate;
-    } else {
-      // no address object yet; set a minimal address container with coordinates
-      data.address = {
-        address: "",
-        coordinates: { lat: latitude, long: longitude },
-        country: "Nigeria",
-      } as any;
-    }
+//     const data: any = {};
+//     if (rider.address) {
+//       data.address = addressUpdate;
+//     } else {
+//       // no address object yet; set a minimal address container with coordinates
+//       data.address = {
+//         address: "",
+//         coordinates: { lat: latitude, long: longitude },
+//         country: "Nigeria",
+//       } as any;
+//     }
 
-    await prisma.rider.update({ where: { id: riderId }, data });
+//     await prisma.rider.update({ where: { id: riderId }, data });
 
-    // Notify connected clients about this rider's new location
-    if (data.address?.coordinates) {
-      socketService.updateRiderLocation(riderId, {
-        lat: data.address.coordinates.lat,
-        long: data.address.coordinates.long,
-      });
-    }
+//     // Notify connected clients about this rider's new location
+//     if (data.address?.coordinates) {
+//       socketService.updateRiderLocation(riderId, {
+//         lat: data.address.coordinates.lat,
+//         long: data.address.coordinates.long,
+//       });
+//     }
 
-    return sendSuccess(res, { message: "Location updated successfully" });
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
+//     return sendSuccess(res, { message: "Location updated successfully" });
+//   } catch (err) {
+//     return handleError(res, err);
+//   }
+// };
 
 /**
  * @desc    Toggle rider's availability status
@@ -677,7 +682,7 @@ export const declineOrder = async (req: Request, res: Response) => {
     const riderId = req.rider?.id;
     if (!riderId) throw new AppError(401, "Authentication required");
     // const actor = getActorFromReq(req);
-    // if (actor.role !== "RIDER") {
+    // if (actor.role !== "rider") {
     //   throw new AppError(403, "Only riders can decline orders");
     // }
     const { orderId: id } = req.params;

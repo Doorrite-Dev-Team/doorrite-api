@@ -33,16 +33,6 @@
             "null"
           ]
         },
-        "address": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Address"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "isVerified": {
           "type": "boolean",
           "default": false
@@ -54,6 +44,12 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "address": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Address"
+          }
         },
         "orders": {
           "type": "array",
@@ -93,9 +89,6 @@
         "passwordHash": {
           "type": "string"
         },
-        "address": {
-          "$ref": "#/definitions/Address"
-        },
         "logoUrl": {
           "type": [
             "string",
@@ -127,6 +120,12 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "address": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Address"
+          }
         },
         "products": {
           "type": "array",
@@ -286,16 +285,6 @@
         "passwordHash": {
           "type": "string"
         },
-        "address": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Address"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "vehicleType": {
           "type": "string",
           "enum": [
@@ -341,6 +330,12 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "address": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Address"
+          }
         },
         "deliveries": {
           "type": "array",

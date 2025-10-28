@@ -91,14 +91,14 @@ model User {
   phoneNumber     String   @unique
   passwordHash    String
   profileImageUrl String?
-  address         Address?
   isVerified      Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  orders   Order[]   @relation("customer_orders")
-  payments Payment[]
-  reviews  Review[]
+  address         Address[]
+  orders          Order[]   @relation("customer_orders")
+  payments        Payment[]
+  reviews         Review[]
 }
 
 model Vendor {
@@ -107,7 +107,6 @@ model Vendor {
   businessName String      @unique
   phoneNumber  String      @unique
   passwordHash String
-  address      Address
   logoUrl      String?
   rating       Float?
   isActive     Boolean     @default(true)
@@ -117,6 +116,7 @@ model Vendor {
   updatedAt    DateTime    @updatedAt
 
   // Relations
+  address   Address[]
   products  Product[]
   orders    Order[]
   reviews   Review[]
@@ -161,7 +161,6 @@ model Rider {
   email           String      @unique
   phoneNumber     String      @unique
   passwordHash    String
-  address         Address?
   vehicleType     VehicleType
   profileImageUrl String?
   licenseNumber   String?
@@ -172,6 +171,8 @@ model Rider {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+
+  address    Address[]
   deliveries Delivery[]
   orders     Order[]    @relation("rider_orders")
   reviews    Review[]

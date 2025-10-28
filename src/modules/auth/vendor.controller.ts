@@ -90,8 +90,9 @@ export const createVendor = async (req: Request, res: Response) => {
         businessName: businessName.trim(),
         phoneNumber: phoneNumber.trim(),
         passwordHash,
-        address:
+        address: [
           typeof address === "string" ? { address } : (address as Address),
+        ],
         logoUrl: logoUrl || undefined,
         isVerified: false,
         isActive: false, // requires admin approval
@@ -99,24 +100,24 @@ export const createVendor = async (req: Request, res: Response) => {
     });
 
     // Optionally create DB links to vendorCategory if your schema has it. This is non-blocking for validation.
-    try {
-      if (uniqueCategoryIds.length > 0 && (prisma as any).vendorCategory) {
-        await Promise.all(
-          uniqueCategoryIds.map((catId) =>
-            (prisma as any).vendorCategory.create({
-              data: {
-                vendorId: newVendor.id,
-                categoryId: catId,
-              },
-            })
-          )
-        );
-      }
-    } catch (e: Error | any) {
-      // If vendorCategory model doesn't exist or DB insert fails, continue — categories are treated in-memory
-      // Log the error for debugging but don't block vendor creation
-      console.warn("vendorCategory linking skipped:", e?.message || e);
-    }
+    // try {
+    //   if (uniqueCategoryIds.length > 0 && prisma.vendorCategory) {
+    //     await Promise.all(
+    //       uniqueCategoryIds.map((catId) =>
+    //         prisma.vendorCategory.create({
+    //           data: {
+    //             vendorId: newVendor.id,
+    //             categoryId: catId,
+    //           },
+    //         })
+    //       )
+    //     );
+    //   }
+    // } catch (e: Error | any) {
+    //   // If vendorCategory model doesn't exist or DB insert fails, continue — categories are treated in-memory
+    //   // Log the error for debugging but don't block vendor creation
+    //   console.warn("vendorCategory linking skipped:", e?.message || e);
+    // }
 
     // Send email OTP for verification
     await createAndSendOtp(

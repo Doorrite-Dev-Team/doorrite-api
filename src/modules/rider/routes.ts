@@ -36,7 +36,7 @@ router.post(
   riderController.declineOrder
 );
 
-router.post("/location", requireAuth("rider"), riderController.updateLocation);
+// router.post("/location", requireAuth("rider"), riderController.updateLocation);
 
 router.patch(
   "/availability",
