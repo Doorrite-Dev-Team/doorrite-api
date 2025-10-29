@@ -8,7 +8,11 @@ import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 const swaggerDocumet = require("./swagger-output.json");
+// const prismaSchema = require("./json-schema.json");
 
+// console.log("====================================");
+// console.log(JSON.parse(JSON.stringify(prismaSchema) as any).definitions);
+// console.log("====================================");
 //routes
 import AuthRoutes from "@modules/auth/routes";
 import OrderRoutes from "@modules/order/routes";

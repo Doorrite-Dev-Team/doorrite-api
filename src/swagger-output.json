@@ -72,7 +72,10 @@
     },
     "/api/v1/auth/create-user": {
       "post": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "Create a new user",
         "description": "Register a new user account",
         "responses": {
@@ -107,7 +110,10 @@
     },
     "/api/v1/auth/create-otp": {
       "post": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "Create OTP",
         "description": "Send a one-time password to the user",
         "responses": {
@@ -133,7 +139,10 @@
     },
     "/api/v1/auth/verify-otp": {
       "post": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "Verify OTP",
         "description": "Verify the one-time password",
         "responses": {
@@ -165,7 +174,10 @@
     },
     "/api/v1/auth/login-user": {
       "post": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "User login",
         "description": "Authenticate and receive a JWT",
         "responses": {
@@ -194,7 +206,10 @@
     },
     "/api/v1/auth/refresh-token": {
       "post": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "Refresh token",
         "description": "Obtain a new JWT using a refresh token",
         "responses": {
@@ -206,7 +221,10 @@
     },
     "/api/v1/auth/logout-user": {
       "get": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "User logout",
         "description": "Log out the currently authenticated user",
         "responses": {
@@ -218,7 +236,10 @@
     },
     "/api/v1/auth/forget-password": {
       "post": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "Forgot password",
         "description": "Initiate the password reset process",
         "responses": {
@@ -244,7 +265,10 @@
     },
     "/api/v1/auth/reset-password": {
       "post": {
-        "tags": ["Auth", "Auth User"],
+        "tags": [
+          "Auth",
+          "Auth User"
+        ],
         "summary": "Reset password",
         "description": "Reset the user password with a valid token",
         "responses": {
@@ -279,7 +303,10 @@
     },
     "/api/v1/auth/create-vendor": {
       "post": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Create a new vendor",
         "description": "Register a new vendor account",
         "responses": {
@@ -323,7 +350,10 @@
     },
     "/api/v1/auth/create-vendor-otp": {
       "post": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Create vendor OTP",
         "description": "Send a one-time password to the vendor",
         "responses": {
@@ -349,7 +379,10 @@
     },
     "/api/v1/auth/verify-vendor-otp": {
       "post": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Verify vendor OTP",
         "description": "Verify the one-time password for the vendor",
         "responses": {
@@ -381,7 +414,10 @@
     },
     "/api/v1/auth/login-vendor": {
       "post": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Vendor login",
         "description": "Authenticate and receive a JWT for the vendor",
         "responses": {
@@ -410,7 +446,10 @@
     },
     "/api/v1/auth/refresh-vendor-token": {
       "post": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Refresh vendor token",
         "description": "Obtain a new JWT for the vendor using a refresh token",
         "responses": {
@@ -422,7 +461,10 @@
     },
     "/api/v1/auth/logout-vendor": {
       "get": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Vendor logout",
         "description": "Log out the currently authenticated vendor",
         "responses": {
@@ -434,7 +476,10 @@
     },
     "/api/v1/auth/forget-vendor-password": {
       "post": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Forgot vendor password",
         "description": "Initiate the password reset process for the vendor",
         "responses": {
@@ -460,7 +505,10 @@
     },
     "/api/v1/auth/reset-vendor-password": {
       "post": {
-        "tags": ["Auth", "Auth Vendor"],
+        "tags": [
+          "Auth",
+          "Auth Vendor"
+        ],
         "summary": "Reset vendor password",
         "description": "Reset the vendor password with a valid token",
         "responses": {
@@ -495,7 +543,10 @@
     },
     "/api/v1/auth/create-rider": {
       "post": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Create a new rider",
         "description": "Register a new rider account",
         "responses": {
@@ -509,9 +560,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "vehicleType": {
-                    "example": "any"
-                  },
                   "fullName": {
                     "example": "any"
                   },
@@ -523,6 +571,9 @@
                   },
                   "password": {
                     "example": "any"
+                  },
+                  "vehicleType": {
+                    "example": "any"
                   }
                 }
               }
@@ -533,7 +584,10 @@
     },
     "/api/v1/auth/create-rider-otp": {
       "post": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Create rider OTP",
         "description": "Send a one-time password to the rider",
         "responses": {
@@ -559,7 +613,10 @@
     },
     "/api/v1/auth/verify-rider-otp": {
       "post": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Verify rider OTP",
         "description": "Verify the one-time password for the rider",
         "responses": {
@@ -591,7 +648,10 @@
     },
     "/api/v1/auth/login-rider": {
       "post": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Rider login",
         "description": "Authenticate and receive a JWT for the rider",
         "responses": {
@@ -620,7 +680,10 @@
     },
     "/api/v1/auth/refresh-rider-token": {
       "post": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Refresh rider token",
         "description": "Obtain a new JWT for the rider using a refresh token",
         "responses": {
@@ -632,7 +695,10 @@
     },
     "/api/v1/auth/logout-rider": {
       "get": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Rider logout",
         "description": "Log out the currently authenticated rider",
         "responses": {
@@ -644,7 +710,10 @@
     },
     "/api/v1/auth/forgot-rider-password": {
       "post": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Forgot rider password",
         "description": "Initiate the password reset process for the rider",
         "responses": {
@@ -673,7 +742,10 @@
     },
     "/api/v1/auth/reset-rider-password": {
       "post": {
-        "tags": ["Auth", "Auth Rider"],
+        "tags": [
+          "Auth",
+          "Auth Rider"
+        ],
         "summary": "Reset rider password",
         "description": "Reset the rider password with a valid token",
         "responses": {
@@ -708,7 +780,9 @@
     },
     "/api/v1/auth/vendor-categories": {
       "get": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Get vendor categories",
         "description": "Retrieve a list of available vendor categories and their keys.",
         "responses": {
@@ -718,9 +792,38 @@
         }
       }
     },
+    "/api/v1/auth/delete-address": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entityType": {
+                    "example": "any"
+                  },
+                  "addressToDelete": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/user/{id}": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Get user by ID",
         "description": "Retrieves a user by their ID.",
         "parameters": [
@@ -743,7 +846,9 @@
     },
     "/api/v1/user/me": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Get current user profile",
         "description": "Retrieves the profile of the currently authenticated user.",
         "parameters": [
@@ -767,7 +872,9 @@
         ]
       },
       "put": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Update user profile",
         "description": "Updates the profile of the currently authenticated user.",
         "parameters": [
@@ -849,7 +956,10 @@
     },
     "/api/v1/user/orders": {
       "get": {
-        "tags": ["User", "User Orders"],
+        "tags": [
+          "User",
+          "User Orders"
+        ],
         "summary": "Get user orders",
         "description": "Retrieves a paginated list of orders for the currently authenticated user.",
         "parameters": [
@@ -891,7 +1001,9 @@
     },
     "/api/v1/vendors/{id}": {
       "get": {
-        "tags": ["Vendor"],
+        "tags": [
+          "Vendor"
+        ],
         "summary": "Get vendor details",
         "description": "Fetches a single vendor by their ID.",
         "parameters": [
@@ -913,7 +1025,9 @@
     },
     "/api/v1/vendors/me": {
       "get": {
-        "tags": ["Vendor"],
+        "tags": [
+          "Vendor"
+        ],
         "summary": "Get current vendor's profile",
         "description": "Fetches the profile of the currently authenticated vendor, including their products and orders.",
         "parameters": [
@@ -932,7 +1046,9 @@
         }
       },
       "put": {
-        "tags": ["Vendor"],
+        "tags": [
+          "Vendor"
+        ],
         "summary": "Update current vendor's profile",
         "description": "Updates the profile of the currently authenticated vendor.",
         "parameters": [
@@ -1009,7 +1125,9 @@
     },
     "/api/v1/vendors/products": {
       "get": {
-        "tags": ["Vendor"],
+        "tags": [
+          "Vendor"
+        ],
         "summary": "Get vendor's products with pagination",
         "description": "Fetches a paginated list of products for the currently authenticated vendor.",
         "parameters": [
@@ -1044,7 +1162,10 @@
         }
       },
       "post": {
-        "tags": ["Vendor", "Vendor Products"],
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
         "summary": "Create a new product",
         "description": "Creates a new product for the authenticated vendor.",
         "parameters": [
@@ -1054,12 +1175,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Product data to create",
-            "required": true
           }
         ],
         "responses": {
@@ -1071,7 +1186,10 @@
     },
     "/api/v1/vendors/products/{id}": {
       "put": {
-        "tags": ["Vendor", "Vendor Products"],
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
         "summary": "Update a product",
         "description": "Updates an existing product for the authenticated vendor.",
         "parameters": [
@@ -1090,12 +1208,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Product data to update",
-            "required": true
           }
         ],
         "responses": {
@@ -1105,7 +1217,10 @@
         }
       },
       "delete": {
-        "tags": ["Vendor", "Vendor Products"],
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
         "summary": "Delete a product",
         "description": "Deletes a product for the authenticated vendor. Fails if the product has been ordered.",
         "parameters": [
@@ -1135,7 +1250,10 @@
     },
     "/api/v1/vendors/products/{id}/variants/{variantId}": {
       "put": {
-        "tags": ["Vendor", "Vendor Products"],
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
         "summary": "Update a product variant",
         "description": "Updates a specific product variant.",
         "parameters": [
@@ -1176,16 +1294,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "in": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "required": {
-                    "example": "any"
-                  },
-                  "schema": {
+                  "where": {
                     "example": "any"
                   },
                   "select": {
@@ -1198,7 +1307,10 @@
         }
       },
       "delete": {
-        "tags": ["Vendor", "Vendor Products"],
+        "tags": [
+          "Vendor",
+          "Vendor Products"
+        ],
         "summary": "Delete a product variant",
         "description": "Deletes a specific product variant. Fails if the variant has been ordered.",
         "parameters": [
@@ -1237,7 +1349,10 @@
     },
     "/api/v1/vendors/orders": {
       "get": {
-        "tags": ["Vendor", "Vendor Orders"],
+        "tags": [
+          "Vendor",
+          "Vendor Orders"
+        ],
         "summary": "Get vendor's orders with pagination",
         "description": "Fetches a paginated list of orders for the currently authenticated vendor.",
         "parameters": [
@@ -1274,7 +1389,10 @@
     },
     "/api/v1/vendors/orders/{orderId}": {
       "get": {
-        "tags": ["Vendor", "Vendor Orders"],
+        "tags": [
+          "Vendor",
+          "Vendor Orders"
+        ],
         "summary": "Get a single order for the vendor",
         "description": "Fetches details of a specific order belonging to the currently authenticated vendor.",
         "parameters": [
@@ -1302,9 +1420,63 @@
         }
       }
     },
+    "/api/v1/vendorsorders/{orderId}/confirm-rider": {
+      "post": {
+        "tags": [
+          "Vendor",
+          "Vendor Order"
+        ],
+        "summary": "Confirm if the Rider is Legit",
+        "description": "Confirms the order rider by verifying code.'   *",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Product variant data to create",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/vendors/orders/{orderId}/status": {
       "patch": {
-        "tags": ["Vendor", "Vendor Orders"],
+        "tags": [
+          "Vendor",
+          "Vendor Orders"
+        ],
         "summary": "Update order status",
         "description": "Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, or CANCELLED.",
         "parameters": [
@@ -1365,7 +1537,9 @@
     },
     "/api/v1/vendors/": {
       "get": {
-        "tags": ["Vendor"],
+        "tags": [
+          "Vendor"
+        ],
         "summary": "Get all vendors with pagination",
         "description": "Fetches a paginated list of all vendors.",
         "parameters": [
@@ -1476,7 +1650,9 @@
     },
     "/api/v1/order/": {
       "get": {
-        "tags": ["Order"],
+        "tags": [
+          "Order"
+        ],
         "summary": "Get orders",
         "description": "Get all orders",
         "parameters": [
@@ -1537,19 +1713,23 @@
         }
       },
       "post": {
-        "tags": ["Order"],
+        "tags": [
+          "Order"
+        ],
         "summary": "Create order",
         "description": "Create a new order",
         "responses": {
-          "default": {
-            "description": ""
+          "400": {
+            "description": "Bad Request"
           }
         }
       }
     },
     "/api/v1/order/{id}": {
       "get": {
-        "tags": ["Order"],
+        "tags": [
+          "Order"
+        ],
         "summary": "Get order by ID",
         "description": "Get a single order by its ID",
         "parameters": [
@@ -1571,7 +1751,9 @@
     },
     "/api/v1/order/{id}/cancel": {
       "patch": {
-        "tags": ["Order"],
+        "tags": [
+          "Order"
+        ],
         "summary": "Cancel order",
         "description": "Cancel an order",
         "parameters": [
@@ -1605,9 +1787,207 @@
         }
       }
     },
+    "/api/v1/order/{id}/payments/create-intent": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "Create a payment intent",
+        "description": "Creates a payment intent for an order.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Order ID",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "object"
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/order/{id}/payments/confirm": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "Confirm a payment",
+        "description": "Confirms a payment using the payment reference.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/order/{id}/payments/refund": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "Process a refund",
+        "description": "Processes a refund for an order. Only admins can perform this action.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Order ID"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "in": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "required": {
+                    "example": "any"
+                  },
+                  "schema": {
+                    "example": "any"
+                  },
+                  "amount": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/order/{id}/payments/status": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "Check payment status",
+        "description": "Checks the payment status for an order.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Order ID"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/login": {
       "post": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Admin login",
         "description": "Authenticate an admin user.",
         "responses": {
@@ -1636,7 +2016,9 @@
     },
     "/api/v1/admin/vendors": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "List all vendors",
         "description": "Retrieves a paginated list of all vendors.",
         "parameters": [
@@ -1664,7 +2046,9 @@
     },
     "/api/v1/admin/vendors/{vendorId}": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Get a specific vendor",
         "description": "Retrieves the details of a single vendor by their ID.",
         "parameters": [
@@ -1686,7 +2070,9 @@
     },
     "/api/v1/admin/vendors/{vendorId}/approve": {
       "patch": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Approve a vendor",
         "description": "Approves a vendor, making them verified and active.",
         "parameters": [
@@ -1706,9 +2092,35 @@
         }
       }
     },
+    "/api/v1/admin/vendor/{vendorId}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a Vendor",
+        "description": "Deletes a Vendor, making them unavailable.",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/v1/admin/riders": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "List all riders",
         "description": "Retrieves a paginated list of all riders.",
         "parameters": [
@@ -1736,7 +2148,9 @@
     },
     "/api/v1/admin/riders/{riderId}": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Get a specific rider",
         "description": "Retrieves the details of a single rider by their ID.",
         "parameters": [
@@ -1758,7 +2172,9 @@
     },
     "/api/v1/admin/riders/{riderId}/approve": {
       "patch": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Approve a rider",
         "description": "Approves a rider, making them verified and available.",
         "parameters": [
@@ -1780,7 +2196,9 @@
     },
     "/api/v1/admin/riders/{riderId}/suspend": {
       "patch": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Suspend a rider",
         "description": "Suspends a rider, making them unavailable.",
         "parameters": [
@@ -1800,9 +2218,89 @@
         }
       }
     },
+    "/api/v1/admin/rider/{riderId}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a rider",
+        "description": "Deletes a rider, making them unavailable.",
+        "parameters": [
+          {
+            "name": "riderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get all users",
+        "description": "",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{userId}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a User",
+        "description": "Deletes a User, making them unavailable.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/v1/admin/orders/{orderId}/status": {
       "patch": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Update order status",
         "description": "Updates the status of a specific order.",
         "parameters": [
@@ -1838,7 +2336,9 @@
     },
     "/api/v1/admin/reports": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "Get system reports",
         "description": "Retrieves various system reports, such as counts and revenue.",
         "responses": {
@@ -1850,7 +2350,9 @@
     },
     "/api/v1/rider/{id}": {
       "get": {
-        "tags": ["Rider"],
+        "tags": [
+          "Rider"
+        ],
         "summary": "Get a single rider by ID",
         "description": "Retrieves public information about a specific rider.",
         "parameters": [
@@ -1873,7 +2375,9 @@
     },
     "/api/v1/rider/me": {
       "get": {
-        "tags": ["Rider"],
+        "tags": [
+          "Rider"
+        ],
         "summary": "Get current rider profile",
         "description": "Retrieves the profile of the currently authenticated rider.",
         "parameters": [
@@ -1897,7 +2401,9 @@
         ]
       },
       "put": {
-        "tags": ["Rider"],
+        "tags": [
+          "Rider"
+        ],
         "summary": "Update rider profile",
         "description": "Updates the profile of the currently authenticated rider.",
         "parameters": [
@@ -2006,7 +2512,9 @@
     },
     "/api/v1/rider/orders": {
       "get": {
-        "tags": ["Rider Orders"],
+        "tags": [
+          "Rider Orders"
+        ],
         "summary": "Get rider orders",
         "description": "Retrieves a list of orders for the rider. Can be filtered by status or to show claimable orders.",
         "parameters": [
@@ -2066,59 +2574,34 @@
         ]
       }
     },
-    "/api/v1/rider/orders/{id}": {
-      "get": {
-        "tags": ["Rider Orders"],
-        "summary": "Get a specific order by ID",
-        "description": "Retrieves details of a specific order assigned to the rider.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Order ID"
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/rider/claim/{id}": {
+    "/api/v1/rider/orders/{orderId}/claim": {
       "post": {
-        "tags": ["Rider Orders"],
+        "tags": [
+          "Rider Orders"
+        ],
         "summary": "Claim an order",
         "description": "Allows a rider to claim an available order for delivery.",
         "parameters": [
           {
-            "name": "id",
+            "name": "orderId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
-            },
-            "description": "Order ID"
+            }
           },
           {
             "name": "authorization",
             "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2136,24 +2619,124 @@
         ]
       }
     },
-    "/api/v1/rider/decline/{id}": {
+    "/api/v1/rider/orders/{orderId}": {
+      "get": {
+        "tags": [
+          "Rider Orders"
+        ],
+        "summary": "Get a specific order by ID",
+        "description": "Retrieves details of a specific order assigned to the rider.",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/rider/orders/{orderId}/confirm": {
+      "get": {
+        "tags": [
+          "Rider Orders"
+        ],
+        "summary": "Generate 6 digit code for order confirmation",
+        "description": "Used for Verifying if the rider is the actual rider.",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/rider/orders/{orderId}/decline": {
       "post": {
-        "tags": ["Rider Orders"],
+        "tags": [
+          "Rider Orders"
+        ],
         "summary": "Decline an order",
         "description": "Allows a rider to decline an assigned order.",
         "parameters": [
           {
-            "name": "id",
+            "name": "orderId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
-            },
-            "description": "Order ID"
+            }
           },
           {
             "name": "authorization",
             "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2171,61 +2754,11 @@
         ]
       }
     },
-    "/api/v1/rider/location": {
-      "post": {
-        "tags": ["Rider"],
-        "summary": "Update rider location",
-        "description": "Updates the real-time location of the rider.",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "in": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "required": {
-                    "example": "any"
-                  },
-                  "schema": {
-                    "example": "any"
-                  },
-                  "longitude": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/rider/availability": {
       "patch": {
-        "tags": ["Rider"],
+        "tags": [
+          "Rider"
+        ],
         "summary": "Toggle rider availability",
         "description": "Sets the rider as available or unavailable for new orders.",
         "parameters": [
@@ -2274,7 +2807,9 @@
     },
     "/api/v1/rider/history": {
       "get": {
-        "tags": ["Rider"],
+        "tags": [
+          "Rider"
+        ],
         "summary": "Get delivery history",
         "description": "Retrieves the delivery history for the authenticated rider.",
         "parameters": [
@@ -2338,7 +2873,9 @@
     },
     "/api/v1/rider/": {
       "get": {
-        "tags": ["Rider"],
+        "tags": [
+          "Rider"
+        ],
         "summary": "Get all riders",
         "description": "Retrieves a paginated list of all riders.",
         "parameters": [
@@ -2371,208 +2908,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/payment/create-intent": {
-      "post": {
-        "tags": ["Payment"],
-        "summary": "Create a payment intent",
-        "description": "Creates a payment intent for an order.",
-        "parameters": [],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "in": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "required": {
-                    "example": "any"
-                  },
-                  "schema": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/payment/confirm": {
-      "post": {
-        "tags": ["Payment"],
-        "summary": "Confirm a payment",
-        "description": "Confirms a payment using the payment reference.",
-        "parameters": [],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "in": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "required": {
-                    "example": "any"
-                  },
-                  "schema": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/payment/webhook": {
-      "post": {
-        "tags": ["Payment"],
-        "summary": "Handle Paystack webhook",
-        "description": "Handles webhook events from Paystack.",
-        "parameters": [
-          {
-            "name": "x-paystack-signature",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "req": {
-                    "example": "any"
-                  },
-                  "data": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/payment/{orderId}/status": {
-      "get": {
-        "tags": ["Payment"],
-        "summary": "Check payment status",
-        "description": "Checks the payment status for an order.",
-        "parameters": [
-          {
-            "name": "orderId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Order ID"
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/payment/{orderId}/refund": {
-      "post": {
-        "tags": ["Payment"],
-        "summary": "Process a refund",
-        "description": "Processes a refund for an order. Only admins can perform this action.",
-        "parameters": [
-          {
-            "name": "orderId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Order ID"
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "in": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "required": {
-                    "example": "any"
-                  },
-                  "schema": {
-                    "example": "any"
-                  },
-                  "amount": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -2693,6 +3028,2041 @@
                   "example": {
                     "type": "string",
                     "example": "securepassword"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "role": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "CUSTOMER"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "CUSTOMER",
+                      "ADMIN"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "fullName": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "email": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "phoneNumber": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "passwordHash": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "profileImageUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "isVerified": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Address"
+                  }
+                }
+              },
+              "orders": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              },
+              "payments": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Payment"
+                  }
+                }
+              },
+              "reviews": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Review"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Vendor": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "email": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "businessName": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "phoneNumber": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "passwordHash": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "logoUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "rating": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "number",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "isActive": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "isVerified": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              },
+              "isApproved": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Address"
+                  }
+                }
+              },
+              "products": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              },
+              "orders": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              },
+              "reviews": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Review"
+                  }
+                }
+              },
+              "wallet": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "vendor": {
+                "$ref": "#/components/schemas/Vendor"
+              },
+              "name": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "basePrice": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  }
+                }
+              },
+              "sku": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "number",
+                      "string",
+                      "boolean",
+                      "object",
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "isAvailable": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "variants": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/ProductVariant"
+                  }
+                }
+              },
+              "orderItems": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/OrderItem"
+                  }
+                }
+              },
+              "reviews": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Review"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProductVariant": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "product": {
+                "$ref": "#/components/schemas/Product"
+              },
+              "name": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "price": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  }
+                }
+              },
+              "stock": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "integer",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "isAvailable": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "orderItems": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/OrderItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Rider": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "fullName": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "email": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "phoneNumber": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "passwordHash": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "vehicleType": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "BICYCLE"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "MOTORCYCLE",
+                      "BIKE",
+                      "CAR",
+                      "BICYCLE"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "profileImageUrl": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "licenseNumber": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "isAvailable": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "isVerified": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              },
+              "isApproved": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              },
+              "rating": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "number",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Address"
+                  }
+                }
+              },
+              "deliveries": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Delivery"
+                  }
+                }
+              },
+              "orders": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              },
+              "reviews": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/Review"
+                  }
+                }
+              },
+              "wallet": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "customer": {
+                "$ref": "#/components/schemas/User"
+              },
+              "vendor": {
+                "$ref": "#/components/schemas/Vendor"
+              },
+              "rider": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "PENDING"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "PENDING",
+                      "ACCEPTED",
+                      "PREPARING",
+                      "OUT_FOR_DELIVERY",
+                      "DELIVERED",
+                      "CANCELLED"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "deliveryAddress": {
+                "$ref": "#/components/schemas/Address"
+              },
+              "deliveryVerificationCode": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "totalAmount": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  }
+                }
+              },
+              "paymentStatus": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "PENDING"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "PENDING",
+                      "SUCCESSFUL",
+                      "FAILED",
+                      "REFUNDED"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "placedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "deliveredAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/OrderItem"
+                  }
+                }
+              },
+              "payment": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "delivery": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "history": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "array"
+                  },
+                  "items": {
+                    "$ref": "#/components/schemas/OrderHistory"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "order": {
+                "$ref": "#/components/schemas/Order"
+              },
+              "product": {
+                "$ref": "#/components/schemas/Product"
+              },
+              "variant": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "quantity": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "integer"
+                  }
+                }
+              },
+              "price": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "order": {
+                "$ref": "#/components/schemas/Order"
+              },
+              "user": {
+                "$ref": "#/components/schemas/User"
+              },
+              "amount": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  }
+                }
+              },
+              "method": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "PAYSTACK",
+                      "CASH_ON_DELIVERY"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "transactionId": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "PENDING"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "PENDING",
+                      "SUCCESSFUL",
+                      "FAILED",
+                      "REFUNDED"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "paidAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Delivery": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "order": {
+                "$ref": "#/components/schemas/Order"
+              },
+              "rider": {
+                "$ref": "#/components/schemas/Rider"
+              },
+              "pickupLocation": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "number",
+                      "string",
+                      "boolean",
+                      "object",
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "dropoffLocation": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "number",
+                      "string",
+                      "boolean",
+                      "object",
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "WAITING_PICKUP"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "WAITING_PICKUP",
+                      "PICKED_UP",
+                      "DELIVERING",
+                      "DELIVERED"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "estimatedDeliveryTime": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "actualDeliveryTime": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "rating": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "integer"
+                  }
+                }
+              },
+              "comment": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "updatedAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "user": {
+                "$ref": "#/components/schemas/User"
+              },
+              "product": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "vendor": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "rider": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "OrderHistory": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "order": {
+                "$ref": "#/components/schemas/Order"
+              },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "enum": {
+                    "type": "array",
+                    "example": [
+                      "PENDING",
+                      "ACCEPTED",
+                      "PREPARING",
+                      "OUT_FOR_DELIVERY",
+                      "DELIVERED",
+                      "CANCELLED"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "actorId": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "actorType": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "note": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Wallet": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "balance": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  },
+                  "default": {
+                    "type": "number",
+                    "example": 0
+                  }
+                }
+              },
+              "totalEarned": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  },
+                  "default": {
+                    "type": "number",
+                    "example": 0
+                  }
+                }
+              },
+              "totalWithdrawn": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  },
+                  "default": {
+                    "type": "number",
+                    "example": 0
+                  }
+                }
+              },
+              "lastUpdated": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "createdAt": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "example": "date-time"
+                  }
+                }
+              },
+              "vendor": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "rider": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "string"
+                  }
+                }
+              },
+              "state": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "Ilorin"
+                  }
+                }
+              },
+              "country": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "array",
+                    "example": [
+                      "string",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "default": {
+                    "type": "string",
+                    "example": "Nigeria"
+                  }
+                }
+              },
+              "coordinates": {
+                "type": "object",
+                "properties": {
+                  "anyOf": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Coordinates": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
+                  }
+                }
+              },
+              "long": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "example": "number"
                   }
                 }
               }

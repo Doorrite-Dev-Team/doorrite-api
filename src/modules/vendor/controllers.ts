@@ -254,7 +254,6 @@ export const createProduct = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor', 'Vendor Products']
    * #swagger.summary = 'Create a new product'
    * #swagger.description = 'Creates a new product for the authenticated vendor.'
-   * #swagger.parameters['body'] = { in: 'body', description: 'Product data to create', required: true, schema: { $ref: '#/components/schemas/CreateProduct' } }
    */
   try {
     const vendorId = req.user?.sub;
@@ -328,7 +327,6 @@ export const updateProduct = async (req: Request, res: Response) => {
    * #swagger.summary = 'Update a product'
    * #swagger.description = 'Updates an existing product for the authenticated vendor.'
    * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Product data to update', required: true, schema: { $ref: '#/components/schemas/UpdateProduct' } }
    */
   try {
     const vendorId = req.user?.sub;

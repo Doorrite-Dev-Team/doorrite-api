@@ -60,7 +60,7 @@ const doc = {
           password: { type: "string", example: "securepassword" },
         },
       },
-      ...(JSON.parse(prismaSchema) as any).definitions,
+      ...(JSON.parse(JSON.stringify(prismaSchema)) as any).definitions,
     },
   },
   security: [
