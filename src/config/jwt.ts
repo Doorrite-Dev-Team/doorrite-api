@@ -48,16 +48,16 @@ export function generateOpaqueToken(len = 48) {
   return Crypto.randomBytes(len).toString("hex");
 }
 
-export function makeAccessTokenForUser(userId: string, role?: Entity) {
-  return createAccessToken({ sub: userId, role, type: "access" });
-}
-
 // --------------------
 // User/Custumer token helpers
 // --------------------
 // User/Custumers are separate entities in the DB. We provide convenience helpers
 // for creating User/Custumer-scoped tokens. We include a `role` field set to
 // "User/Custumer" to make server-side authorization checks straightforward.
+
+export function makeAccessTokenForUser(userId: string, role?: Entity) {
+  return createAccessToken({ sub: userId, role, type: "access" });
+}
 
 export function makeRefreshTokenForUser(userId: string) {
   return createRefreshToken({ sub: userId, type: "refresh" });
@@ -90,6 +90,21 @@ export function makeAccessTokenForRider(riderId: string) {
 }
 export function makeRefreshTokenForRider(riderId: string) {
   return createRefreshToken({ sub: riderId, role: "rider", type: "refresh" });
+}
+
+// --------------------
+// Admin token helpers
+// --------------------
+// Admins are separate entities in the DB. We provide convenience helpers
+// for creating Admin-scoped tokens. We include a `role` field set to
+// "Admin" to make server-side authorization checks straightforward.
+
+export function makeAccessTokenForAdmin(adminId: string) {
+  return createAccessToken({ sub: adminId, role: "admin", type: "access" });
+}
+
+export function makeRefreshTokenForAdmin(adminId: string) {
+  return createRefreshToken({ sub: adminId, role: "admin", type: "refresh" });
 }
 
 /** verifyJwt wrapper that returns null on failure */

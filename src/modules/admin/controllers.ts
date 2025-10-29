@@ -3,7 +3,7 @@ import prisma from "@config/db";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { verifyPassword } from "@lib/hash";
 import { setAuthCookies } from "@config/cookies";
-import { makeAccessTokenForUser, makeRefreshTokenForUser } from "@config/jwt";
+import { makeAccessTokenForAdmin, makeRefreshTokenForAdmin } from "@config/jwt";
 import socketService from "@lib/socketService";
 // import { getActorFromReq } from "@lib/utils/req-res";
 
@@ -29,8 +29,8 @@ export const adminLogin = async (req: Request, res: Response) => {
     const ok = await verifyPassword(password, admin.passwordHash);
     if (!ok) throw new AppError(401, "Invalid credentials");
 
-    const access = makeAccessTokenForUser(admin.id, "admin");
-    const refresh = makeRefreshTokenForUser(admin.id);
+    const access = makeAccessTokenForAdmin(admin.id);
+    const refresh = makeRefreshTokenForAdmin(admin.id);
 
     setAuthCookies(res, access, refresh, "user");
 
@@ -272,7 +272,7 @@ export const suspendRider = async (req: Request, res: Response) => {
   }
 };
 
-// ======= User administration ======
+// ======= Admin administration ======
 // GET admin/users/?page=&limit=
 export const getAllUsers = async (req: Request, res: Response) => {
   /**
