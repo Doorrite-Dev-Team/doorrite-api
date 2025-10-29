@@ -148,7 +148,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 };
 
 // GET /admin/reports
-export const getReports = async (req: Request, res: Response) => {
+export const getReports = async (_: Request, res: Response) => {
   /**
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Get system reports'

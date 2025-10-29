@@ -40,9 +40,7 @@ export const refreshCookieOptions = {
 export type EntityType = "user" | "vendor" | "rider" | "admin";
 
 /** Normalize alias/typo to canonical entity type */
-export const normalizeEntityType = (
-  t: string
-): "user" | "vendor" | "rider" | "admin" => {
+export const normalizeEntityType = (t: string): EntityType => {
   const lowercase = String(t || "").toLowerCase();
   if (lowercase === "vendor") return "vendor";
   if (lowercase === "rider") return "rider";

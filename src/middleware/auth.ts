@@ -35,7 +35,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
       const headerToken = req.headers.authorization?.split(" ")[1];
       const cookieAccess = getAccessTokenFromReq(req, canonical as any);
       const accessToken = headerToken || cookieAccess;
-      // console.log("Access Token:", accessToken);
+      console.log(`Access Token for ${canonical} :`, accessToken);
 
       if (accessToken) {
         const payload = safeVerify(accessToken);
@@ -54,9 +54,12 @@ export function requireAuth(userType: string = "user"): RequestHandler {
         return next();
       }
 
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        error:
+          "Unauthorized, No Access Token and Unable to attempt refresh flow: Culprit",
+      });
     } catch (err) {
-      console.error("requireAuth error:", err);
+      console.log("requireAuth error:", err);
       return res.status(401).json({ error: "Unauthorized" });
     }
   };
