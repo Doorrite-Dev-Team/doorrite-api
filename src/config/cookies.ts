@@ -57,10 +57,10 @@ export const normalizeEntityType = (t: string): EntityType => {
 
 /** Cookie name helpers */
 export const getAccessCookieName = (entity: EntityType) =>
-  `access_token_${normalizeEntityType(entity === "admin" ? "user" : entity)}`;
+  `access_token_${normalizeEntityType(entity)}`;
 
 export const getRefreshCookieName = (entity: EntityType) =>
-  `refresh_token_${normalizeEntityType(entity === "admin" ? "user" : entity)}`;
+  `refresh_token_${normalizeEntityType(entity)}`;
 
 /**
  * Set both auth cookies for a specific entity type.

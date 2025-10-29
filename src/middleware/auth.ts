@@ -33,9 +33,12 @@ export function requireAuth(userType: string = "user"): RequestHandler {
     try {
       // 1) Try access token: Authorization header OR entity-specific access cookie
       const headerToken = req.headers.authorization?.split(" ")[1];
-      const cookieAccess = getAccessTokenFromReq(req, canonical as any);
+      const cookieAccess = getAccessTokenFromReq(req, canonical);
       const accessToken = headerToken || cookieAccess;
       console.log(`Access Token for ${canonical} :`, accessToken);
+      console.log("====================================");
+      console.log("cookies: ", req.cookies);
+      console.log("====================================");
 
       if (accessToken) {
         const payload = safeVerify(accessToken);
