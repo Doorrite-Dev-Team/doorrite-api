@@ -232,7 +232,7 @@ export const loginVendor = async (req: Request, res: Response) => {
       throw new AppError(403, "Account pending admin approval");
     }
 
-    const isPasswordValid = await verifyPassword(vendor.passwordHash, password);
+    const isPasswordValid = await verifyPassword(password, vendor.passwordHash);
     if (!isPasswordValid) throw new AppError(401, "Invalid credentials");
 
     // Issue tokens (cookies)

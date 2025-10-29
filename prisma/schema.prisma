@@ -30,6 +30,7 @@ enum VehicleType {
   MOTORCYCLE
   BIKE
   CAR
+  BICYCLE
 }
 
 enum OrderStatus {
@@ -161,7 +162,7 @@ model Rider {
   email           String      @unique
   phoneNumber     String      @unique
   passwordHash    String
-  vehicleType     VehicleType
+  vehicleType     VehicleType @default(BICYCLE)
   profileImageUrl String?
   licenseNumber   String?
   isAvailable     Boolean     @default(true)

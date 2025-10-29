@@ -26,7 +26,7 @@ export const adminLogin = async (req: Request, res: Response) => {
 
     if (!admin) throw new AppError(401, "Invalid credentials");
 
-    const ok = await verifyPassword(admin.passwordHash, password);
+    const ok = await verifyPassword(password, admin.passwordHash);
     if (!ok) throw new AppError(401, "Invalid credentials");
 
     const access = makeAccessTokenForUser(admin.id, "admin");

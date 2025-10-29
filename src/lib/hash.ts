@@ -5,6 +5,7 @@ export async function hashPassword(plain: string) {
   return await argon2.hash(plain, { type: argon2.argon2id });
 }
 
-export async function verifyPassword(hash: string, plain: string) {
+// Verify expects (plain, hash) for convenience at call sites.
+export async function verifyPassword(plain: string, hash: string) {
   return await argon2.verify(hash, plain);
 }

@@ -173,7 +173,7 @@ export const login = async (req: Request, res: Response) => {
       throw new AppError(403, "Please verify your account before logging in");
     }
 
-    const isPasswordValid = await verifyPassword(user.passwordHash, password);
+    const isPasswordValid = await verifyPassword(password, user.passwordHash);
     if (!isPasswordValid) throw new AppError(401, "Invalid credentials");
 
     const access = makeAccessTokenForUser(user.id, user.role!);

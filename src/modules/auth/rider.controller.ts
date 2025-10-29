@@ -1,3 +1,4 @@
+import { VehicleType } from "./../../generated/prisma";
 import {
   clearAuthCookies,
   getRefreshTokenFromReq,
@@ -33,7 +34,8 @@ export const createRider = async (req: Request, res: Response) => {
    * #swagger.description = 'Register a new rider account'
    */
   try {
-    const { fullName, email, phoneNumber, password } = req.body || {};
+    const { fullName, email, phoneNumber, password, vehicleType } =
+      req.body || {};
 
     // Validate input
     if (
@@ -50,7 +52,9 @@ export const createRider = async (req: Request, res: Response) => {
     if (!isValidNigerianPhone(phoneNumber))
       throw new AppError(400, "Invalid Nigerian phone number");
     validatePassword(password);
-
+    if (vehicleType && !Object.values(VehicleType).includes(vehicleType)) {
+      throw new AppError(400, "Please provide an appropriate vehicleType");
+    }
     // Check if rider exists
     const registrationResult = await checkExistingEntity(
       email,
@@ -77,7 +81,7 @@ export const createRider = async (req: Request, res: Response) => {
         email: email.trim(),
         phoneNumber: phoneNumber.trim(),
         passwordHash,
-        vehicleType: req.body.vehicleType, // Make sure to validate and provide this field
+        vehicleType: vehicleType ? vehicleType : undefined,
       },
     });
 

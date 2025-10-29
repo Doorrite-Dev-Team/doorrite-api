@@ -287,10 +287,12 @@
         },
         "vehicleType": {
           "type": "string",
+          "default": "BICYCLE",
           "enum": [
             "MOTORCYCLE",
             "BIKE",
-            "CAR"
+            "CAR",
+            "BICYCLE"
           ]
         },
         "profileImageUrl": {
