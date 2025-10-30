@@ -239,7 +239,6 @@ export const loginVendor = async (req: Request, res: Response) => {
     const access = makeAccessTokenForVendor(vendor.id);
     const refresh = makeRefreshTokenForVendor(vendor.id);
     setAuthCookies(res, access, refresh, "vendor");
-
     return sendSuccess(
       res,
       {
@@ -248,6 +247,7 @@ export const loginVendor = async (req: Request, res: Response) => {
           email: vendor.email,
           businessName: (vendor as any).businessName,
         },
+        access,
       },
       200
     );
@@ -368,7 +368,7 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
     const refresh = makeRefreshTokenForVendor(vendor.id);
     setAuthCookies(res, access, refresh, "vendor");
 
-    return sendSuccess(res, { accessToken: access }, 200);
+    return sendSuccess(res, { access }, 200);
   } catch (err) {
     return handleError(res, err);
   }

@@ -179,7 +179,6 @@ export const login = async (req: Request, res: Response) => {
     const access = makeAccessTokenForUser(user.id, user.role!);
     const refresh = makeRefreshTokenForUser(user.id);
     setAuthCookies(res, access, refresh, "user");
-
     return sendSuccess(
       res,
       {
@@ -189,6 +188,7 @@ export const login = async (req: Request, res: Response) => {
           fullName: user.fullName,
           role: user.role,
         },
+        access,
       },
       200
     );
@@ -305,7 +305,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     const refresh = makeRefreshTokenForUser(user.id);
     setAuthCookies(res, access, refresh, "user");
 
-    return sendSuccess(res, { accessToken: access }, 200);
+    return sendSuccess(res, { access }, 200);
   } catch (err) {
     return handleError(res, err);
   }

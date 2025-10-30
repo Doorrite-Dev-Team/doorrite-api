@@ -197,10 +197,9 @@ export const loginRider = async (req: Request, res: Response) => {
     const access = makeAccessTokenForRider(rider.id);
     const refresh = makeRefreshTokenForRider(rider.id);
     setAuthCookies(res, access, refresh, "rider");
-
     return sendSuccess(
       res,
-      { message: "Login successful", riderId: rider.id },
+      { message: "Login successful", riderId: rider.id, access },
       200
     );
   } catch (err) {
@@ -248,7 +247,11 @@ export const refreshRiderToken = async (req: Request, res: Response) => {
     const newRefreshToken = makeRefreshTokenForRider(rider.id);
     setAuthCookies(res, newAccessToken, newRefreshToken, "rider");
 
-    return sendSuccess(res, { message: "Token refreshed successfully" }, 200);
+    return sendSuccess(
+      res,
+      { message: "Token refreshed successfully", access: newAccessToken },
+      200
+    );
   } catch (err) {
     clearAuthCookies(res, "rider"); // Clear cookies on refresh failure
     return handleError(res, err);

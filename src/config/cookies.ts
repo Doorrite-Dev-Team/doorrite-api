@@ -4,16 +4,12 @@ import { Request, Response } from "express";
 /**
  * Cookie base options
  */
+const isProduction = process.env.NODE_ENV === "production";
 export const cookieOptions = {
   httpOnly: true,
   // secure cookies in production (required for SameSite=None)
-  secure: process.env.NODE_ENV === "production",
-  // In production we need cross-site cookies (frontend on Netlify, API on Render)
-  // so use 'none' in production and 'lax' in development for safety.
-  sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as
-    | "lax"
-    | "strict"
-    | "none",
+  secure: isProduction,
+  sameSite: (isProduction ? "none" : "lax") as "lax" | "strict" | "none",
   path: "/",
 };
 

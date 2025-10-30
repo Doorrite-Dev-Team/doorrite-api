@@ -1,4 +1,5 @@
-import { AppError } from '@lib/utils/AppError';
+import { AppError } from "@lib/utils/AppError";
+import z from "zod";
 
 // ----- Helper: Auth helper (lightweight) -----
 // Replace this with your real implementation if you already have it.
@@ -27,7 +28,6 @@ function coerceNumber(value: any): number | null {
   }
   return null;
 }
-
 
 function validateCreateProduct(body: any) {
   const errors: { field: string; message: string }[] = [];
@@ -141,6 +141,35 @@ function validateCreateProduct(body: any) {
   return out;
 }
 
+export const createProductSchema = z.object({
+  name: z.string().nonempty().min(2),
+  description: z.string().optional(),
+  basePrice: z.number().positive(),
+  sku: z.string().optional(),
+  attributes: z.record(z.any(), z.any()).optional(),
+  isAvailable: z.boolean().optional(),
+  variants: z
+    .array(
+      z.object({
+        name: z.string().nonempty(),
+        price: z.number().positive(),
+        attributes: z.record(z.any(), z.any()).optional(),
+        stock: z.number().int().nonnegative().optional(),
+        isAvailable: z.boolean().optional(),
+      })
+    )
+    .optional(),
+});
+
+export const updateProductSchema = z.object({
+  name: z.string().min(2).optional(),
+  description: z.string().optional(),
+  basePrice: z.number().positive().optional(),
+  sku: z.string().optional(),
+  attributes: z.record(z.any(), z.any()).optional(),
+  isAvailable: z.boolean().optional(),
+});
+
 function validateUpdateProduct(body: any) {
   if (!body || typeof body !== "object")
     throw new AppError(400, "Invalid request body");
@@ -195,5 +224,10 @@ function validateUpdateProduct(body: any) {
   return out;
 }
 
-export { coerceNumber, getVendorIdFromRequest, isValidObjectId, validateCreateProduct, validateUpdateProduct };
-
+export {
+  coerceNumber,
+  getVendorIdFromRequest,
+  isValidObjectId,
+  validateCreateProduct,
+  validateUpdateProduct,
+};

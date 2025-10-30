@@ -6,8 +6,8 @@ import { isValidObjectId } from "@modules/product/helpers";
 import { Request, Response } from "express";
 import {
   coerceNumber,
-  validateCreateProduct,
-  validateUpdateProduct,
+  createProductSchema,
+  updateProductSchema,
 } from "./helpers";
 import { addressSchema } from "@lib/utils/address";
 import { verifyOCCode } from "@config/redis";
@@ -54,7 +54,7 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
    * #swagger.description = 'Fetches the profile of the currently authenticated vendor, including their products and orders.'
    */
   try {
-    const vendorId = req.vendor?.id; // Assuming vendor ID is available from auth middleware
+    const vendorId = req.user?.sub; // Assuming vendor ID is available from auth middleware
     if (!vendorId) {
       throw new AppError(401, "Authentication required");
     }
@@ -130,7 +130,7 @@ export const updateVendorProfile = async (req: Request, res: Response) => {
    * #swagger.description = 'Updates the profile of the currently authenticated vendor.'
    * #swagger.parameters['body'] = { in: 'body', description: 'Vendor profile data to update', required: true, schema: { type: 'object', properties: { businessName: { type: 'string' }, phoneNumber: { type: 'string' }, address: { type: 'object' }, logoUrl: { type: 'string' } } } }
    */
-  const vendorId = req.vendor?.id;
+  const vendorId = req.user?.sub;
   if (!vendorId) throw new AppError(401, "Authentication required");
 
   const allowedFields = ["businessName", "phoneNumber", "address", "logoUrl"];
@@ -215,7 +215,7 @@ export const getVendorProducts = async (req: Request, res: Response) => {
    * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
    */
   try {
-    const vendorId = req.vendor?.id;
+    const vendorId = req.user?.sub;
     if (!vendorId) {
       throw new AppError(401, "Authentication required");
     }
@@ -254,17 +254,25 @@ export const createProduct = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor', 'Vendor Products']
    * #swagger.summary = 'Create a new product'
    * #swagger.description = 'Creates a new product for the authenticated vendor.'
+   * parameters['body'] = { in: 'body', description: 'Product data to create', required: true, schema: { type: 'object', properties: { name: { type: 'string' }, description: { type: 'string' }, basePrice: { type: 'number' }, sku: { type: 'string' }, attributes: { type: 'object' }, isAvailable: { type: 'boolean' }, variants: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, price: { type: 'number' }, stock: { type: 'integer' }, isAvailable: { type: 'boolean' } } } } } } }
    */
   try {
     const vendorId = req.user?.sub;
+
     if (!vendorId) throw new AppError(401, "Authentication required");
-    const data = validateCreateProduct(req.body || {});
+
+    // const data = validateCreateProduct(req.body || {});
+    const { error, data } = createProductSchema.safeParse(req.body);
+    if (error) {
+      throw new AppError(400, `Fail to Validate the input ${error.cause}`);
+    }
 
     // verify vendor
     const vendor = await prisma.vendor.findUnique({
       where: { id: vendorId },
       select: { id: true, isActive: true, isVerified: true },
     });
+
     if (!vendor || !vendor.isActive || !vendor.isVerified)
       throw new AppError(403, "Vendor account not active or verified");
 
@@ -326,7 +334,8 @@ export const updateProduct = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor', 'Vendor Products']
    * #swagger.summary = 'Update a product'
    * #swagger.description = 'Updates an existing product for the authenticated vendor.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true,  type: 'string' }
+   * #swagger.parameters['body'] =
    */
   try {
     const vendorId = req.user?.sub;
@@ -334,7 +343,11 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (!isValidObjectId(productId))
       throw new AppError(400, "Product ID is required");
 
-    const updateData = validateUpdateProduct(req.body || {});
+    const { data: updateData, error } = updateProductSchema.safeParse(
+      req.body || {}
+    );
+    if (error)
+      throw new AppError(400, `Error Validating the Inputs: ${error.cause}`);
 
     const existing = await prisma.product.findUnique({
       where: { id: productId },
@@ -638,7 +651,7 @@ export const getVendorOrders = async (req: Request, res: Response) => {
    * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
    */
   try {
-    const vendorId = req.vendor?.id;
+    const vendorId = req.user?.sub;
     if (!vendorId) {
       throw new AppError(401, "Authentication required");
     }
@@ -680,7 +693,7 @@ export const getVendorOrderById = async (req: Request, res: Response) => {
    * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
    */
   try {
-    const vendorId = req.vendor?.id;
+    const vendorId = req.user?.sub;
     const { orderId } = req.params;
     if (!vendorId) {
       throw new AppError(401, "Authentication required");
@@ -724,7 +737,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
    * #swagger.parameters['body'] = { in: 'body', description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'CANCELLED'] }, note: { type: 'string' } } } }
    */
   try {
-    const vendorId = req.vendor?.id;
+    const vendorId = req.user?.sub;
     const { orderId } = req.params;
     const { status, note } = req.body;
 
@@ -803,7 +816,7 @@ export const confirmOrderRider = async (req: Request, res: Response) => {
    */
 
   try {
-    const vendorId = req.vendor?.id;
+    const vendorId = req.user?.sub;
     const { orderId } = req.params;
     const { code } = req.body;
 
