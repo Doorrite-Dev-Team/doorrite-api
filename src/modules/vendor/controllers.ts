@@ -190,12 +190,7 @@ type Address {
 
   const updatedVendor = await prisma.vendor.update({
     where: { id: vendorId },
-    data: {
-      ...data,
-      address: {
-        push: data.address,
-      },
-    },
+    data,
   });
 
   return sendSuccess(res, {

@@ -122,10 +122,7 @@
           "format": "date-time"
         },
         "address": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Address"
-          }
+          "$ref": "#/definitions/Address"
         },
         "products": {
           "type": "array",
@@ -334,10 +331,14 @@
           "format": "date-time"
         },
         "address": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Address"
-          }
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Address"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "deliveries": {
           "type": "array",

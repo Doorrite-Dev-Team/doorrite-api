@@ -5,9 +5,6 @@ import * as userAuth from "./user.controller";
 import * as vendorAuth from "./vendor.controller";
 import * as riderAuth from "./rider.controller";
 import DeliveryCategories, { listAllowedCategoryKeys } from "@lib/category";
-import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
-import { getActorFromReq } from "@lib/utils/req-res";
-import { deleteAddressFromEntity } from "@lib/utils/address";
 
 const router = express.Router();
 
@@ -87,28 +84,4 @@ router.get("/vendor-categories", (_, res: Response) => {
   });
 });
 
-//Public-private route to delete Entity's address....
-router.delete(
-  "/delete-address",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const entityId = getActorFromReq(req)?.id;
-      if (!entityId) throw new AppError(401, "Unauthorized");
-      const { entityType, addressToDelete } = req.body;
-      if (!entityType || !addressToDelete) {
-        throw new AppError(400, "entityType and addressToDelete are required");
-      }
-
-      await deleteAddressFromEntity(entityType, entityId, addressToDelete);
-
-      return sendSuccess(res, {
-        message: "Address deleted successfully",
-        ok: true,
-      });
-    } catch (error) {
-      handleError(res, error);
-    }
-  }
-);
 export default router;

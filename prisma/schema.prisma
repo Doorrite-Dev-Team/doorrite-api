@@ -115,9 +115,9 @@ model Vendor {
   isApproved   Boolean     @default(false)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+  address   Address
 
   // Relations
-  address   Address[]
   products  Product[]
   orders    Order[]
   reviews   Review[]
@@ -173,7 +173,7 @@ model Rider {
   updatedAt       DateTime    @updatedAt
 
 
-  address    Address[]
+  address    Address?
   deliveries Delivery[]
   orders     Order[]    @relation("rider_orders")
   reviews    Review[]

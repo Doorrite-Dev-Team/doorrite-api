@@ -182,12 +182,7 @@ export const updateRiderProfile = async (req: Request, res: Response) => {
 
   const updatedRider = await prisma.rider.update({
     where: { id: riderId },
-    data: {
-      ...data,
-      address: {
-        push: data.address,
-      },
-    },
+    data,
   });
 
   return sendSuccess(res, {

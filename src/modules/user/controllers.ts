@@ -1,5 +1,5 @@
 import prisma from "@config/db";
-import { addressSchema } from "@lib/utils/address";
+import { addressSchema, deleteUserAdress } from "@lib/utils/address";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { isValidNigerianPhone } from "@modules/auth/helper";
 import { Request, Response } from "express";
@@ -292,3 +292,25 @@ try {
   }
 
 */
+
+// Delete User Address
+// DELETE api/v1/users/address
+export const deleteAddress = async (req: Request, res: Response) => {
+  try {
+    const id = req.user?.sub;
+    if (!id) throw new AppError(401, "Unauthorized");
+    const { addressToDelete } = req.body;
+    if (!addressToDelete) {
+      throw new AppError(400, "Kindly Provide valid Address");
+    }
+
+    await deleteUserAdress(id, addressToDelete);
+
+    return sendSuccess(res, {
+      message: "Address deleted successfully",
+      ok: true,
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};

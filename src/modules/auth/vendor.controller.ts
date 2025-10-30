@@ -90,9 +90,8 @@ export const createVendor = async (req: Request, res: Response) => {
         businessName: businessName.trim(),
         phoneNumber: phoneNumber.trim(),
         passwordHash,
-        address: [
+        address:
           typeof address === "string" ? { address } : (address as Address),
-        ],
         logoUrl: logoUrl || undefined,
         isVerified: false,
         isActive: false, // requires admin approval
