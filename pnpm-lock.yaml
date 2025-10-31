@@ -74,6 +74,9 @@ importers:
       zod:
         specifier: ^4.0.15
         version: 4.0.15
+      zod-to-json-schema:
+        specifier: ^3.24.6
+        version: 3.24.6(zod@4.0.15)
     devDependencies:
       '@types/compression':
         specifier: ^1.8.1
@@ -1795,6 +1798,11 @@ packages:
     resolution: {integrity: sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==}
     engines: {node: '>=6'}
 
+  zod-to-json-schema@3.24.6:
+    resolution: {integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==}
+    peerDependencies:
+      zod: ^3.24.1
+
   zod@4.0.15:
     resolution: {integrity: sha512-2IVHb9h4Mt6+UXkyMs0XbfICUh1eUrlJJAOupBHUhLRnKkruawyDddYRCs0Eizt900ntIMk9/4RksYl+FgSpcQ==}
 
@@ -3433,5 +3441,9 @@ snapshots:
   yaml@2.8.1: {}
 
   yn@3.1.1: {}
+
+  zod-to-json-schema@3.24.6(zod@4.0.15):
+    dependencies:
+      zod: 4.0.15
 
   zod@4.0.15: {}

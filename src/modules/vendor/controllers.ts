@@ -249,7 +249,7 @@ export const createProduct = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor', 'Vendor Products']
    * #swagger.summary = 'Create a new product'
    * #swagger.description = 'Creates a new product for the authenticated vendor.'
-   * parameters['body'] = { in: 'body', description: 'Product data to create', required: true, schema: { type: 'object', properties: { name: { type: 'string' }, description: { type: 'string' }, basePrice: { type: 'number' }, sku: { type: 'string' }, attributes: { type: 'object' }, isAvailable: { type: 'boolean' }, variants: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, price: { type: 'number' }, stock: { type: 'integer' }, isAvailable: { type: 'boolean' } } } } } } }
+   * #swagger.parameters['body'] = {in: 'body',description: 'Required product data, including name, description, and base price.',required: true,schema: {type: 'object',required: ['name', 'basePrice'],properties: {name: { type: 'string', minLength: 2, description: 'Product name (min 2 characters, required).', example: 'Doorite Food' },description: { type: 'string', description: 'Detailed product description.', example: 'Doorite Food' },basePrice: { type: 'number', minimum: 0.01, description: 'Base price of the product (required, positive number).', example: 5000 },sku: { type: 'string', description: 'Stock keeping unit.', example: '' },attributes: { type: 'object', description: 'A dictionary of custom product attributes.', example: {} },isAvailable: { type: 'boolean', default: true, description: 'Product availability status.', example: false },variants: {type: 'array',description: 'List of product variants.', example: {}}}}}
    */
   try {
     const vendorId = req.user?.sub;
@@ -329,8 +329,8 @@ export const updateProduct = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor', 'Vendor Products']
    * #swagger.summary = 'Update a product'
    * #swagger.description = 'Updates an existing product for the authenticated vendor.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true,  type: 'string' }
-   * #swagger.parameters['body'] =
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = {in: 'body',description: 'Product fields to update. At least one field is required.',required: true,schema: {type: 'object',properties: {name: { type: 'string', minLength: 2, description: 'New product name (min 2 characters).' },description: { type: 'string', description: 'New detailed product description.' },basePrice: { type: 'number', minimum: 0.01, description: 'New base price (positive number).' },sku: { type: 'string', description: 'New stock keeping unit.' },attributes: { type: 'object', description: 'A dictionary of custom product attributes.' },isAvailable: { type: 'boolean', description: 'New product availability status.' }}}}
    */
   try {
     const vendorId = req.user?.sub;

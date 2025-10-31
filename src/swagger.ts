@@ -28,19 +28,13 @@ const doc = {
   ],
   components: {
     securitySchemes: {
-      cookieAuth: {
-        type: "apiKey",
-        in: "cookie",
-        name: "access_token", // name of your JWT cookie (adjust as needed)
+      // Setup for Bearer Token authorization
+      BearerAuth: {
+        type: "http", // Specifies the authentication scheme is HTTP-based
+        scheme: "bearer", // Specifies the scheme is 'Bearer'
+        bearerFormat: "JWT", // Optional: indicates that the token is a JWT
         description:
-          "JWT Access Token stored in HttpOnly cookie. Automatically sent with requests after login.",
-      },
-      requestToken: {
-        type: "apiKey",
-        in: "cookie",
-        name: "request_token", // optional: if you use a separate refresh/request cookie
-        description:
-          "Temporary request token used for request validation or refreshing JWT session.",
+          "Enter the JWT token prefixed with 'Bearer ' (e.g., 'Bearer abc.xyz.123').",
       },
     },
     schemas: {
@@ -64,9 +58,9 @@ const doc = {
     },
   },
   security: [
+    // Apply the BearerAuth scheme globally
     {
-      cookieAuth: [],
-      requestToken: [],
+      BearerAuth: [],
     },
   ],
 };

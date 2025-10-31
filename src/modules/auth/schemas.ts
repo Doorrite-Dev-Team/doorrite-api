@@ -1,3 +1,5 @@
+import { listAllowedCategoryKeys } from "@lib/category";
+import { addressSchema } from "@lib/utils/address";
 import z from "zod";
 
 /* ======================
@@ -49,3 +51,23 @@ export const resetPasswordSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export const vendorSignupSchema = z.object({
+  businessName: z.string().min(2).max(100),
+  email: z.string().email(),
+  phoneNumber: z
+    .string()
+    .regex(
+      /^(\+234|0)[789][01]\d{8}$/,
+      "Please enter a valid Nigerian phone number"
+    ),
+  password: z
+    .string()
+    .min(8)
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain uppercase, lowercase, and number"
+    ),
+  addresss: addressSchema,
+  // categoryIds: z.array(z.includes(listAllowedCategoryKeys))
+});

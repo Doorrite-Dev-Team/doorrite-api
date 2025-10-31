@@ -141,34 +141,34 @@ function validateCreateProduct(body: any) {
   return out;
 }
 
-export const createProductSchema = z.object({
-  name: z.string().nonempty().min(2),
-  description: z.string().optional(),
-  basePrice: z.number().positive(),
-  sku: z.string().optional(),
-  attributes: z.record(z.any(), z.any()).optional(),
-  isAvailable: z.boolean().optional(),
-  variants: z
-    .array(
-      z.object({
-        name: z.string().nonempty(),
-        price: z.number().positive(),
-        attributes: z.record(z.any(), z.any()).optional(),
-        stock: z.number().int().nonnegative().optional(),
-        isAvailable: z.boolean().optional(),
-      })
-    )
-    .optional(),
-});
+// export const createProductSchema = z.object({
+//   name: z.string().nonempty().min(2),
+//   description: z.string().optional(),
+//   basePrice: z.number().positive(),
+//   sku: z.string().optional(),
+//   attributes: z.record(z.any(), z.any()).optional(),
+//   isAvailable: z.boolean().optional(),
+//   variants: z
+//     .array(
+//       z.object({
+//         name: z.string().nonempty(),
+//         price: z.number().positive(),
+//         attributes: z.record(z.any(), z.any()).optional(),
+//         stock: z.number().int().nonnegative().optional(),
+//         isAvailable: z.boolean().optional(),
+//       })
+//     )
+//     .optional(),
+// });
 
-export const updateProductSchema = z.object({
-  name: z.string().min(2).optional(),
-  description: z.string().optional(),
-  basePrice: z.number().positive().optional(),
-  sku: z.string().optional(),
-  attributes: z.record(z.any(), z.any()).optional(),
-  isAvailable: z.boolean().optional(),
-});
+// export const updateProductSchema = z.object({
+//   name: z.string().min(2).optional(),
+//   description: z.string().optional(),
+//   basePrice: z.number().positive().optional(),
+//   sku: z.string().optional(),
+//   attributes: z.record(z.any(), z.any()).optional(),
+//   isAvailable: z.boolean().optional(),
+// });
 
 function validateUpdateProduct(body: any) {
   if (!body || typeof body !== "object")
@@ -223,6 +223,54 @@ function validateUpdateProduct(body: any) {
   if (errors.length) throw new AppError(400, "Validation failed", { errors });
   return out;
 }
+
+// Helper for 'basePrice' to handle string inputs (e.g., from form data)
+const positiveNumberSchema = z.preprocess(
+  (val) =>
+    val === null || val === undefined || val === ""
+      ? val
+      : z.coerce.number().safeParse(val).success
+      ? z.coerce.number().parse(val)
+      : val,
+  z
+    .number("basePrice must be a number and Required")
+    .positive("basePrice must be a positive number")
+);
+
+const variantSchema = z.object({
+  name: z.string().trim().min(1, "name required"),
+  price: positiveNumberSchema.refine(
+    (val) => val > 0,
+    "price required and must be > 0"
+  ),
+  attributes: z.record(z.any(), z.any()).optional().default({}),
+  stock: z.number().int().nonnegative().optional(),
+  isAvailable: z.boolean().optional().default(true),
+});
+
+// ---
+// ## Create Product Schema
+// ---
+export const createProductSchema = z.object({
+  name: z.string().trim().min(2, "Product name is required (2+ chars)"),
+  description: z.string().trim().optional(),
+  basePrice: positiveNumberSchema,
+  sku: z.string().trim().optional(),
+  attributes: z.record(z.any(), z.any()).optional(),
+  isAvailable: z.boolean().optional().default(false),
+  variants: z.array(variantSchema).optional(),
+});
+
+// ---
+// ## Update Product Schema
+// ---
+export const updateProductSchema = z.object({
+  name: z.string().trim().min(2, "name must be 2+ chars").optional(),
+  description: z.string().trim().optional(),
+  basePrice: positiveNumberSchema.optional(),
+  sku: z.string().trim().optional(),
+  attributes: z.record(z.any(), z.any()).optional(),
+});
 
 export {
   coerceNumber,
