@@ -3,6 +3,7 @@ import {
   clearAuthCookies,
   getRefreshTokenFromReq,
   setAuthCookies,
+  setAccessCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
 import {
@@ -52,11 +53,7 @@ export const createUser = async (req: Request, res: Response) => {
     validatePassword(password);
 
     // Check if user exists
-    const registrationResult = await checkExistingEntity(
-      email,
-      phoneNumber,
-      "user"
-    );
+    const registrationResult = await checkExistingEntity(email, "user");
 
     if (!registrationResult.shouldCreateNew) {
       return sendSuccess(
@@ -65,7 +62,7 @@ export const createUser = async (req: Request, res: Response) => {
           message: registrationResult.message,
           userId: registrationResult.entityId,
         },
-        200
+        409
       );
     }
 
@@ -302,8 +299,9 @@ export const refreshToken = async (req: Request, res: Response) => {
     if (!user) throw new AppError(401, "Invalid user");
 
     const access = makeAccessTokenForUser(user.id, "user");
-    const refresh = makeRefreshTokenForUser(user.id);
-    setAuthCookies(res, access, refresh, "user");
+    // const refresh = setAccessCookies(res, access, "user");
+
+    setAccessCookies(res, access, "user");
 
     return sendSuccess(res, { access }, 200);
   } catch (err) {

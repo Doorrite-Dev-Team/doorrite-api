@@ -73,6 +73,15 @@ export const setAuthCookies = (
   res.cookie(getRefreshCookieName(e), refreshToken, refreshCookieOptions);
 };
 
+export const setAccessCookies = (
+  res: Response,
+  accessToken: string,
+  entity: EntityType = "user"
+) => {
+  const e = normalizeEntityType(entity);
+  res.cookie(getAccessCookieName(e), accessToken, accessCookieOptions);
+};
+
 /**
  * Clear both auth cookies for a specific entity type.
  */

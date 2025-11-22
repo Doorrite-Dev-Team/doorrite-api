@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@asteasolutions/zod-to-openapi':
         specifier: ^8.1.0
-        version: 8.1.0(zod@4.0.15)
+        version: 8.1.0(zod@4.1.12)
       '@prisma/client':
         specifier: ^6.14.0
         version: 6.14.0(prisma@6.17.1(typescript@5.9.2))(typescript@5.9.2)
@@ -72,11 +72,8 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(express@5.1.0)
       zod:
-        specifier: ^4.0.15
-        version: 4.0.15
-      zod-to-json-schema:
-        specifier: ^3.24.6
-        version: 3.24.6(zod@4.0.15)
+        specifier: ^4.1.12
+        version: 4.1.12
     devDependencies:
       '@types/compression':
         specifier: ^1.8.1
@@ -1798,20 +1795,15 @@ packages:
     resolution: {integrity: sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==}
     engines: {node: '>=6'}
 
-  zod-to-json-schema@3.24.6:
-    resolution: {integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==}
-    peerDependencies:
-      zod: ^3.24.1
-
-  zod@4.0.15:
-    resolution: {integrity: sha512-2IVHb9h4Mt6+UXkyMs0XbfICUh1eUrlJJAOupBHUhLRnKkruawyDddYRCs0Eizt900ntIMk9/4RksYl+FgSpcQ==}
+  zod@4.1.12:
+    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
 snapshots:
 
-  '@asteasolutions/zod-to-openapi@8.1.0(zod@4.0.15)':
+  '@asteasolutions/zod-to-openapi@8.1.0(zod@4.1.12)':
     dependencies:
       openapi3-ts: 4.5.0
-      zod: 4.0.15
+      zod: 4.1.12
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -3442,8 +3434,4 @@ snapshots:
 
   yn@3.1.1: {}
 
-  zod-to-json-schema@3.24.6(zod@4.0.15):
-    dependencies:
-      zod: 4.0.15
-
-  zod@4.0.15: {}
+  zod@4.1.12: {}

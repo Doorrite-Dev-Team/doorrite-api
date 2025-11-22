@@ -296,7 +296,7 @@ export const createProduct = async (req: Request, res: Response) => {
               stock: v.stock ?? undefined,
               isAvailable: v.isAvailable !== false,
             },
-          })
+          }),
         );
         variants = await Promise.all(vPromises);
       }
@@ -316,7 +316,7 @@ export const createProduct = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Product created successfully", product: complete },
-      201
+      201,
     );
   } catch (err) {
     return handleError(res, err);
@@ -339,7 +339,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       throw new AppError(400, "Product ID is required");
 
     const { data: updateData, error } = updateProductSchema.safeParse(
-      req.body || {}
+      req.body || {},
     );
     if (error)
       throw new AppError(400, `Error Validating the Inputs: ${error.cause}`);
@@ -352,7 +352,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (existing.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const updated = await prisma.product.update({
@@ -435,14 +435,14 @@ export const deleteProduct = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot delete another vendor's product"
+        "Unauthorized: Cannot delete another vendor's product",
       );
 
     // if there are orderItems, refuse permanent deletion
     if (product.orderItems && product.orderItems.length > 0) {
       throw new AppError(
         400,
-        "Cannot permanently delete product that has been ordered. Use prepare-delete instead."
+        "Cannot permanently delete product that has been ordered. Use prepare-delete instead.",
       );
     }
 
@@ -493,7 +493,7 @@ export const createProductVariant = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const variant = await prisma.productVariant.create({
@@ -510,7 +510,7 @@ export const createProductVariant = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Product variant created successfully", variant },
-      201
+      201,
     );
   } catch (err) {
     return handleError(res, err);
@@ -542,7 +542,7 @@ export const updateProductVariant = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const existingVariant = await prisma.productVariant.findFirst({
@@ -613,7 +613,7 @@ export const deleteProductVariant = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const variant = await prisma.productVariant.findUnique({
@@ -752,7 +752,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     if (!allowedStatuses.includes(status)) {
       throw new AppError(
         400,
-        `Vendors can only set status to: ${allowedStatuses.join(", ")}`
+        `Vendors can only set status to: ${allowedStatuses.join(", ")}`,
       );
     }
 
@@ -820,7 +820,7 @@ export const confirmOrderRider = async (req: Request, res: Response) => {
     if (!code || code.length !== 6)
       throw new AppError(
         400,
-        "6 digit Code is required Kindly Ask the rider for their code"
+        "6 digit Code is required Kindly Ask the rider for their code",
       );
 
     // Verify order belongs to vendor
@@ -835,12 +835,12 @@ export const confirmOrderRider = async (req: Request, res: Response) => {
       order.riderId,
       order.vendorId,
       order.id,
-      code
+      code,
     );
     if (response.ok === (false as const))
       throw new AppError(
         500,
-        `Failed to verify the rider's code: ${response.reason}`
+        `Failed to verify the rider's code: ${response.reason}`,
       );
 
     return sendSuccess(res, { ...response });

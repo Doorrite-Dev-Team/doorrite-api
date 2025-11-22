@@ -2,6 +2,7 @@ import { VehicleType } from "./../../generated/prisma";
 import {
   clearAuthCookies,
   getRefreshTokenFromReq,
+  setAccessCookies,
   setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
@@ -56,11 +57,7 @@ export const createRider = async (req: Request, res: Response) => {
       throw new AppError(400, "Please provide an appropriate vehicleType");
     }
     // Check if rider exists
-    const registrationResult = await checkExistingEntity(
-      email,
-      phoneNumber,
-      "rider"
-    );
+    const registrationResult = await checkExistingEntity(email, "rider");
 
     if (!registrationResult.shouldCreateNew) {
       return sendSuccess(
@@ -244,8 +241,8 @@ export const refreshRiderToken = async (req: Request, res: Response) => {
     }
 
     const newAccessToken = makeAccessTokenForRider(rider.id);
-    const newRefreshToken = makeRefreshTokenForRider(rider.id);
-    setAuthCookies(res, newAccessToken, newRefreshToken, "rider");
+    // const newRefreshToken = refreshToken;
+    setAccessCookies(res, newAccessToken, "rider");
 
     return sendSuccess(
       res,

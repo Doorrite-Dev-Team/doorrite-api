@@ -34,31 +34,6 @@ export const validatePassword = (password: any) => {
   }
 };
 
-/* Rate limiter (unchanged) */
-// const rateLimitMap = new Map<string, number>();
-// export const checkRateLimit = async (
-//   identifier: string,
-//   action: string,
-//   windowMinutes = 1
-// ) => {
-//   const key = `${identifier}:${action}`;
-//   const now = Date.now();
-//   const windowMs = windowMinutes * 60 * 1000;
-//   const last = rateLimitMap.get(key) || 0;
-//   if (now - last < windowMs) {
-//     const timeLeft = Math.ceil((windowMs - (now - last)) / 1000);
-//     throw new AppError(
-//       429,
-//       `Please wait ${timeLeft} seconds before trying again`
-//     );
-//   }
-//   rateLimitMap.set(key, now);
-//   setTimeout(() => {
-//     const lastCheck = rateLimitMap.get(key) || 0;
-//     if (Date.now() - lastCheck >= windowMs) rateLimitMap.delete(key);
-//   }, windowMs + 2000);
-// };
-
 /* Entity helpers (unchanged) */
 type EntityType = "user" | "vendor" | "rider";
 type EntityData = {
@@ -179,10 +154,10 @@ export const findEntityByIdentifier = async (
 
 export const checkEntityExists = async (
   email: string,
-  phoneNumber: string,
+  // phoneNumber: string,
   entityType: EntityType
 ): Promise<EntityData | null> => {
-  const whereClause = { OR: [{ email }, { phoneNumber }] };
+  const whereClause = { email };
   switch (entityType) {
     case "user":
       return await prisma.user.findFirst({
@@ -485,10 +460,10 @@ export const updateEntityPassword = async (
 /* Registration helper & other utilities (unchanged except removing prisma otp references) */
 export const checkExistingEntity = async (
   email: string,
-  phoneNumber: string,
+  // phoneNumber: string,
   entityType: EntityType
 ) => {
-  const existing = await checkEntityExists(email, phoneNumber, entityType);
+  const existing = await checkEntityExists(email, entityType);
 
   // --- Case 1: No existing entity at all
   if (!existing) {
@@ -496,10 +471,10 @@ export const checkExistingEntity = async (
   }
 
   const emailMatches = existing.email === email;
-  const phoneMatches = existing.phoneNumber === phoneNumber;
+  // const phoneMatches = existing.phoneNumber === phoneNumber;
 
   // --- Case 2: Both match
-  if (emailMatches && phoneMatches) {
+  if (emailMatches) {
     if (!existing.isVerified) {
       await createAndSendOtp(
         existing.email,

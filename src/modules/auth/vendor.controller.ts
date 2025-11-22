@@ -1,6 +1,7 @@
 import {
   clearAuthCookies,
   getAccessTokenFromReq,
+  setAccessCookies,
   setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
@@ -64,11 +65,7 @@ export const createVendor = async (req: Request, res: Response) => {
     }
 
     // Check if vendor (email/phone) already exists
-    const registrationResult = await checkExistingEntity(
-      email,
-      phoneNumber,
-      "vendor"
-    );
+    const registrationResult = await checkExistingEntity(email, "vendor");
 
     if (!registrationResult.shouldCreateNew) {
       // If exists but not verified, checkExistingEntity should have resent OTP and returned message
@@ -97,26 +94,6 @@ export const createVendor = async (req: Request, res: Response) => {
         isActive: false, // requires admin approval
       },
     });
-
-    // Optionally create DB links to vendorCategory if your schema has it. This is non-blocking for validation.
-    // try {
-    //   if (uniqueCategoryIds.length > 0 && prisma.vendorCategory) {
-    //     await Promise.all(
-    //       uniqueCategoryIds.map((catId) =>
-    //         prisma.vendorCategory.create({
-    //           data: {
-    //             vendorId: newVendor.id,
-    //             categoryId: catId,
-    //           },
-    //         })
-    //       )
-    //     );
-    //   }
-    // } catch (e: Error | any) {
-    //   // If vendorCategory model doesn't exist or DB insert fails, continue — categories are treated in-memory
-    //   // Log the error for debugging but don't block vendor creation
-    //   console.warn("vendorCategory linking skipped:", e?.message || e);
-    // }
 
     // Send email OTP for verification
     await createAndSendOtp(
@@ -365,7 +342,7 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
 
     const access = makeAccessTokenForVendor(vendor.id);
     const refresh = makeRefreshTokenForVendor(vendor.id);
-    setAuthCookies(res, access, refresh, "vendor");
+    setAccessCookies(res, access, "vendor");
 
     return sendSuccess(res, { access }, 200);
   } catch (err) {
