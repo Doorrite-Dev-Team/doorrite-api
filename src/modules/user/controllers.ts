@@ -1,7 +1,13 @@
 import prisma from "@config/db";
+import { hashPassword } from "@lib/hash";
 import { addressSchema, deleteUserAdress } from "@lib/utils/address";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
-import { isValidNigerianPhone } from "@modules/auth/helper";
+import {
+  handlePasswordReset,
+  isValidEmail,
+  isValidNigerianPhone,
+  validatePassword,
+} from "@modules/auth/helper";
 import { Request, Response } from "express";
 
 // Get User by ID
@@ -68,6 +74,7 @@ export const getCurrentUserProfile = async (req: Request, res: Response) => {
    * #swagger.security = [{ "bearerAuth": [] }]
    */
   try {
+    console.log(req.user);
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
 
@@ -116,7 +123,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
   if (Object.keys(data).length === 0) {
     return handleError(
       res,
-      new AppError(400, "No valid update fields provided")
+      new AppError(400, "No valid update fields provided"),
     );
   }
 
@@ -171,7 +178,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 };
 
 // Get User Orders with pagination
-//response : {  "data": [...],  "pagination": {    "totalItems": 95,    "totalPages": 10,    "currentPage": 3,    "pageSize": 10,    "hasNext": true,    "hasPrev": true  }}
+//response : {  "data": [...],  "pagination": {    "totalItems": 95,    "totalPages": 10,    "currentPage": 3,    "limit": 10,    "hasNext": true,    "hasPrev": true  }}
 // GET /users/orders/
 export const getUserOrders = async (req: Request, res: Response) => {
   /**
@@ -180,15 +187,15 @@ export const getUserOrders = async (req: Request, res: Response) => {
    * #swagger.description = 'Retrieves a paginated list of orders for the currently authenticated user.'
    * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
-   * #swagger.parameters['pageSize'] = { in: 'query', description: 'Page size', type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Page size', type: 'integer' }
    */
   try {
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
     const page = parseInt(req.query.page as string) || 1;
-    const pageSize = parseInt(req.query.pageSize as string) || 10;
-    const skip = (page - 1) * pageSize;
-    const take = pageSize;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+    const take = limit;
 
     const [totalItems, orders] = await Promise.all([
       prisma.order.count({ where: { id: userId } }),
@@ -204,13 +211,13 @@ export const getUserOrders = async (req: Request, res: Response) => {
         orderBy: { createdAt: "desc" },
       }),
     ]);
-    const totalPages = Math.ceil(totalItems / pageSize);
+    const totalPages = Math.ceil(totalItems / limit);
 
     const pagination = {
       totalItems,
       totalPages,
       currentPage: page,
-      pageSize,
+      limit,
       hasNext: page < totalPages,
       hasPrev: page > 1,
     };
@@ -310,6 +317,41 @@ export const deleteAddress = async (req: Request, res: Response) => {
       message: "Address deleted successfully",
       ok: true,
     });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Change User Password If Loging
+// PUT /users/password
+export const changePassWord = async (req: Request, res: Response) => {
+  try {
+    const id = req.user?.sub;
+    const { email, password, confirmPassword } = req.body || {};
+
+    if (!isValidEmail(email))
+      throw new AppError(400, "Valid email is required");
+    if (!password || !confirmPassword) {
+      throw new AppError(400, "Password and confirmPassword are required");
+    }
+    if (password !== confirmPassword) {
+      throw new AppError(400, "Passwords do not match");
+    }
+    validatePassword(password);
+
+    // Hash password BEFORE calling helper (helper expects hashed value for persistence)
+    const passwordHash = await hashPassword(password);
+
+    // call helper which validates token and updates password
+    await handlePasswordReset(email, passwordHash, passwordHash, "user", {
+      userId: id,
+    });
+
+    return sendSuccess(
+      res,
+      { message: "Password reset successfully. You can now login." },
+      200,
+    );
   } catch (error) {
     handleError(res, error);
   }

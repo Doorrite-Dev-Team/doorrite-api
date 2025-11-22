@@ -1,7 +1,7 @@
-import prisma from "@config/db";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { Request, Response } from "express";
 import { coerceNumber, isValidObjectId } from "./helpers";
+import prisma from "@config/db";
 
 /*
   Complete Product controllers (TypeScript + Express) matching the MVP Prisma schema
@@ -42,7 +42,7 @@ export const getProducts = async (req: Request, res: Response) => {
     const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
     const limitNum = Math.min(
       100,
-      Math.max(1, parseInt(String(limit), 10) || 20)
+      Math.max(1, parseInt(String(limit), 10) || 20),
     );
 
     const where: any = { isAvailable: true };

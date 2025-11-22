@@ -46,7 +46,7 @@ app.use(
       "https://doorrite-user-ui.netlify.app",
     ],
     credentials: true,
-  })
+  }),
 );
 
 // 3️⃣ Rate limiting (100 reqs per 15m per IP)
@@ -56,7 +56,7 @@ app.use(
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
-  })
+  }),
 );
 
 // 4️⃣ Parse JSON + cookies
@@ -82,14 +82,15 @@ app.get("/docs-json", (req: Request, res: Response) => {
 //Public Routes...
 app.use("/api/v1/auth", AuthRoutes);
 
+//I'm only here to fix some issuess
 //Private Routes
-app.use("/api/v1/user", UserRoutes);
+app.use("/api/v1/users", UserRoutes);
 app.use("/api/v1/vendors", vendorRoutes);
-app.use("/api/v1/product", ProductRoutes);
-app.use("/api/v1/order", OrderRoutes);
-app.use("/api/v1/admin", adminRoutes);
-app.use("/api/v1/rider", RiderRoutes);
-app.use("/api/v1/public", PublicRoutes);
+app.use("/api/v1/products", ProductRoutes);
+app.use("/api/v1/orders", OrderRoutes);
+app.use("/api/v1/admins", adminRoutes);
+app.use("/api/v1/riders", RiderRoutes);
+app.use("/api/v1/publics", PublicRoutes);
 
 //MiddleWare
 //404 handler

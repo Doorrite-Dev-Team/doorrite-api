@@ -440,6 +440,8 @@ export const verifyCustomerDelivery = async (req: Request, res: Response) => {
     if (!actor) throw new AppError(401, "Unauthorized");
     if (actor.role !== "rider")
       throw new AppError(403, "Only riders can verify deliveries");
+    const [id, code] = scannedCode.split(" ");
+    if (id !== orderId) throw new AppError(401, "Unauthorized");
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -453,19 +455,18 @@ export const verifyCustomerDelivery = async (req: Request, res: Response) => {
       throw new AppError(
         400,
         "This order is not currently out for delivery. Current status: " +
-          order.status
+          order.status,
       );
     }
 
     if (!order.deliveryVerificationCode) {
       throw new AppError(
         500,
-        "Verification code has not been generated for this order."
+        "Verification code has not been generated for this order.",
       );
     }
-
     // The core verification check
-    if (order.deliveryVerificationCode !== scannedCode) {
+    if (order.deliveryVerificationCode !== code) {
       throw new AppError(400, "Invalid verification code");
     }
 

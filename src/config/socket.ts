@@ -1,57 +1,83 @@
-import { createServer } from "http";
-import {
-  Server as SocketIOServer,
-  type Server as IOServerType,
-} from "socket.io";
-import type { Express } from "express";
-import socketService from "@lib/socketService";
+import { Server } from "socket.io";
+import { Server as HttpServer } from "http";
+import { NotificationService } from "../services/redis/notification";
+import { safeVerify } from "./jwt";
+import { riderService } from "services/socket/riders";
 
-export function attachSocketServer(app: Express) {
-  // Create an HTTP server that uses the Express app as the handler
-  const server = createServer(app);
+class WebSocketService {
+  private static instance: WebSocketService;
+  private io: Server | null = null;
 
-  // Initialize socket.io and allow CORS from the client origins used in app
-  const io = new SocketIOServer(server, {
-    cors: {
-      origin: ["http://localhost:3000", "https://dooriteuser-ui.vercel.app"],
-      methods: ["GET", "POST"],
-      credentials: true,
-    },
-  });
+  // 🔒 Private State: No global variables
+  private users = new Map<string, string>();
 
-  io.on("connection", (socket) => {
-    console.log("Socket connected:", socket.id);
+  private constructor() {}
 
-    // Riders or clients can register themselves with their riderId
-    socket.on("rider:register", (payload: { riderId?: string }) => {
-      const riderId = payload?.riderId;
-      if (riderId) {
-        socketService.registerRiderSocket(riderId, socket.id);
-        console.log(`Rider ${riderId} registered on socket ${socket.id}`);
-      }
+  // Singleton Accessor
+  public static getInstance(): WebSocketService {
+    if (!WebSocketService.instance) {
+      WebSocketService.instance = new WebSocketService();
+    }
+    return WebSocketService.instance;
+  }
+
+  public init(httpServer: HttpServer) {
+    this.io = new Server(httpServer, {
+      cors: {
+        origin: ["http://localhost:3000", "https://dooriteuser-ui.vercel.app"],
+        methods: ["GET", "POST"],
+        credentials: true,
+      },
     });
 
-    socket.on(
-      "rider:location",
-      (payload: { riderId?: string; lat?: number; long?: number }) => {
-        const { riderId, lat, long } = payload || {};
-        if (riderId && typeof lat === "number" && typeof long === "number") {
-          socketService.updateRiderLocation(riderId, { lat, long });
+    this.io.on("connection", async (socket) => {
+      console.log("A user is Connected");
+      const token = socket.handshake.query.token as string; // Use .auth instead of .query
+
+      if (token) {
+        const user = safeVerify(token);
+        const userId = user?.sub;
+        if (!user || !userId) return;
+        if (user.role === "rider") {
+          riderService.add(userId, socket.id);
         }
+
+        // 1. Manage State
+        this.users.set(userId, socket.id);
+        // console.log(`User connected: ${userId}`);
+
+        // 2. Check Redis for pending (Delegate to another service)
+        const pending = await NotificationService.getPending(userId);
+        if (pending.length) socket.emit("pending-notifications", pending);
+
+        socket.on("disconnect", () => {
+          this.users.delete(userId);
+          riderService.delete(userId);
+        });
       }
-    );
-
-    socket.on("disconnect", (reason) => {
-      console.log(`Socket ${socket.id} disconnected:`, reason);
     });
-  });
-  // expose the io to socketService so other modules can emit
-  socketService.setIo(io);
+  }
 
-  return { server, io } as {
-    server: ReturnType<typeof createServer>;
-    io: IOServerType;
-  };
+  // 🚀 Public Method to send notifications from anywhere
+  public notify(userId: string, event: string, data: any) {
+    if (!this.io) throw new Error("Socket IO not initialized!");
+
+    const socketId = this.users.get(userId);
+
+    if (socketId) {
+      this.io.to(socketId).emit(event, data);
+      return true; // Online
+    }
+
+    const notifId = `${userId}-${event}`;
+
+    NotificationService.add(userId, notifId, data);
+    return false; // Offline
+  }
+
+  public getIo() {
+    return this.io;
+  }
 }
 
-export type SocketServer = ReturnType<typeof attachSocketServer>;
+export const socketService = WebSocketService.getInstance();

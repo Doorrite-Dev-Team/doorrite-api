@@ -27,7 +27,7 @@ export const addressSchema = z.object({
     })
     .min(5, "Address must be at least 5 characters long")
     .max(200, "Address must be under 200 characters"),
-  coordinates: coordinatesSchema,
+  coordinates: coordinatesSchema.optional(),
   state: z
     .string()
     .optional()
@@ -42,7 +42,7 @@ export const addressSchema = z.object({
 
 export async function deleteUserAdress(
   id: string,
-  addressStringToDelete: string
+  addressStringToDelete: string,
 ) {
   // 1. Find the entity and get their current addresses.
   const userRecord = await prisma.user.findUnique({
@@ -58,7 +58,7 @@ export async function deleteUserAdress(
   // 2. Filter the addresses in your code to create a new array
   //    without the address you want to delete.
   const updatedAddresses = userRecord.address.filter(
-    (addr: Address) => addr.address !== addressStringToDelete
+    (addr: Address) => addr.address !== addressStringToDelete,
   );
 
   // 3. Update the entity record with the new, filtered array of addresses.

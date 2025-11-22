@@ -34,10 +34,12 @@ export function requireAuth(userType: string = "user"): RequestHandler {
       // 1) Try access token: Authorization header OR entity-specific access cookie
       const headerToken = req.headers.authorization?.split(" ")[1];
       const cookieAccess = getAccessTokenFromReq(req, canonical);
-      const accessToken = headerToken || cookieAccess;
+      const accessToken = headerToken ?? cookieAccess;
 
       if (accessToken) {
+        // console.log(`-${accessToken}-`);
         const payload = safeVerify(accessToken);
+        // console.log(payload);
         if (payload && payloadMatchesEntity(payload, canonical)) {
           // attach and continue
           req.user = payload;
@@ -45,7 +47,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
           return next();
         }
       }
-
+      console.log("No Token Found");
       // 2) Access not present or invalid -> attempt refresh flow using entity-specific refresh cookie
       const refreshed = await attemptRefreshFlow(req, res, canonical);
       if (refreshed) {
@@ -74,7 +76,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
 export async function attemptRefreshFlow(
   req: Request,
   res: Response,
-  entity: string
+  entity: string,
 ): Promise<boolean> {
   try {
     const refreshToken = getRefreshTokenFromReq(req, entity as any);
@@ -238,7 +240,7 @@ const getTokenFromRequest = (req: Request): string | null => {
 export const authenticateVendor = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const token = getTokenFromRequest(req);
@@ -299,7 +301,7 @@ export const authenticateVendor = async (
 export const optionalVendorAuth = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const token = getTokenFromRequest(req);

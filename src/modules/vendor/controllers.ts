@@ -108,7 +108,9 @@ export const getAllVendors = async (req: Request, res: Response) => {
     }
 
     return sendSuccess(res, {
-      vendors,
+      vendors: vendors.map((v) => {
+        return { ...v, isOpen: false };
+      }),
       pagination: {
         totalVendors,
         totalPages,
@@ -296,7 +298,7 @@ export const createProduct = async (req: Request, res: Response) => {
               stock: v.stock ?? undefined,
               isAvailable: v.isAvailable !== false,
             },
-          })
+          }),
         );
         variants = await Promise.all(vPromises);
       }
@@ -316,7 +318,7 @@ export const createProduct = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Product created successfully", product: complete },
-      201
+      201,
     );
   } catch (err) {
     return handleError(res, err);
@@ -339,7 +341,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       throw new AppError(400, "Product ID is required");
 
     const { data: updateData, error } = updateProductSchema.safeParse(
-      req.body || {}
+      req.body || {},
     );
     if (error)
       throw new AppError(400, `Error Validating the Inputs: ${error.cause}`);
@@ -352,7 +354,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (existing.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const updated = await prisma.product.update({
@@ -435,14 +437,14 @@ export const deleteProduct = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot delete another vendor's product"
+        "Unauthorized: Cannot delete another vendor's product",
       );
 
     // if there are orderItems, refuse permanent deletion
     if (product.orderItems && product.orderItems.length > 0) {
       throw new AppError(
         400,
-        "Cannot permanently delete product that has been ordered. Use prepare-delete instead."
+        "Cannot permanently delete product that has been ordered. Use prepare-delete instead.",
       );
     }
 
@@ -493,7 +495,7 @@ export const createProductVariant = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const variant = await prisma.productVariant.create({
@@ -510,7 +512,7 @@ export const createProductVariant = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Product variant created successfully", variant },
-      201
+      201,
     );
   } catch (err) {
     return handleError(res, err);
@@ -542,7 +544,7 @@ export const updateProductVariant = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const existingVariant = await prisma.productVariant.findFirst({
@@ -613,7 +615,7 @@ export const deleteProductVariant = async (req: Request, res: Response) => {
     if (product.vendorId !== vendorId)
       throw new AppError(
         403,
-        "Unauthorized: Cannot modify another vendor's product"
+        "Unauthorized: Cannot modify another vendor's product",
       );
 
     const variant = await prisma.productVariant.findUnique({
@@ -752,7 +754,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     if (!allowedStatuses.includes(status)) {
       throw new AppError(
         400,
-        `Vendors can only set status to: ${allowedStatuses.join(", ")}`
+        `Vendors can only set status to: ${allowedStatuses.join(", ")}`,
       );
     }
 
@@ -820,7 +822,7 @@ export const confirmOrderRider = async (req: Request, res: Response) => {
     if (!code || code.length !== 6)
       throw new AppError(
         400,
-        "6 digit Code is required Kindly Ask the rider for their code"
+        "6 digit Code is required Kindly Ask the rider for their code",
       );
 
     // Verify order belongs to vendor
@@ -835,15 +837,143 @@ export const confirmOrderRider = async (req: Request, res: Response) => {
       order.riderId,
       order.vendorId,
       order.id,
-      code
+      code,
     );
     if (response.ok === (false as const))
       throw new AppError(
         500,
-        `Failed to verify the rider's code: ${response.reason}`
+        `Failed to verify the rider's code: ${response.reason}`,
       );
 
     return sendSuccess(res, { ...response });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Get Vendor Reviews with Pagination & Aggregation
+// GET /api/vendors/:id/reviews
+export const getVendorReviews = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = 'Get reviews, average rating, and distribution for a specific vendor'
+   * #swagger.description = 'Fetches paginated reviews and aggregate statistics for a vendor.'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Vendor ID', required: true, type: 'string' }
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   */
+  try {
+    const { id: vendorId } = req.params;
+
+    if (!isValidObjectId(vendorId)) {
+      throw new AppError(400, "Invalid vendor ID");
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const offset = (page - 1) * limit;
+
+    // 1. Check if Vendor exists
+    const vendorExists = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
+    if (!vendorExists) {
+      throw new AppError(404, "Vendor not found");
+    }
+
+    // Use Prisma.$transaction for efficiency
+    const [reviews, totalReviews, averageResult, distributionResult] =
+      await prisma.$transaction([
+        // 2. Paginated Reviews Fetch
+        prisma.review.findMany({
+          where: { vendorId },
+          skip: offset,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          include: {
+            user: {
+              select: { fullName: true, profileImageUrl: true, id: true },
+            },
+          },
+        }),
+
+        // 3. Total Count
+        prisma.review.count({ where: { vendorId } }),
+
+        // 4. Average Rating Calculation
+        prisma.review.aggregate({
+          where: { vendorId },
+          _avg: { rating: true },
+        }),
+
+        // 5. Rating Distribution (Group By)
+        prisma.review.groupBy({
+          by: ["rating"],
+          where: { vendorId },
+          _count: { rating: true },
+          // REQUIRED FIX: Add orderBy to satisfy TypeScript/Prisma
+          orderBy: {
+            rating: "desc",
+          },
+        }),
+      ]);
+
+    // --- Data Processing and Transformation ---
+
+    const avgRating = averageResult._avg.rating ?? 0;
+
+    type Count =
+      | {
+          id?: number | undefined;
+          rating?: number | undefined;
+          comment?: number | undefined;
+          createdAt?: number | undefined;
+          updatedAt?: number | undefined;
+          userId?: number | undefined;
+          productId?: number | undefined;
+          vendorId?: number | undefined;
+          riderId?: number | undefined;
+          _all?: number | undefined;
+        }
+      | undefined;
+
+    // Map distribution to a usable format
+    const ratingDistribution = [5, 4, 3, 2, 1].map((star) => {
+      const group = distributionResult.find((r) => r.rating === star);
+      const count = (group?._count as Count)?.rating! || 0;
+      const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+
+      return {
+        stars: star,
+        count: count,
+        percentage: parseFloat(percentage.toFixed(2)),
+      };
+    });
+
+    // Map fetched reviews to the desired Review interface
+    const formattedReviews = reviews.map((review) => ({
+      id: review.id,
+      userId: review.userId,
+      userName: review.user.fullName,
+      userAvatar: review.user.profileImageUrl || undefined,
+      rating: review.rating,
+      comment: review.comment || "",
+      createdAt: review.createdAt.toISOString(), // Standard date format
+      // NOTE: likes/dislikes require separate models/queries, assuming 0 for now
+      likes: 0,
+      dislikes: 0,
+    }));
+
+    // --- Final Response Structure ---
+    const reviewsData = {
+      reviews: formattedReviews,
+      averageRating: parseFloat(avgRating.toFixed(2)),
+      totalReviews: totalReviews,
+      ratingDistribution: ratingDistribution,
+    };
+
+    return sendSuccess(res, { reviewsData });
   } catch (error) {
     handleError(res, error);
   }

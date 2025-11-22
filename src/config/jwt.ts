@@ -2,8 +2,7 @@
 import Crypto from "crypto";
 import * as jwt from "jsonwebtoken";
 
-export const JWT_SECRET: jwt.Secret = (process.env.JWT_SECRET ||
-  "change_me_here_for_prod") as jwt.Secret;
+export const JWT_SECRET = process.env.JWT_SECRET as jwt.Secret;
 
 export const ACCESS_EXPIRES = process.env.ACCESS_EXPIRES || "15m";
 export const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || "30d";
@@ -20,7 +19,7 @@ export interface JwtPayloadShape {
 }
 
 export function createAccessToken(
-  payload: Omit<JwtPayloadShape, "iat" | "exp">
+  payload: Omit<JwtPayloadShape, "iat" | "exp">,
 ) {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: payload.role === "admin" ? "2d" : ACCESS_EXPIRES,

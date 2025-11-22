@@ -1,6 +1,8 @@
 import {
   clearAuthCookies,
   getAccessTokenFromReq,
+  getRefreshTokenFromReq,
+  setAccessCookies,
   setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
@@ -55,7 +57,7 @@ export const createVendor = async (req: Request, res: Response) => {
 
     // Ensure provided categoryIds are valid according to in-memory DeliveryCategories
     const uniqueCategoryIds: string[] = Array.from(
-      new Set(((categoryIds as string[]) || []).map((c) => String(c).trim()))
+      new Set(((categoryIds as string[]) || []).map((c) => String(c).trim())),
     );
 
     const invalid = validateCategoryIds(uniqueCategoryIds);
@@ -64,11 +66,7 @@ export const createVendor = async (req: Request, res: Response) => {
     }
 
     // Check if vendor (email/phone) already exists
-    const registrationResult = await checkExistingEntity(
-      email,
-      phoneNumber,
-      "vendor"
-    );
+    const registrationResult = await checkExistingEntity(email, "vendor");
 
     if (!registrationResult.shouldCreateNew) {
       // If exists but not verified, checkExistingEntity should have resent OTP and returned message
@@ -78,7 +76,7 @@ export const createVendor = async (req: Request, res: Response) => {
           message: registrationResult.message,
           vendorId: registrationResult.entityId,
         },
-        200
+        200,
       );
     }
 
@@ -98,31 +96,11 @@ export const createVendor = async (req: Request, res: Response) => {
       },
     });
 
-    // Optionally create DB links to vendorCategory if your schema has it. This is non-blocking for validation.
-    // try {
-    //   if (uniqueCategoryIds.length > 0 && prisma.vendorCategory) {
-    //     await Promise.all(
-    //       uniqueCategoryIds.map((catId) =>
-    //         prisma.vendorCategory.create({
-    //           data: {
-    //             vendorId: newVendor.id,
-    //             categoryId: catId,
-    //           },
-    //         })
-    //       )
-    //     );
-    //   }
-    // } catch (e: Error | any) {
-    //   // If vendorCategory model doesn't exist or DB insert fails, continue — categories are treated in-memory
-    //   // Log the error for debugging but don't block vendor creation
-    //   console.warn("vendorCategory linking skipped:", e?.message || e);
-    // }
-
     // Send email OTP for verification
     await createAndSendOtp(
       newVendor.email,
       "vendor",
-      OtpType.EMAIL_VERIFICATION
+      OtpType.EMAIL_VERIFICATION,
     );
 
     return sendSuccess(
@@ -132,7 +110,7 @@ export const createVendor = async (req: Request, res: Response) => {
           "Vendor registered. Verification code sent to email. Admin approval required before your account can be used.",
         vendorId: newVendor.id,
       },
-      201
+      201,
     );
   } catch (err) {
     return handleError(res, err);
@@ -153,7 +131,7 @@ export const createVendorOtp = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Verification code sent to vendor email" },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -174,7 +152,7 @@ export const verifyVendorOtp = async (req: Request, res: Response) => {
       email,
       otp,
       "vendor",
-      purpose === "reset" ? "reset" : "verify"
+      purpose === "reset" ? "reset" : "verify",
     );
 
     if (purpose === "reset") {
@@ -184,7 +162,7 @@ export const verifyVendorOtp = async (req: Request, res: Response) => {
           message: "OTP verified for password reset",
           resetToken: result.resetToken,
         },
-        200
+        200,
       );
     } else {
       // Email verified — markEntityAsVerified already called inside processOtpVerification for 'verify'.
@@ -195,7 +173,7 @@ export const verifyVendorOtp = async (req: Request, res: Response) => {
           message:
             "Email verified. Your account is pending admin approval. You will be notified when approved.",
         },
-        200
+        200,
       );
     }
   } catch (err) {
@@ -248,7 +226,7 @@ export const loginVendor = async (req: Request, res: Response) => {
         },
         access,
       },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -287,7 +265,7 @@ export const forgottenVendorPassword = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Password reset code sent to your email", resetToken },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -320,13 +298,9 @@ export const resetVendorPassword = async (req: Request, res: Response) => {
     const passwordHash = await hashPassword(password);
 
     // call helper which validates token and updates password
-    await handlePasswordReset(
-      email,
-      passwordHash,
-      passwordHash,
-      "vendor",
-      resetToken
-    );
+    await handlePasswordReset(email, passwordHash, passwordHash, "vendor", {
+      resetToken,
+    });
 
     return sendSuccess(
       res,
@@ -334,7 +308,7 @@ export const resetVendorPassword = async (req: Request, res: Response) => {
         message:
           "Password reset successfully. You can now login after admin approval (if required).",
       },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -348,10 +322,15 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
    * #swagger.description = 'Obtain a new JWT for the vendor using a refresh token'
    */
   try {
-    const raw = getAccessTokenFromReq(req, "vendor");
-    if (!raw) throw new AppError(401, "No refresh token");
-
-    const payload: any = verifyJwt(raw);
+    const raw = getRefreshTokenFromReq(req, "vendor");
+    const { refresh } = req.body || {};
+    if (!raw || !refresh) throw new AppError(401, "No refresh token");
+    let payload;
+    if (raw) {
+      payload = verifyJwt(raw);
+    } else {
+      payload = verifyJwt(refresh);
+    }
     if (!payload?.sub) throw new AppError(401, "Invalid token payload");
 
     const vendor = await prisma.vendor.findUnique({
@@ -364,8 +343,8 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
       throw new AppError(403, "Vendor account not approved");
 
     const access = makeAccessTokenForVendor(vendor.id);
-    const refresh = makeRefreshTokenForVendor(vendor.id);
-    setAuthCookies(res, access, refresh, "vendor");
+    // const refresh = makeRefreshTokenForVendor(vendor.id);
+    setAccessCookies(res, access, "vendor");
 
     return sendSuccess(res, { access }, 200);
   } catch (err) {
@@ -396,7 +375,7 @@ export function validateVendorData({
   ) {
     throw new AppError(
       400,
-      "Business name is required and must be at least 2 characters"
+      "Business name is required and must be at least 2 characters",
     );
   }
 
@@ -418,7 +397,7 @@ export function validateVendorData({
   if (!password || typeof password !== "string" || password.length < 6) {
     throw new AppError(
       400,
-      "Password is required and must be at least 6 characters"
+      "Password is required and must be at least 6 characters",
     );
   }
 

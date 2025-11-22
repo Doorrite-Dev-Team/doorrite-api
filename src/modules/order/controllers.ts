@@ -218,12 +218,12 @@ export const createOrder = async (req: Request, res: Response) => {
                 if (product.vendorId !== vendorId)
                   throw new AppError(
                     400,
-                    `Product ${productId} does not belong to vendor ${vendorId}`
+                    `Product ${productId} does not belong to vendor ${vendorId}`,
                   );
                 if (product.isAvailable === false)
                   throw new AppError(
                     400,
-                    `Product ${productId} is not available`
+                    `Product ${productId} is not available`,
                   );
 
                 let variant: any = null;
@@ -234,12 +234,12 @@ export const createOrder = async (req: Request, res: Response) => {
                   if (!variant || variant.productId !== productId)
                     throw new AppError(
                       404,
-                      `Variant ${variantId} not found for product ${productId}`
+                      `Variant ${variantId} not found for product ${productId}`,
                     );
                   if (variant.isAvailable === false)
                     throw new AppError(
                       400,
-                      `Variant ${variantId} is not available`
+                      `Variant ${variantId} is not available`,
                     );
 
                   // If variant has stock tracked (number), ensure sufficient quantity and decrement
@@ -247,7 +247,7 @@ export const createOrder = async (req: Request, res: Response) => {
                     if (variant.stock < quantity)
                       throw new AppError(
                         400,
-                        `Insufficient stock for variant ${variantId}`
+                        `Insufficient stock for variant ${variantId}`,
                       );
                     await tx.productVariant.update({
                       where: { id: variantId },
@@ -256,7 +256,9 @@ export const createOrder = async (req: Request, res: Response) => {
                   }
                 }
 
-                const price = variant ? variant.price : product.basePrice ?? 0;
+                const price = variant
+                  ? variant.price
+                  : (product.basePrice ?? 0);
 
                 return {
                   productId,
@@ -266,7 +268,7 @@ export const createOrder = async (req: Request, res: Response) => {
                   unitPrice: price,
                   subtotal: price * quantity,
                 } as any;
-              })
+              }),
             ),
           },
         },
@@ -324,7 +326,7 @@ export const createOrder = async (req: Request, res: Response) => {
           ? "INITIALIZE_PAYSTACK_PAYMENT"
           : "ORDER_PLACED_COD",
       },
-      201
+      201,
     );
   } catch (error: any) {
     // ✅ Graceful Zod validation error handling
@@ -368,7 +370,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
     )
       throw new AppError(
         403,
-        "Only customers, admins and vendors can cancel orders"
+        "Only customers, admins and vendors can cancel orders",
       );
     const result = await prisma.$transaction(async (tx) => {
       // Fetch order
@@ -383,7 +385,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
       if (order.status !== "PENDING") {
         throw new AppError(
           400,
-          "You can only cancel orders in the PENDING status"
+          "You can only cancel orders in the PENDING status",
         );
       }
       //
@@ -537,12 +539,12 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
           // Otherwise, allow caller to retry
           throw new AppError(
             409,
-            "Payment initialization in progress. Please retry shortly."
+            "Payment initialization in progress. Please retry shortly.",
           );
         }
         throw new AppError(
           409,
-          "Payment initialization in progress. Please retry shortly."
+          "Payment initialization in progress. Please retry shortly.",
         );
       }
 
@@ -574,7 +576,7 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
             authorization_url: init.authorization_url,
             reference: init.reference,
           }),
-          { ex: 600 }
+          { ex: 600 },
         );
 
         // 4. Create or update payment record
@@ -627,7 +629,7 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
   }
 };
 
-// POST /orders/:RiderInclude/payments/confirm
+// POST /orders/:reference/payments/confirm
 export const confirmPayment = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Payment']
@@ -829,7 +831,7 @@ export const processRefund = async (req: Request, res: Response) => {
       // 3. Initialize refund with Paystack via helper
       const refundResponse = await paystack.refundTransaction(
         payment.transactionId,
-        refundAmount
+        refundAmount,
       );
 
       // 4. Update payment & order records accordingly (no Refund model in schema)
@@ -888,7 +890,7 @@ export const processRefund = async (req: Request, res: Response) => {
  */
 export const getCustomerVerificationCode = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   /**
    * #swagger.tags = ['User Orders']
@@ -920,7 +922,7 @@ export const getCustomerVerificationCode = async (
     if (order.status !== "OUT_FOR_DELIVERY") {
       throw new AppError(
         400,
-        "Verification code is only available when order is out for delivery"
+        "Verification code is only available when order is out for delivery",
       );
     }
 

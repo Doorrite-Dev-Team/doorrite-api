@@ -10,7 +10,7 @@ router.get("/:id", vendorController.getVendorById);
 router.get(
   "/me",
   requireAuth("vendor"),
-  vendorController.getCurrentVendorProfile
+  vendorController.getCurrentVendorProfile,
 );
 
 router.put("/me", requireAuth("vendor"), vendorController.updateVendorProfile);
@@ -19,34 +19,36 @@ router.put("/me", requireAuth("vendor"), vendorController.updateVendorProfile);
 router.get(
   "/products",
   requireAuth("vendor"),
-  vendorController.getVendorProducts
+  vendorController.getVendorProducts,
 );
+
+router.get("/:id/reviews", vendorController.getVendorReviews);
 
 router.post("/products", requireAuth("vendor"), vendorController.createProduct);
 
 router.put(
   "/products/:id",
   requireAuth("vendor"),
-  vendorController.updateProduct
+  vendorController.updateProduct,
 );
 
 router.delete(
   "/products/:id",
   requireAuth("vendor"),
-  vendorController.deleteProduct
+  vendorController.deleteProduct,
 );
 
 // Product Variants
 router.put(
   "/products/:id/variants/:variantId",
   requireAuth("vendor"),
-  vendorController.updateProductVariant
+  vendorController.updateProductVariant,
 );
 
 router.delete(
   "/products/:id/variants/:variantId",
   requireAuth("vendor"),
-  vendorController.deleteProductVariant
+  vendorController.deleteProductVariant,
 );
 
 // Order Management
@@ -55,19 +57,19 @@ router.get("/orders", requireAuth("vendor"), vendorController.getVendorOrders);
 router.get(
   "/orders/:orderId",
   requireAuth("vendor"),
-  vendorController.getVendorOrderById
+  vendorController.getVendorOrderById,
 );
 
 router.post(
   "orders/:orderId/confirm-rider",
   requireAuth("vendor"),
-  vendorController.confirmOrderRider
+  vendorController.confirmOrderRider,
 );
 
 router.patch(
   "/orders/:orderId/status",
   requireAuth("vendor"),
-  vendorController.updateOrderStatus
+  vendorController.updateOrderStatus,
 );
 
 // Public Routes

@@ -15,39 +15,43 @@ router.get("/orders", requireAuth("rider"), riderController.getRiderOrders);
 router.post(
   "/orders/:orderId/claim",
   requireAuth("rider"),
-  riderController.claimOrder
+  riderController.claimOrder,
 );
 
 router.get(
   "/orders/:orderId",
   requireAuth("rider"),
-  riderController.getRiderOrderById
+  riderController.getRiderOrderById,
 );
 
 router.get(
   "/orders/:orderId/confirm",
   requireAuth("rider"),
-  riderController.generateVendorOrderCode
+  riderController.generateVendorOrderCode,
 );
 
 router.post(
   "/orders/:orderId/decline",
   requireAuth("rider"),
-  riderController.declineOrder
+  riderController.declineOrder,
 );
 
-// router.post("/location", requireAuth("rider"), riderController.updateLocation);
+router.post(
+  "/orders/:orderId/verify-delivery",
+  requireAuth("rider"),
+  riderController.verifyCustomerDelivery,
+);
 
 router.patch(
   "/availability",
   requireAuth("rider"),
-  riderController.toggleAvailability
+  riderController.toggleAvailability,
 );
 
 router.get(
   "/history",
   requireAuth("rider"),
-  riderController.getDeliveryHistory
+  riderController.getDeliveryHistory,
 );
 
 router.get("/", requireAuth("admin"), riderController.getAllRiders);

@@ -34,31 +34,6 @@ export const validatePassword = (password: any) => {
   }
 };
 
-/* Rate limiter (unchanged) */
-// const rateLimitMap = new Map<string, number>();
-// export const checkRateLimit = async (
-//   identifier: string,
-//   action: string,
-//   windowMinutes = 1
-// ) => {
-//   const key = `${identifier}:${action}`;
-//   const now = Date.now();
-//   const windowMs = windowMinutes * 60 * 1000;
-//   const last = rateLimitMap.get(key) || 0;
-//   if (now - last < windowMs) {
-//     const timeLeft = Math.ceil((windowMs - (now - last)) / 1000);
-//     throw new AppError(
-//       429,
-//       `Please wait ${timeLeft} seconds before trying again`
-//     );
-//   }
-//   rateLimitMap.set(key, now);
-//   setTimeout(() => {
-//     const lastCheck = rateLimitMap.get(key) || 0;
-//     if (Date.now() - lastCheck >= windowMs) rateLimitMap.delete(key);
-//   }, windowMs + 2000);
-// };
-
 /* Entity helpers (unchanged) */
 type EntityType = "user" | "vendor" | "rider";
 type EntityData = {
@@ -74,7 +49,7 @@ type EntityData = {
 
 export const findEntityByEmail = async (
   email: string,
-  entityType: EntityType
+  entityType: EntityType,
 ): Promise<EntityData | null> => {
   switch (entityType) {
     case "user":
@@ -123,7 +98,7 @@ export const findEntityByEmail = async (
 
 export const findEntityByIdentifier = async (
   identifier: string,
-  entityType: EntityType
+  entityType: EntityType,
 ): Promise<EntityData | null> => {
   const isEmail = isValidEmail(identifier);
   const isPhone = isValidNigerianPhone(identifier);
@@ -179,10 +154,10 @@ export const findEntityByIdentifier = async (
 
 export const checkEntityExists = async (
   email: string,
-  phoneNumber: string,
-  entityType: EntityType
+  // phoneNumber: string,
+  entityType: EntityType,
 ): Promise<EntityData | null> => {
-  const whereClause = { OR: [{ email }, { phoneNumber }] };
+  const whereClause = { email };
   switch (entityType) {
     case "user":
       return await prisma.user.findFirst({
@@ -239,7 +214,7 @@ export const checkEntityExists = async (
 export const createAndSendOtp = async (
   email: string,
   entityType: EntityType,
-  otpType: OtpType = OtpType.EMAIL_VERIFICATION
+  otpType: OtpType = OtpType.EMAIL_VERIFICATION,
 ) => {
   // await checkRateLimit(email, `${entityType}_${String(otpType).toLowerCase()}`, 1);
 
@@ -250,7 +225,7 @@ export const createAndSendOtp = async (
   if (otpType === OtpType.PASSWORD_RESET && !entity.isVerified) {
     throw new AppError(
       400,
-      "Please verify your account before requesting a password reset"
+      "Please verify your account before requesting a password reset",
     );
   }
 
@@ -263,7 +238,7 @@ export const createAndSendOtp = async (
         409,
         `OTP already sent. Try again after ${
           redisRes.ttlSeconds ?? Math.ceil(OTP_TTL_SECONDS / 60)
-        } seconds`
+        } seconds`,
       );
     }
     throw new AppError(500, "Failed to create OTP");
@@ -274,11 +249,11 @@ export const createAndSendOtp = async (
     otpType === "EMAIL_VERIFICATION"
       ? verificationEmailOTPTemplate(
           entity.fullName || entity.businessName || "",
-          redisRes.code
+          redisRes.code,
         )
       : passwordResetEmailTemplate(
           entity.fullName || entity.businessName || "",
-          redisRes.code
+          redisRes.code,
         );
 
   try {
@@ -301,7 +276,7 @@ export const verifyOtpCode = async (
   email: string,
   otpCode: string,
   entityType: EntityType,
-  otpType: OtpType = OtpType.EMAIL_VERIFICATION
+  otpType: OtpType = OtpType.EMAIL_VERIFICATION,
 ): Promise<{ entity: EntityData }> => {
   if (
     !otpCode ||
@@ -324,7 +299,7 @@ export const verifyOtpCode = async (
     ) {
       throw new AppError(
         429,
-        "Too many failed attempts. Wait until OTP expires."
+        "Too many failed attempts. Wait until OTP expires.",
       );
     }
     if (redisRes.reason === "expired") {
@@ -353,7 +328,7 @@ export const processOtpVerification = async (
   email: string,
   otpCode: string,
   entityType: EntityType,
-  purpose: "verify" | "reset" = "verify"
+  purpose: "verify" | "reset" = "verify",
 ): Promise<{ entity: EntityData; resetToken?: string }> => {
   const otpType =
     purpose === "reset" ? OtpType.PASSWORD_RESET : OtpType.EMAIL_VERIFICATION;
@@ -381,44 +356,62 @@ export const handlePasswordReset = async (
   newPassword: string,
   confirmPassword: string,
   entityType: EntityType,
-  resetToken: string
+  verify: {
+    resetToken?: string;
+    userId?: string;
+  },
 ) => {
-  if (!isValidEmail(email) || !newPassword || !confirmPassword || !resetToken) {
+  if (
+    !isValidEmail(email) ||
+    !newPassword ||
+    !confirmPassword ||
+    (!verify.resetToken && !verify.userId)
+  ) {
     throw new AppError(400, "Please provide all required fields");
   }
   if (newPassword !== confirmPassword) {
     throw new AppError(400, "Passwords do not match");
   }
+
   validatePassword(newPassword);
 
   const entity = await findEntityByEmail(email, entityType);
   if (!entity) throw new AppError(404, `${entityType} not found`);
 
   // check reset token in Redis
-  const isValidToken = await validateResetToken(
-    String(OtpType.PASSWORD_RESET),
-    email,
-    resetToken
-  );
-  if (!isValidToken) {
-    throw new AppError(
-      400,
-      "Reset session missing or expired. Please start the process again."
+  //
+  if (verify.resetToken) {
+    const isValidToken = await validateResetToken(
+      String(OtpType.PASSWORD_RESET),
+      email,
+      verify.resetToken,
     );
+    if (!isValidToken) {
+      throw new AppError(
+        400,
+        "Reset session missing or expired. Please start the process again.",
+      );
+    }
+  }
+
+  if (verify.userId) {
+    const entity = await findEntityByEmail(email, "user");
+    if (!entity || entity.id !== verify.userId || entity.isVerified) {
+    }
   }
 
   // update password
   await updateEntityPassword(
     entity.id,
     /* assume hash already */ newPassword,
-    entityType
+    entityType,
   );
 
   // cleanup reset token
   await deleteResetToken(
     String(OtpType.PASSWORD_RESET),
     email,
-    resetToken
+    verify.resetToken!,
   ).catch(() => {});
 
   return { entity };
@@ -427,7 +420,7 @@ export const handlePasswordReset = async (
 /* Mark/update helpers (unchanged) */
 export const markEntityAsVerified = async (
   entityId: string,
-  entityType: EntityType
+  entityType: EntityType,
 ) => {
   switch (entityType) {
     case "user":
@@ -456,7 +449,7 @@ export const markEntityAsVerified = async (
 export const updateEntityPassword = async (
   entityId: string,
   passwordHash: string,
-  entityType: EntityType
+  entityType: EntityType,
 ) => {
   switch (entityType) {
     case "user":
@@ -485,10 +478,10 @@ export const updateEntityPassword = async (
 /* Registration helper & other utilities (unchanged except removing prisma otp references) */
 export const checkExistingEntity = async (
   email: string,
-  phoneNumber: string,
-  entityType: EntityType
+  // phoneNumber: string,
+  entityType: EntityType,
 ) => {
-  const existing = await checkEntityExists(email, phoneNumber, entityType);
+  const existing = await checkEntityExists(email, entityType);
 
   // --- Case 1: No existing entity at all
   if (!existing) {
@@ -496,15 +489,15 @@ export const checkExistingEntity = async (
   }
 
   const emailMatches = existing.email === email;
-  const phoneMatches = existing.phoneNumber === phoneNumber;
+  // const phoneMatches = existing.phoneNumber === phoneNumber;
 
   // --- Case 2: Both match
-  if (emailMatches && phoneMatches) {
+  if (emailMatches) {
     if (!existing.isVerified) {
       await createAndSendOtp(
         existing.email,
         entityType,
-        OtpType.EMAIL_VERIFICATION
+        OtpType.EMAIL_VERIFICATION,
       );
       return {
         message: `${entityType} exists but not verified. New OTP sent to email.`,
@@ -523,7 +516,7 @@ export const checkExistingEntity = async (
     // Delete unverified/incomplete registration before recreating
     await deleteIncompleteEntity(existing.id, entityType);
     console.log(
-      `Deleted previous unverified ${entityType} with mismatched credentials.`
+      `Deleted previous unverified ${entityType} with mismatched credentials.`,
     );
     return { shouldCreateNew: true };
   }
@@ -532,14 +525,14 @@ export const checkExistingEntity = async (
   // So user must login instead of registering again
   // throw new AppError(409, `${entityType} already registered. Please login`);
   console.error(
-    `${entityType} is verified but credentials mismatch. Redirecting to login...`
+    `${entityType} is verified but credentials mismatch. Redirecting to login...`,
   );
   return { shouldCreateNew: false, redirectToLogin: true };
 };
 
 export const deleteIncompleteEntity = async (
   id: string,
-  entityType: EntityType
+  entityType: EntityType,
 ) => {
   switch (entityType) {
     case "user":

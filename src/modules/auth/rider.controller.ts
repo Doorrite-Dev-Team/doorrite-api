@@ -2,6 +2,7 @@ import { VehicleType } from "./../../generated/prisma";
 import {
   clearAuthCookies,
   getRefreshTokenFromReq,
+  setAccessCookies,
   setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
@@ -45,7 +46,7 @@ export const createRider = async (req: Request, res: Response) => {
     ) {
       throw new AppError(
         400,
-        "fullName is required and must be at least 2 characters"
+        "fullName is required and must be at least 2 characters",
       );
     }
     if (!isValidEmail(email)) throw new AppError(400, "Invalid email address");
@@ -56,11 +57,7 @@ export const createRider = async (req: Request, res: Response) => {
       throw new AppError(400, "Please provide an appropriate vehicleType");
     }
     // Check if rider exists
-    const registrationResult = await checkExistingEntity(
-      email,
-      phoneNumber,
-      "rider"
-    );
+    const registrationResult = await checkExistingEntity(email, "rider");
 
     if (!registrationResult.shouldCreateNew) {
       return sendSuccess(
@@ -69,7 +66,7 @@ export const createRider = async (req: Request, res: Response) => {
           message: registrationResult.message,
           riderId: registrationResult.entityId,
         },
-        200
+        200,
       );
     }
 
@@ -91,7 +88,7 @@ export const createRider = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Rider created. OTP sent to email.", riderId: newRider.id },
-      201
+      201,
     );
   } catch (err) {
     return handleError(res, err);
@@ -112,7 +109,7 @@ export const createRiderOtp = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Verification code sent to rider email" },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -133,7 +130,7 @@ export const verifyRiderOtp = async (req: Request, res: Response) => {
       email,
       otp,
       "rider",
-      purpose === "reset" ? "reset" : "verify"
+      purpose === "reset" ? "reset" : "verify",
     );
 
     if (purpose === "reset") {
@@ -143,7 +140,7 @@ export const verifyRiderOtp = async (req: Request, res: Response) => {
           message: "OTP verified for password reset",
           resetToken: result.resetToken,
         },
-        200
+        200,
       );
     } else {
       // Login the rider after successful verification
@@ -154,7 +151,7 @@ export const verifyRiderOtp = async (req: Request, res: Response) => {
       return sendSuccess(
         res,
         { message: "Rider verified and logged in", riderId: result.entity.id },
-        200
+        200,
       );
     }
   } catch (err) {
@@ -200,7 +197,7 @@ export const loginRider = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Login successful", riderId: rider.id, access },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -228,12 +225,15 @@ export const refreshRiderToken = async (req: Request, res: Response) => {
    * #swagger.description = 'Obtain a new JWT for the rider using a refresh token'
    */
   try {
-    const refreshToken = getRefreshTokenFromReq(req, "rider");
-    if (!refreshToken) {
-      throw new AppError(401, "Refresh token not found. Please log in.");
+    const raw = getRefreshTokenFromReq(req, "rider");
+    const { refresh } = req.body || {};
+    if (!raw || !refresh) throw new AppError(401, "No refresh token");
+    let decoded;
+    if (raw) {
+      decoded = verifyJwt(raw);
+    } else {
+      decoded = verifyJwt(refresh);
     }
-
-    const decoded = verifyJwt(refreshToken) as { id: string };
     if (!decoded || !decoded.id) {
       throw new AppError(401, "Invalid refresh token. Please log in.");
     }
@@ -244,13 +244,13 @@ export const refreshRiderToken = async (req: Request, res: Response) => {
     }
 
     const newAccessToken = makeAccessTokenForRider(rider.id);
-    const newRefreshToken = makeRefreshTokenForRider(rider.id);
-    setAuthCookies(res, newAccessToken, newRefreshToken, "rider");
+    // const newRefreshToken = refreshToken;
+    setAccessCookies(res, newAccessToken, "rider");
 
     return sendSuccess(
       res,
       { message: "Token refreshed successfully", access: newAccessToken },
-      200
+      200,
     );
   } catch (err) {
     clearAuthCookies(res, "rider"); // Clear cookies on refresh failure
@@ -273,7 +273,7 @@ export const forgotRiderPassword = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Password reset code sent to your email", resetToken },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -306,18 +306,14 @@ export const resetRiderPassword = async (req: Request, res: Response) => {
     const passwordHash = await hashPassword(password);
 
     // call helper which validates token and updates password
-    await handlePasswordReset(
-      email,
-      passwordHash,
-      passwordHash,
-      "rider",
-      resetToken
-    );
+    await handlePasswordReset(email, passwordHash, passwordHash, "rider", {
+      resetToken,
+    });
 
     return sendSuccess(
       res,
       { message: "Password reset successfully. You can now login." },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);

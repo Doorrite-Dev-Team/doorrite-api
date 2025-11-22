@@ -103,25 +103,28 @@ model User {
 }
 
 model Vendor {
-  id           String      @id @default(auto()) @map("_id") @db.ObjectId
-  email        String      @unique
-  businessName String      @unique
-  phoneNumber  String      @unique
-  passwordHash String
-  logoUrl      String?
-  rating       Float?
-  isActive     Boolean     @default(true)
-  isVerified   Boolean     @default(false)
-  isApproved   Boolean     @default(false)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  address   Address
+  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
+  email               String      @unique
+  businessName        String      @unique
+  phoneNumber         String      @unique
+  passwordHash        String
+  logoUrl             String?
+  rating              Float?
+  openingTime         String?  // e.g. "09:00 AM"
+  closingTime         String?  // e.g. "09:00 PM"
+  avrgPreparationTime String?  // e.g. "20-30 mins"
+  isActive            Boolean     @default(true)
+  isVerified          Boolean     @default(false)
+  isApproved          Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  address             Address
 
   // Relations
-  products  Product[]
-  orders    Order[]
-  reviews   Review[]
-  wallet    Wallet?
+  products            Product[]
+  orders              Order[]
+  reviews             Review[]
+  wallet              Wallet?
 }
 
 model Product {
@@ -171,7 +174,6 @@ model Rider {
   rating          Float?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-
 
   address    Address?
   deliveries Delivery[]

@@ -27,7 +27,7 @@ router.post("/verify-otp", userAuth.verifyOtp);
 
 router.post("/login-user", userAuth.login);
 
-router.post("/refresh-token", userAuth.refreshToken);
+router.post("/refresh-user-token", userAuth.refreshToken);
 
 router.get("/logout-user", requireAuth, userAuth.logout);
 

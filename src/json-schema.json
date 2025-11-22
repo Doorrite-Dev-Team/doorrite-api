@@ -101,6 +101,24 @@
             "null"
           ]
         },
+        "openingTime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "closingTime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "avrgPreparationTime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "isActive": {
           "type": "boolean",
           "default": true

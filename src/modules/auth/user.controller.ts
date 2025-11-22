@@ -3,6 +3,7 @@ import {
   clearAuthCookies,
   getRefreshTokenFromReq,
   setAuthCookies,
+  setAccessCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
 import {
@@ -25,6 +26,8 @@ import {
 import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
 import { createResetToken } from "@config/redis";
+import { socketService } from "@config/socket";
+import { Notification } from "types/notifications";
 
 export const createUser = async (req: Request, res: Response) => {
   /**
@@ -43,7 +46,7 @@ export const createUser = async (req: Request, res: Response) => {
     ) {
       throw new AppError(
         400,
-        "fullName is required and must be at least 2 characters"
+        "fullName is required and must be at least 2 characters",
       );
     }
     if (!isValidEmail(email)) throw new AppError(400, "Invalid email address");
@@ -52,11 +55,7 @@ export const createUser = async (req: Request, res: Response) => {
     validatePassword(password);
 
     // Check if user exists
-    const registrationResult = await checkExistingEntity(
-      email,
-      phoneNumber,
-      "user"
-    );
+    const registrationResult = await checkExistingEntity(email, "user");
 
     if (!registrationResult.shouldCreateNew) {
       return sendSuccess(
@@ -65,7 +64,7 @@ export const createUser = async (req: Request, res: Response) => {
           message: registrationResult.message,
           userId: registrationResult.entityId,
         },
-        200
+        409,
       );
     }
 
@@ -86,7 +85,7 @@ export const createUser = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "User created. OTP sent to email.", userId: newUser.id },
-      201
+      201,
     );
   } catch (err) {
     return handleError(res, err);
@@ -107,7 +106,7 @@ export const createOtp = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Verification code sent to your email" },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -128,7 +127,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       email,
       otp,
       "user",
-      purpose === "reset" ? "reset" : "verify"
+      purpose === "reset" ? "reset" : "verify",
     );
 
     if (purpose === "reset") {
@@ -139,13 +138,13 @@ export const verifyOtp = async (req: Request, res: Response) => {
           message: "OTP verified for Password reset",
           resetToken: result.resetToken,
         },
-        200
+        200,
       );
     } else {
       // Login the user after successful verification
       const access = makeAccessTokenForUser(
         result.entity.id,
-        result.entity.role
+        result.entity.role,
       );
       const refresh = makeRefreshTokenForUser(result.entity.id);
       setAuthCookies(res, access, refresh, "user");
@@ -179,6 +178,16 @@ export const login = async (req: Request, res: Response) => {
     const access = makeAccessTokenForUser(user.id, user.role!);
     const refresh = makeRefreshTokenForUser(user.id);
     setAuthCookies(res, access, refresh, "user");
+
+    socketService.notify(user.id, "notification", {
+      id: `${user.id}-${new Date()}`,
+      type: "SYSTEM",
+      title: "Welcome Back",
+      message: `Welcome back to Doorrite, ${user.fullName}`,
+      priority: "normal",
+      timestamp: new Date().toISOString(),
+    } as Notification);
+
     return sendSuccess(
       res,
       {
@@ -190,7 +199,7 @@ export const login = async (req: Request, res: Response) => {
         },
         access,
       },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -230,7 +239,7 @@ export const forgottenPassword = async (req: Request, res: Response) => {
     return sendSuccess(
       res,
       { message: "Password reset code sent to your email", resetToken },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -264,18 +273,14 @@ export const resetPassword = async (req: Request, res: Response) => {
     const passwordHash = await hashPassword(password);
 
     // call helper which validates token and updates password
-    await handlePasswordReset(
-      email,
-      passwordHash,
-      passwordHash,
-      "user",
-      resetToken
-    );
+    await handlePasswordReset(email, passwordHash, passwordHash, "user", {
+      resetToken,
+    });
 
     return sendSuccess(
       res,
       { message: "Password reset successfully. You can now login." },
-      200
+      200,
     );
   } catch (err) {
     return handleError(res, err);
@@ -290,9 +295,14 @@ export const refreshToken = async (req: Request, res: Response) => {
    */
   try {
     const raw = getRefreshTokenFromReq(req, "user");
-    if (!raw) throw new AppError(401, "No refresh token");
-
-    const payload: any = verifyJwt(raw);
+    const { refresh } = req.body || {};
+    if (!raw || !refresh) throw new AppError(401, "No refresh token");
+    let payload;
+    if (raw) {
+      payload = verifyJwt(raw);
+    } else {
+      payload = verifyJwt(refresh);
+    }
     if (!payload?.sub) throw new AppError(401, "Invalid token payload");
 
     const user = await prisma.user.findUnique({
@@ -302,8 +312,9 @@ export const refreshToken = async (req: Request, res: Response) => {
     if (!user) throw new AppError(401, "Invalid user");
 
     const access = makeAccessTokenForUser(user.id, "user");
-    const refresh = makeRefreshTokenForUser(user.id);
-    setAuthCookies(res, access, refresh, "user");
+    // const refresh = setAccessCookies(res, access, "user");
+
+    setAccessCookies(res, access, "user");
 
     return sendSuccess(res, { access }, 200);
   } catch (err) {

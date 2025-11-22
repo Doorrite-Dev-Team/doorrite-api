@@ -9,6 +9,7 @@ import {
   confirmPayment,
   checkPaymentStatus,
   processRefund,
+  getCustomerVerificationCode,
 } from "./controllers";
 
 const router = Router();
@@ -29,5 +30,11 @@ router.post("/:id/payments/confirm", auth("any"), confirmPayment);
 router.post("/:id/payments/refund", auth("any"), processRefund);
 
 router.get("/:id/payments/status", auth("any"), checkPaymentStatus);
+
+router.get(
+  "/orders/:orderId/verification",
+  auth("user"),
+  getCustomerVerificationCode,
+);
 
 export default router;
