@@ -1,7 +1,10 @@
 import {
   clearAuthCookies,
   getAccessTokenFromReq,
+<<<<<<< HEAD
   getRefreshTokenFromReq,
+=======
+>>>>>>> 0ce66a2becafd45cad2c01737a616acf783dd0f8
   setAccessCookies,
   setAuthCookies,
 } from "@config/cookies";
@@ -343,7 +346,11 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
       throw new AppError(403, "Vendor account not approved");
 
     const access = makeAccessTokenForVendor(vendor.id);
+<<<<<<< HEAD
     // const refresh = makeRefreshTokenForVendor(vendor.id);
+=======
+    const refresh = makeRefreshTokenForVendor(vendor.id);
+>>>>>>> 0ce66a2becafd45cad2c01737a616acf783dd0f8
     setAccessCookies(res, access, "vendor");
 
     return sendSuccess(res, { access }, 200);
