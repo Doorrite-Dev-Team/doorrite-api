@@ -154,12 +154,7 @@ export const findEntityByIdentifier = async (
 
 export const checkEntityExists = async (
   email: string,
-  // phoneNumber: string,
-<<<<<<< HEAD
   entityType: EntityType,
-=======
-  entityType: EntityType
->>>>>>> 0ce66a2becafd45cad2c01737a616acf783dd0f8
 ): Promise<EntityData | null> => {
   const whereClause = { email };
   switch (entityType) {
@@ -483,11 +478,7 @@ export const updateEntityPassword = async (
 export const checkExistingEntity = async (
   email: string,
   // phoneNumber: string,
-<<<<<<< HEAD
   entityType: EntityType,
-=======
-  entityType: EntityType
->>>>>>> 0ce66a2becafd45cad2c01737a616acf783dd0f8
 ) => {
   const existing = await checkEntityExists(email, entityType);
 
