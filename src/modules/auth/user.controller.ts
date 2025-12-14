@@ -64,11 +64,7 @@ export const createUser = async (req: Request, res: Response) => {
           message: registrationResult.message,
           userId: registrationResult.entityId,
         },
-<<<<<<< HEAD
         409,
-=======
-        409
->>>>>>> 0ce66a2becafd45cad2c01737a616acf783dd0f8
       );
     }
 
