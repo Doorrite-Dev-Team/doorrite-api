@@ -5,7 +5,7 @@ import { safeVerify } from "./jwt";
 import { riderService } from "services/socket/riders";
 import { Coordinates } from "generated/prisma";
 import { Notification } from "types/notifications";
-import { AppSocketEvent } from "types/socket";
+import { AppSocketEvent } from "../types/socket";
 
 class WebSocketService {
   private static instance: WebSocketService;
