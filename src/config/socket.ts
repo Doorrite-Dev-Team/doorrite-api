@@ -4,7 +4,7 @@ import { NotificationService } from "../services/redis/notification";
 import { safeVerify } from "./jwt";
 import { riderService } from "services/socket/riders";
 import { Coordinates } from "generated/prisma";
-import { Notification } from "types/notifications";
+import type { Notification } from "../types/notifications";
 import { AppSocketEvent } from "../types/socket";
 
 class WebSocketService {

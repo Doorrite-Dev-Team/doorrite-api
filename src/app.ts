@@ -88,7 +88,7 @@ app.use("/api/v1/users", UserRoutes);
 app.use("/api/v1/vendors", vendorRoutes);
 app.use("/api/v1/products", ProductRoutes);
 app.use("/api/v1/orders", OrderRoutes);
-app.use("/api/v1/admins", adminRoutes);
+app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/riders", RiderRoutes);
 app.use("/api/v1/publics", PublicRoutes);
 

@@ -1,4 +1,4 @@
-import { Notification } from "types/notifications";
+import type { Notification } from "../../types/notifications";
 import { Server } from "socket.io";
 
 let io: Server | null = null;
