@@ -51,8 +51,14 @@ class RiderService {
     }
 
     entry.coord = coord;
+  }
 
-    this.io.emit("riders:location:update", { riderId, coord });
+  public getCurrent(riderId: string, orderId: string) {
+    if (!riderId) return;
+    if (!this.io) throw new Error("Socket IO not initialized!");
+
+    const entry = this.riders.get(riderId);
+    this.io.emit(`rider:${riderId}-order:${orderId}`, entry?.coord);
   }
 
   public getAll(): string[] {

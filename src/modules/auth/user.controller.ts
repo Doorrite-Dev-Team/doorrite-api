@@ -28,6 +28,7 @@ import { OtpType } from "../../generated/prisma";
 import { createResetToken } from "@config/redis";
 import { socketService } from "@config/socket";
 import { Notification } from "types/notifications";
+import { AppSocketEvent } from "types/socket";
 
 export const createUser = async (req: Request, res: Response) => {
   /**
@@ -179,14 +180,14 @@ export const login = async (req: Request, res: Response) => {
     const refresh = makeRefreshTokenForUser(user.id);
     setAuthCookies(res, access, refresh, "user");
 
-    socketService.notify(user.id, "notification", {
-      id: `${user.id}-${new Date()}`,
+    socketService.notify(user.id, AppSocketEvent.SYSTEM, {
+      // id: `${user.id}-${new Date()}`,
       type: "SYSTEM",
       title: "Welcome Back",
       message: `Welcome back to Doorrite, ${user.fullName}`,
       priority: "normal",
       timestamp: new Date().toISOString(),
-    } as Notification);
+    });
 
     return sendSuccess(
       res,

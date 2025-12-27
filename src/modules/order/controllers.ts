@@ -8,7 +8,8 @@ import {
 import { Request, Response } from "express";
 import prisma from "@config/db";
 import { Prisma } from "../../generated/prisma";
-import socketService from "@lib/socketService";
+// import socketService from "@lib/socketService";
+import { socketService } from "@config/socket";
 import { ZodError } from "zod/v3";
 import paystack from "@config/payments/paystack";
 // import { handleSuccessfulCharge } from "../_payment/helper";
@@ -312,7 +313,7 @@ export const createOrder = async (req: Request, res: Response) => {
         },
       });
 
-      socketService.emitOrderUpdate(order);
+      socketService;
       return { order, payment };
     });
 
@@ -440,7 +441,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
       return updatedOrder;
     });
     // Emit order update to clients
-    socketService.emitOrderUpdate(result);
+    // socketService.emitOrderUpdate(result);
 
     return sendSuccess(res, {
       order: result,
@@ -709,14 +710,14 @@ export const confirmPayment = async (req: Request, res: Response) => {
     });
 
     // Emit order update after transaction completes
-    try {
-      socketService.emitOrderUpdate({
-        orderId: result.payment.orderId,
-        paymentStatus: result.status,
-      });
-    } catch (e: Error | any) {
-      console.warn("Failed to emit order update:", e?.message || e);
-    }
+    // try {
+    //   socketService.emitOrderUpdate({
+    //     orderId: result.payment.orderId,
+    //     paymentStatus: result.status,
+    //   });
+    // } catch (e: Error | any) {
+    //   console.warn("Failed to emit order update:", e?.message || e);
+    // }
 
     return sendSuccess(res, {
       ...result,
@@ -863,15 +864,15 @@ export const processRefund = async (req: Request, res: Response) => {
     });
 
     // Emit order update
-    try {
-      socketService.emitOrderUpdate({
-        orderId,
-        status: "CANCELLED",
-        paymentStatus: "REFUNDED",
-      });
-    } catch (e: Error | any) {
-      console.warn("Failed to emit order update:", e?.message || e);
-    }
+    // try {
+    //   socketService.emitOrderUpdate({
+    //     orderId,
+    //     status: "CANCELLED",
+    //     paymentStatus: "REFUNDED",
+    //   });
+    // } catch (e: Error | any) {
+    //   console.warn("Failed to emit order update:", e?.message || e);
+    // }
 
     return sendSuccess(res, {
       ...result,

@@ -38,16 +38,3 @@ export interface Notification {
   expiresAt?: string; // ISO string
   metadata?: NotificationMetadata;
 }
-
-export interface NotificationState {
-  notifications: Notification[];
-  lastSync: string | null;
-  unreadCount: number;
-}
-
-export interface WebSocketMessage {
-  type: "notification" | "ping" | "pong" | "error";
-  data?: Notification;
-  error?: string;
-  timestamp: string;
-}
