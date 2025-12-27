@@ -50,7 +50,7 @@
   "name": "doorrite-api",
   "packageManager": "pnpm@10.18.2",
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias",
+    "build": "rm -rf dist && tsc -p tsconfig.json && tsc-alias",
     "dev": "pnpm run dev:server",
     "dev:server": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "dev:typecheck": "tsc --noEmit --watch",

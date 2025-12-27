@@ -27,8 +27,7 @@ import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
 import { createResetToken } from "@config/redis";
 import { socketService } from "@config/socket";
-// import type { Notification } from "../../types/notifications";
-import { AppSocketEvent } from "../../types/constant";
+import { AppSocketEvent } from "../../constants/socket";
 
 export const createUser = async (req: Request, res: Response) => {
   /**
