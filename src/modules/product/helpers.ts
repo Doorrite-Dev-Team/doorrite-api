@@ -93,7 +93,6 @@ function coerceNumber(value: any): number | null {
   return null;
 }
 
-
 function validateCreateProduct(body: any) {
   const errors: { field: string; message: string }[] = [];
   const out: any = {};
@@ -260,5 +259,102 @@ function validateUpdateProduct(body: any) {
   return out;
 }
 
-export { coerceNumber, getVendorIdFromRequest, isValidObjectId, validateCreateProduct, validateUpdateProduct };
+// Helper function to build price filter based on Nigerian market
+const buildPriceFilter = (price: string) => {
+  // Handle exact price with tolerance
+  const priceNum = coerceNumber(price.replace(/[^0-9.]/g, ""));
+  if (priceNum !== null && priceNum >= 0) {
+    return {
+      basePrice: {
+        gte: Math.max(0, priceNum - 1000),
+        lte: priceNum + 1000,
+      },
+    };
+  }
 
+  // Handle price ranges (e.g., "0-1000", "1000-5000")
+  const rangeMatch = price.match(/^(\d+)-(\d+)$/);
+  if (rangeMatch) {
+    const [, min, max] = rangeMatch;
+    return {
+      basePrice: {
+        gte: parseInt(min, 10),
+        lte: parseInt(max, 10),
+      },
+    };
+  }
+
+  return null;
+};
+
+// Helper function to build sort order
+const buildSortOrder = (
+  sort: string,
+  userLocation?: { lat: number; lng: number },
+) => {
+  switch (sort) {
+    case "price-low":
+      return { basePrice: "asc" };
+    case "price-high":
+      return { basePrice: "desc" };
+    case "newest":
+      return { createdAt: "desc" };
+    case "popular":
+      return [{ orderCount: "desc" }, { rating: "desc" }];
+    case "rating":
+      return { rating: "desc" };
+    case "distance":
+      // TODO: Implement geospatial sorting when location data is available
+      // For now, fallback to createdAt
+      return { createdAt: "desc" };
+    default:
+      return { createdAt: "desc" };
+  }
+};
+
+const isVendorOpen = (
+  openingTime: string | null,
+  closingTime: string | null,
+): boolean => {
+  if (!openingTime || !closingTime) return true; // Default to open if times aren't set
+
+  try {
+    const now = new Date();
+    const parseTime = (timeStr: string) => {
+      const [time, modifier] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (modifier === "PM" && hours < 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+
+    const start = parseTime(openingTime);
+    const end = parseTime(closingTime);
+    return now >= start && now <= end;
+  } catch (e) {
+    return true; // Fail safe
+  }
+};
+
+const getPaginationParams = (page?: string, limit?: string) => {
+  const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+  const limitNum = Math.min(
+    100,
+    Math.max(1, parseInt(String(limit), 10) || 20),
+  );
+  return { pageNum, limitNum };
+};
+
+export {
+  coerceNumber,
+  getVendorIdFromRequest,
+  isValidObjectId,
+  validateCreateProduct,
+  validateUpdateProduct,
+  getPaginationParams,
+  buildPriceFilter,
+  buildSortOrder,
+  isVendorOpen,
+};

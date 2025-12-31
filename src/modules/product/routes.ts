@@ -10,7 +10,13 @@ const router = express.Router();
 // =========================
 router.get("/", ProductController.getProducts);
 
+router.get("/trending", ProductController.getTrendingProducts);
+
+router.get("/categories", ProductController.getProductCategories);
+
 router.get("/:id", ProductController.getProductById);
+
+router.get("/:id/variants", ProductController.getProductVariants);
 
 // // =========================
 // // (Vendor Auth Required)

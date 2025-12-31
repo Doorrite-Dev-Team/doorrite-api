@@ -4,25 +4,44 @@ import * as vendorController from "./controllers";
 
 const router = Router();
 
-// Profile Management
-router.get("/:id", vendorController.getVendorById);
-
+// --- 1. DASHBOARD & STATS (Static Paths First) ---
 router.get(
-  "/me",
+  "/dashboard",
   requireAuth("vendor"),
-  vendorController.getCurrentVendorProfile,
+  vendorController.getVendorDashboard,
 );
 
-router.put("/me", requireAuth("vendor"), vendorController.updateVendorProfile);
+router.get("/stats", requireAuth("vendor"), vendorController.getVendorStats);
 
-// Product Management
 router.get(
-  "/products",
+  "/earnings",
   requireAuth("vendor"),
-  vendorController.getVendorProducts,
+  vendorController.getVendorEarnings,
 );
 
-router.get("/:id/reviews", vendorController.getVendorReviews);
+// --- 2. ORDER MANAGEMENT (Moved above /:id to prevent shadowing) ---
+router.get("/orders", requireAuth("vendor"), vendorController.getVendorOrders);
+
+router.get(
+  "/orders/:orderId",
+  requireAuth("vendor"),
+  vendorController.getVendorOrderById,
+);
+
+router.post(
+  "/orders/:orderId/confirm-rider",
+  requireAuth("vendor"),
+  vendorController.confirmOrderRider,
+);
+
+router.patch(
+  "/orders/:orderId/status",
+  requireAuth("vendor"),
+  vendorController.updateOrderStatus,
+);
+
+// --- 3. PRODUCT MANAGEMENT (Static paths and specific vendor context) ---
+router.get("/products", requireAuth("vendor"), vendorController.getProducts);
 
 router.post("/products", requireAuth("vendor"), vendorController.createProduct);
 
@@ -39,6 +58,12 @@ router.delete(
 );
 
 // Product Variants
+router.post(
+  "/products/:id/variants",
+  requireAuth("vendor"),
+  vendorController.createProductVariant,
+);
+
 router.put(
   "/products/:id/variants/:variantId",
   requireAuth("vendor"),
@@ -51,28 +76,62 @@ router.delete(
   vendorController.deleteProductVariant,
 );
 
-// Order Management
-router.get("/orders", requireAuth("vendor"), vendorController.getVendorOrders);
+// --- 4. VENDOR PROFILE & SETTINGS (Self) ---
+router.get(
+  "/profile",
+  requireAuth("vendor"),
+  vendorController.getCurrentVendorProfile,
+);
+
+router.put(
+  "/profile",
+  requireAuth("vendor"),
+  vendorController.updateVendorProfile,
+);
 
 router.get(
-  "/orders/:orderId",
+  "/notifications/settings",
   requireAuth("vendor"),
-  vendorController.getVendorOrderById,
+  vendorController.getNotificationSettings,
 );
 
-router.post(
-  "orders/:orderId/confirm-rider",
+router.put(
+  "/notifications/settings",
   requireAuth("vendor"),
-  vendorController.confirmOrderRider,
+  vendorController.updateNotificationSettings,
 );
 
-router.patch(
-  "/orders/:orderId/status",
+router.put(
+  "/profile/password",
   requireAuth("vendor"),
-  vendorController.updateOrderStatus,
+  vendorController.changeVendorPassword,
 );
 
-// Public Routes
+router.put(
+  "/settings",
+  requireAuth("vendor"),
+  vendorController.updateVendorProfileSettings,
+);
+
+router.put(
+  "/password",
+  requireAuth("vendor"),
+  vendorController.changeVendorPassword,
+);
+
+router.put(
+  "/notification-settings",
+  requireAuth("vendor"),
+  vendorController.updateNotificationSettings,
+);
+
+// --- 5. PUBLIC & DYNAMIC ID ROUTES (Last to prevent shadowing) ---
 router.get("/", vendorController.getAllVendors);
+
+// Public profile and specific vendor lookups
+router.get("/profile/:id", vendorController.getVendorProfile);
+router.get("/:id", vendorController.getVendorById);
+router.get("/:id/products", vendorController.getVendorProducts);
+router.get("/:id/reviews", vendorController.getVendorReviews);
 
 export default router;

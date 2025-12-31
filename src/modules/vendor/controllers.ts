@@ -1,16 +1,21 @@
 import prisma from "@config/db";
 import socketService from "@lib/socketService";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
-import { isValidNigerianPhone } from "@modules/auth/helper";
+import {
+  isValidNigerianPhone,
+  updateEntityPassword,
+} from "@modules/auth/helper";
 import { isValidObjectId } from "@modules/product/helpers";
 import { Request, Response } from "express";
 import {
   coerceNumber,
   createProductSchema,
+  generateChartData,
   updateProductSchema,
 } from "./helpers";
 import { addressSchema } from "@lib/utils/address";
 import { verifyOCCode } from "@config/redis";
+import { hashPassword, verifyPassword } from "@lib/hash";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -78,6 +83,325 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
   }
 };
 
+// GET /api/v1/vendors/profile
+export const getVendorProfile = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Account']
+   * #swagger.summary = 'Get vendor profile for account settings'
+   * #swagger.description = 'Fetches complete vendor profile including business details'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: {
+        id: true,
+        email: true,
+        businessName: true,
+        phoneNumber: true,
+        logoUrl: true,
+        address: true,
+        openingTime: true,
+        closingTime: true,
+        avrgPreparationTime: true,
+        rating: true,
+        isActive: true,
+        isVerified: true,
+        createdAt: true,
+      },
+    });
+
+    if (!vendor) {
+      throw new AppError(404, "Vendor not found");
+    }
+
+    return sendSuccess(res, { vendor });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// PUT /api/v1/vendors/profile
+export const updateVendorProfileSettings = async (
+  req: Request,
+  res: Response,
+) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Account']
+   * #swagger.summary = 'Update vendor profile settings'
+   * #swagger.description = 'Updates business name, phone, address, hours, and logo'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    const {
+      businessName,
+      phoneNumber,
+      address,
+      logoUrl,
+      openingTime,
+      closingTime,
+      avrgPreparationTime,
+    } = req.body;
+
+    const updateData: any = {};
+    const errors: string[] = [];
+
+    // Validate and add fields
+    if (businessName !== undefined) {
+      if (typeof businessName !== "string" || businessName.trim() === "") {
+        errors.push("Business name must be a non-empty string");
+      } else {
+        updateData.businessName = businessName.trim();
+      }
+    }
+
+    if (phoneNumber !== undefined) {
+      if (!isValidNigerianPhone(phoneNumber)) {
+        errors.push("Invalid phone number format");
+      } else {
+        updateData.phoneNumber = phoneNumber;
+      }
+    }
+
+    if (address !== undefined) {
+      const validation = addressSchema.safeParse(address);
+      if (!validation.success) {
+        errors.push("Invalid address format");
+      } else {
+        updateData.address = address;
+      }
+    }
+
+    if (logoUrl !== undefined) {
+      if (typeof logoUrl !== "string") {
+        errors.push("Logo URL must be a string");
+      } else {
+        updateData.logoUrl = logoUrl;
+      }
+    }
+
+    if (openingTime !== undefined) {
+      updateData.openingTime = openingTime;
+    }
+
+    if (closingTime !== undefined) {
+      updateData.closingTime = closingTime;
+    }
+
+    if (avrgPreparationTime !== undefined) {
+      updateData.avrgPreparationTime = avrgPreparationTime;
+    }
+
+    if (errors.length > 0) {
+      throw new AppError(400, errors.join(", "));
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new AppError(400, "No valid fields to update");
+    }
+
+    const updatedVendor = await prisma.vendor.update({
+      where: { id: vendorId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        businessName: true,
+        phoneNumber: true,
+        logoUrl: true,
+        address: true,
+        openingTime: true,
+        closingTime: true,
+        avrgPreparationTime: true,
+      },
+    });
+
+    return sendSuccess(res, {
+      message: "Profile updated successfully",
+      vendor: updatedVendor,
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// PUT /api/v1/vendors/change-password
+export const changeVendorPassword = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Account']
+   * #swagger.summary = 'Change vendor password'
+   * #swagger.description = 'Allows vendor to update their password'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      throw new AppError(400, "Current and new password are required");
+    }
+
+    if (newPassword.length < 8) {
+      throw new AppError(400, "New password must be at least 8 characters");
+    }
+
+    // Get vendor with password hash
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true, passwordHash: true },
+    });
+
+    if (!vendor) {
+      throw new AppError(404, "Vendor not found");
+    }
+
+    // Verify current password
+    const isValidPassword = await verifyPassword(
+      currentPassword,
+      vendor.passwordHash,
+    );
+
+    if (!isValidPassword) {
+      throw new AppError(401, "Current password is incorrect");
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(newPassword);
+
+    await updateEntityPassword(vendorId, newPasswordHash, "vendor");
+
+    return sendSuccess(res, {
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// GET /api/v1/vendors/notifications/settings
+export const getNotificationSettings = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Account']
+   * #swagger.summary = 'Get notification preferences'
+   * #swagger.description = 'Retrieves vendor notification settings'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    // For now, return default settings since we don't have a NotificationSettings model
+    // You can extend the Vendor model or create a new model later
+    const settings = {
+      orderNotifications: true,
+      emailNotifications: true,
+      pushNotifications: true,
+      smsNotifications: false,
+    };
+
+    return sendSuccess(res, { settings });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// PUT /api/v1/vendors/notifications/settings
+export const updateNotificationSettings = async (
+  req: Request,
+  res: Response,
+) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Account']
+   * #swagger.summary = 'Update notification preferences'
+   * #swagger.description = 'Updates vendor notification settings'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    const {
+      orderNotifications,
+      emailNotifications,
+      pushNotifications,
+      smsNotifications,
+    } = req.body;
+
+    // For MVP, just validate and return success
+    // Later, store this in a NotificationSettings table or Vendor model
+    const settings = {
+      orderNotifications: orderNotifications ?? true,
+      emailNotifications: emailNotifications ?? true,
+      pushNotifications: pushNotifications ?? true,
+      smsNotifications: smsNotifications ?? false,
+    };
+
+    return sendSuccess(res, {
+      message: "Notification settings updated successfully",
+      settings,
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// GET /api/v1/vendors/stats
+export const getVendorStats = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Account']
+   * #swagger.summary = 'Get vendor statistics for account page'
+   * #swagger.description = 'Returns basic stats like total orders, products, rating'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    const [vendor, totalOrders, totalProducts, activeProducts] =
+      await prisma.$transaction([
+        prisma.vendor.findUnique({
+          where: { id: vendorId },
+          select: { rating: true, createdAt: true },
+        }),
+        prisma.order.count({ where: { vendorId } }),
+        prisma.product.count({ where: { vendorId } }),
+        prisma.product.count({
+          where: { vendorId, isAvailable: true },
+        }),
+      ]);
+
+    if (!vendor) {
+      throw new AppError(404, "Vendor not found");
+    }
+
+    return sendSuccess(res, {
+      stats: {
+        rating: vendor.rating || 0,
+        totalOrders,
+        totalProducts,
+        activeProducts,
+        memberSince: vendor.createdAt,
+      },
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 //Get All Vendors with pagination
 //GET /api/vendors
 export const getAllVendors = async (req: Request, res: Response) => {
@@ -123,6 +447,151 @@ export const getAllVendors = async (req: Request, res: Response) => {
   }
 };
 
+// Add this to your vendor controllers.ts file
+
+// GET /api/vendors/dashboard
+export const getVendorDashboard = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = 'Get vendor dashboard data'
+   * #swagger.description = 'Fetches all dashboard data for the currently authenticated vendor including today\'s stats, active orders, and products count.'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    // Get start and end of today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const [
+      vendor,
+      todayOrdersCount,
+      todayEarnings,
+      availableItemsCount,
+      activeOrders,
+    ] = await prisma.$transaction([
+      // Get vendor details
+      prisma.vendor.findUnique({
+        where: { id: vendorId },
+        select: {
+          id: true,
+          businessName: true,
+          email: true,
+          phoneNumber: true,
+          logoUrl: true,
+          rating: true,
+          openingTime: true,
+          closingTime: true,
+          address: true,
+        },
+      }),
+
+      // Count today's orders
+      prisma.order.count({
+        where: {
+          vendorId,
+          createdAt: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+        },
+      }),
+
+      // Calculate today's earnings (only from delivered or accepted orders)
+      prisma.order.aggregate({
+        where: {
+          vendorId,
+          createdAt: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+          status: {
+            in: ["DELIVERED", "ACCEPTED", "PREPARING", "OUT_FOR_DELIVERY"],
+          },
+          paymentStatus: "SUCCESSFUL",
+        },
+        _sum: {
+          totalAmount: true,
+        },
+      }),
+
+      // Count available products
+      prisma.product.count({
+        where: {
+          vendorId,
+          isAvailable: true,
+        },
+      }),
+
+      // Get active orders (not delivered or cancelled)
+      prisma.order.findMany({
+        where: {
+          vendorId,
+          status: {
+            notIn: ["DELIVERED", "CANCELLED"],
+          },
+        },
+        take: 6,
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              fullName: true,
+              profileImageUrl: true,
+            },
+          },
+          items: {
+            take: 1,
+            include: {
+              product: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    if (!vendor) {
+      throw new AppError(404, "Vendor not found");
+    }
+
+    return sendSuccess(res, {
+      vendor,
+      stats: {
+        todayOrders: todayOrdersCount,
+        todayEarnings: todayEarnings._sum.totalAmount || 0,
+        availableItems: availableItemsCount,
+      },
+      activeOrders: activeOrders.map((order) => ({
+        id: order.id,
+        orderId: order.id.slice(-6).toUpperCase(),
+        customerName: order.customer.fullName,
+        customerAvatar: order.customer.profileImageUrl,
+        status: order.status,
+        totalAmount: order.totalAmount,
+        itemCount: order.items.length,
+        firstItemName: order.items[0]?.product.name || "N/A",
+        createdAt: order.createdAt,
+      })),
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// GET /api/vendors/earnings
+
 //Update Vendor Profile
 // PUT api/v1/vendors/me
 export const updateVendorProfile = async (req: Request, res: Response) => {
@@ -164,14 +633,14 @@ export const updateVendorProfile = async (req: Request, res: Response) => {
 
   /*
   // types
-type Address {
-  street     String?
-  city       String?
-  state      String?
-  lga        String?
-  postalCode String?
-  country    String? @default("Nigeria")
-}
+  type Address {
+    street     String?
+    city       String?
+    state      String?
+    lga        String?
+    postalCode String?
+    country    String? @default("Nigeria")
+  }
   */
 
   if (
@@ -203,7 +672,7 @@ type Address {
 
 // Get Vendor's Products with Pagination
 // GET /api/vendors/products/?page=&limit=
-export const getVendorProducts = async (req: Request, res: Response) => {
+export const getProducts = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor']
    * #swagger.summary = "Get vendor's products with pagination"
@@ -228,6 +697,56 @@ export const getVendorProducts = async (req: Request, res: Response) => {
 
     const products = await prisma.product.findMany({
       where: { vendorId },
+      skip: offset,
+      take: limit,
+    });
+    return sendSuccess(res, {
+      products,
+      pagination: {
+        totalProducts,
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+      },
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// GET /api/v1/vendors/:id/products
+// Get all products for a vendor
+export const getVendorProducts = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = "Get vendor's products with pagination"
+   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+   * #swagger.description = 'Fetches a paginated list of products for the currently authenticated vendor.'
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   */
+  try {
+    // const userId = req.user?.sub;
+    // if (!userId) {
+    //   throw new AppError(401, "Authentication required");
+    //   console.log("Authentication required");
+    // }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const offset = (page - 1) * limit;
+    const vendorId = req.params.id;
+
+    const totalProducts = await prisma.product.count({
+      where: { vendorId },
+    });
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    const products = await prisma.product.findMany({
+      where: { vendorId },
+      include: {
+        vendor: true,
+      },
       skip: offset,
       take: limit,
     });
@@ -374,44 +893,190 @@ export const updateProduct = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/v1/vendors/products/:id/prepare-delete
-// export const prepareProductDeletion = async (req: Request, res: Response) => {
-//   try {
-//     const vendorId = req.user?.sub
-//     const { id: productId } = req.params;
-//     if (!isValidObjectId(productId))
-//       throw new AppError(400, "Product ID is required");
+// GET /api/v1/vendors/earnings?period=daily|weekly|monthly
+export const getVendorEarnings = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Vendor Earnings']
+   * #swagger.summary = 'Get vendor earnings data'
+   * #swagger.description = 'Fetches earnings data, transactions, and analytics for the vendor'
+   * #swagger.parameters['period'] = { in: 'query', description: 'Time period (daily, weekly, monthly)', type: 'string', enum: ['daily', 'weekly', 'monthly'] }
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
 
-//     const product = await prisma.product.findUnique({
-//       where: { id: productId },
-//       select: { id: true, vendorId: true, isAvailable: true },
-//     });
-//     if (!product) throw new AppError(404, "Product not found");
-//     if (product.vendorId !== vendorId)
-//       throw new AppError(
-//         403,
-//         "Unauthorized: Cannot delete another vendor's product"
-//       );
+    const period = (req.query.period as string) || "weekly";
+    if (!["daily", "weekly", "monthly"].includes(period)) {
+      throw new AppError(400, "Invalid period. Use daily, weekly, or monthly");
+    }
 
-//     const [updatedProduct] = await prisma.$transaction([
-//       prisma.product.update({
-//         where: { id: productId },
-//         data: { isAvailable: false },
-//       }),
-//       prisma.productVariant.updateMany({
-//         where: { productId },
-//         data: { isAvailable: false },
-//       }),
-//     ]);
+    const now = new Date();
+    let startDate: Date;
+    let groupByFormat: string;
+    let chartPoints: number;
 
-//     return sendSuccess(res, {
-//       message: "Product marked as unavailable (prepare-delete)",
-//       product: updatedProduct,
-//     });
-//   } catch (err) {
-//     return handleError(res, err);
-//   }
-// };
+    // Determine date range based on period
+    switch (period) {
+      case "daily":
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        groupByFormat = "hour";
+        chartPoints = 24;
+        break;
+      case "weekly":
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 6);
+        startDate.setHours(0, 0, 0, 0);
+        groupByFormat = "day";
+        chartPoints = 7;
+        break;
+      case "monthly":
+        startDate = new Date(now);
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        groupByFormat = "week";
+        chartPoints = 4;
+        break;
+      default:
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 6);
+        groupByFormat = "day";
+        chartPoints = 7;
+    }
+
+    // Fetch wallet data
+    const wallet = await prisma.wallet.findUnique({
+      where: { vendorId },
+      select: {
+        balance: true,
+        totalEarned: true,
+        totalWithdrawn: true,
+      },
+    });
+
+    // Fetch orders for the period
+    const orders = await prisma.order.findMany({
+      where: {
+        vendorId,
+        createdAt: { gte: startDate },
+        paymentStatus: "SUCCESSFUL",
+        status: {
+          in: ["DELIVERED", "ACCEPTED", "PREPARING", "OUT_FOR_DELIVERY"],
+        },
+      },
+      select: {
+        id: true,
+        totalAmount: true,
+        createdAt: true,
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            profileImageUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Calculate total earnings for period
+    const totalEarnings = orders.reduce(
+      (sum, order) => sum + order.totalAmount,
+      0,
+    );
+
+    // Get previous period for comparison
+    const previousStartDate = new Date(startDate);
+    switch (period) {
+      case "daily":
+        previousStartDate.setDate(previousStartDate.getDate() - 1);
+        break;
+      case "weekly":
+        previousStartDate.setDate(previousStartDate.getDate() - 7);
+        break;
+      case "monthly":
+        previousStartDate.setMonth(previousStartDate.getMonth() - 1);
+        break;
+    }
+
+    const previousOrders = await prisma.order.findMany({
+      where: {
+        vendorId,
+        createdAt: {
+          gte: previousStartDate,
+          lt: startDate,
+        },
+        paymentStatus: "SUCCESSFUL",
+        status: {
+          in: ["DELIVERED", "ACCEPTED", "PREPARING", "OUT_FOR_DELIVERY"],
+        },
+      },
+      select: { totalAmount: true },
+    });
+
+    const previousEarnings = previousOrders.reduce(
+      (sum, order) => sum + order.totalAmount,
+      0,
+    );
+
+    // Calculate percentage change
+    const percentageChange =
+      previousEarnings > 0
+        ? ((totalEarnings - previousEarnings) / previousEarnings) * 100
+        : totalEarnings > 0
+          ? 100
+          : 0;
+
+    // Generate chart data
+    const chartData = generateChartData(orders, period, startDate, chartPoints);
+
+    // Format recent transactions (last 5)
+    const recentTransactions = orders.slice(0, 5).map((order) => ({
+      id: order.id,
+      orderId: order.id.slice(-6).toUpperCase(),
+      customerName: order.customer.fullName,
+      customerAvatar: order.customer.profileImageUrl,
+      amount: order.totalAmount,
+      date: order.createdAt,
+    }));
+
+    // Calculate pending payout (orders delivered but not withdrawn)
+    const deliveredOrders = await prisma.order.findMany({
+      where: {
+        vendorId,
+        status: "DELIVERED",
+        paymentStatus: "SUCCESSFUL",
+        createdAt: { gte: startDate },
+      },
+      select: { totalAmount: true },
+    });
+
+    const pendingPayout = deliveredOrders.reduce(
+      (sum, order) => sum + order.totalAmount,
+      0,
+    );
+
+    return sendSuccess(res, {
+      summary: {
+        totalEarnings,
+        percentageChange: parseFloat(percentageChange.toFixed(2)),
+        period,
+      },
+      wallet: wallet || {
+        balance: 0,
+        totalEarned: 0,
+        totalWithdrawn: 0,
+      },
+      chartData,
+      recentTransactions,
+      pendingPayout,
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
 
 // DELETE /api/v1/vendors/products/:id
 export const deleteProduct = async (req: Request, res: Response) => {

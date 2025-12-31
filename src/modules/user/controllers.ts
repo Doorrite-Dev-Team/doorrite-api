@@ -1,11 +1,12 @@
 import prisma from "@config/db";
-import { hashPassword } from "@lib/hash";
+import { hashPassword, verifyPassword } from "@lib/hash";
 import { addressSchema, deleteUserAdress } from "@lib/utils/address";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import {
   handlePasswordReset,
   isValidEmail,
   isValidNigerianPhone,
+  updateEntityPassword,
   validatePassword,
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
@@ -324,34 +325,56 @@ export const deleteAddress = async (req: Request, res: Response) => {
 
 // Change User Password If Loging
 // PUT /users/password
-export const changePassWord = async (req: Request, res: Response) => {
+export const changePassword = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor', 'Account']
+   * #swagger.summary = 'Change vendor password'
+   * #swagger.description = 'Allows vendor to update their password'
+   */
   try {
-    const id = req.user?.sub;
-    const { email, password, confirmPassword } = req.body || {};
-
-    if (!isValidEmail(email))
-      throw new AppError(400, "Valid email is required");
-    if (!password || !confirmPassword) {
-      throw new AppError(400, "Password and confirmPassword are required");
+    const userId = req.user?.sub;
+    if (!userId) {
+      throw new AppError(401, "Authentication required");
     }
-    if (password !== confirmPassword) {
-      throw new AppError(400, "Passwords do not match");
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      throw new AppError(400, "Current and new password are required");
     }
-    validatePassword(password);
 
-    // Hash password BEFORE calling helper (helper expects hashed value for persistence)
-    const passwordHash = await hashPassword(password);
+    if (newPassword.length < 8) {
+      throw new AppError(400, "New password must be at least 8 characters");
+    }
 
-    // call helper which validates token and updates password
-    await handlePasswordReset(email, passwordHash, passwordHash, "user", {
-      userId: id,
+    // Get vendor with password hash
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true },
     });
 
-    return sendSuccess(
-      res,
-      { message: "Password reset successfully. You can now login." },
-      200,
+    if (!user) {
+      throw new AppError(404, "user not found");
+    }
+
+    // Verify current password
+    const isValidPassword = await verifyPassword(
+      currentPassword,
+      user.passwordHash,
     );
+
+    if (!isValidPassword) {
+      throw new AppError(401, "Current password is incorrect");
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(newPassword);
+
+    await updateEntityPassword(userId, newPasswordHash, "user");
+
+    return sendSuccess(res, {
+      message: "Password changed successfully",
+    });
   } catch (error) {
     handleError(res, error);
   }

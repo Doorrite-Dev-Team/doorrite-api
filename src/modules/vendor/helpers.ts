@@ -230,18 +230,18 @@ const positiveNumberSchema = z.preprocess(
     val === null || val === undefined || val === ""
       ? val
       : z.coerce.number().safeParse(val).success
-      ? z.coerce.number().parse(val)
-      : val,
+        ? z.coerce.number().parse(val)
+        : val,
   z
     .number("basePrice must be a number and Required")
-    .positive("basePrice must be a positive number")
+    .positive("basePrice must be a positive number"),
 );
 
 const variantSchema = z.object({
   name: z.string().trim().min(1, "name required"),
   price: positiveNumberSchema.refine(
     (val) => val > 0,
-    "price required and must be > 0"
+    "price required and must be > 0",
   ),
   attributes: z.record(z.any(), z.any()).optional().default({}),
   stock: z.number().int().nonnegative().optional(),
@@ -272,10 +272,89 @@ export const updateProductSchema = z.object({
   attributes: z.record(z.any(), z.any()).optional(),
 });
 
+interface ChartOrder {
+  id: string;
+  createdAt: Date;
+  totalAmount: number;
+  customer: {
+    id: string;
+    fullName: string;
+    profileImageUrl: string | null;
+  };
+}
+
+// Helper function to generate chart data
+function generateChartData(
+  orders: ChartOrder[],
+  period: string,
+  startDate: Date,
+  points: number,
+) {
+  const data: { label: string; value: number }[] = [];
+  // const now = new Date();
+
+  for (let i = 0; i < points; i++) {
+    let label: string;
+    let pointStart: Date;
+    let pointEnd: Date;
+
+    switch (period) {
+      case "daily":
+        // Hourly buckets
+        pointStart = new Date(startDate);
+        pointStart.setHours(i, 0, 0, 0);
+        pointEnd = new Date(pointStart);
+        pointEnd.setHours(i + 1, 0, 0, 0);
+        label = `${i}:00`;
+        break;
+
+      case "weekly":
+        // Daily buckets
+        pointStart = new Date(startDate);
+        pointStart.setDate(startDate.getDate() + i);
+        pointEnd = new Date(pointStart);
+        pointEnd.setDate(pointStart.getDate() + 1);
+        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        label = days[pointStart.getDay()];
+        break;
+
+      case "monthly":
+        // Weekly buckets
+        pointStart = new Date(startDate);
+        pointStart.setDate(startDate.getDate() + i * 7);
+        pointEnd = new Date(pointStart);
+        pointEnd.setDate(pointStart.getDate() + 7);
+        label = `Week ${i + 1}`;
+        break;
+
+      default:
+        pointStart = new Date(startDate);
+        pointEnd = new Date(startDate);
+        label = "";
+    }
+
+    // Calculate earnings for this bucket
+    const bucketEarnings = orders
+      .filter((order) => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= pointStart && orderDate < pointEnd;
+      })
+      .reduce((sum, order) => sum + order.totalAmount, 0);
+
+    data.push({
+      label,
+      value: parseFloat(bucketEarnings.toFixed(2)),
+    });
+  }
+
+  return data;
+}
+
 export {
   coerceNumber,
   getVendorIdFromRequest,
   isValidObjectId,
   validateCreateProduct,
   validateUpdateProduct,
+  generateChartData,
 };

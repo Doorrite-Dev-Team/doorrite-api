@@ -221,6 +221,12 @@
           "type": "string",
           "format": "date-time"
         },
+        "imageUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "variants": {
           "type": "array",
           "items": {
