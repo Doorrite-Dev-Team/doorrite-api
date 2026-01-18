@@ -1,5 +1,5 @@
 import prisma from "@config/db";
-import socketService from "@lib/socketService";
+// import socketService from "@lib/socketService";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { isValidNigerianPhone } from "@modules/auth/helper";
 import { isValidObjectId } from "@modules/product/helpers";
@@ -11,6 +11,9 @@ import {
 } from "./helpers";
 import { addressSchema } from "@lib/utils/address";
 import { verifyOCCode } from "@config/redis";
+import { getActorFromReq } from "@lib/utils/req-res";
+import { AppSocketEvent } from "constants/socket";
+import { socketService } from "@config/socket";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -724,33 +727,115 @@ export const getVendorOrderById = async (req: Request, res: Response) => {
 };
 
 // PATCH /vendors/orders/:orderId/status
+// export const updateOrderStatus = async (req: Request, res: Response) => {
+//   /**
+//    * #swagger.tags = ['Vendor', 'Vendor Orders']
+//    * #swagger.summary = 'Update order status'
+//    * #swagger.description = 'Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, or CANCELLED.'
+//    * #swagger.security = [{ "bearerAuth": [] }]
+//    * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+//    * #swagger.parameters['body'] = { in: 'body', description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'CANCELLED'] }, note: { type: 'string' } } } }
+//    */
+//   try {
+//     const vendorId = req.user?.sub;
+//     const { orderId } = req.params;
+//     const { status, note } = req.body;
+
+//     if (!vendorId) throw new AppError(401, "Unauthorized");
+//     if (!orderId) throw new AppError(400, "Order ID is required");
+//     if (!status) throw new AppError(400, "Status is required");
+
+//     // Verify order belongs to vendor
+//     const order = await prisma.order.findFirst({
+//       where: { id: orderId, vendorId },
+//     });
+
+//     if (!order) throw new AppError(404, "Order not found");
+
+//     // Vendor can only set these statuses
+//     const allowedStatuses = ["ACCEPTED", "PREPARING", "CANCELLED"];
+//     if (!allowedStatuses.includes(status)) {
+//       throw new AppError(
+//         400,
+//         `Vendors can only set status to: ${allowedStatuses.join(", ")}`,
+//       );
+//     }
+
+//     const result = await prisma.$transaction(async (tx) => {
+//       const updated = await tx.order.update({
+//         where: { id: orderId },
+//         data: { status },
+//         include: {
+//           items: true,
+//           customer: {
+//             select: { id: true, fullName: true, email: true },
+//           },
+//           rider: {
+//             select: { id: true, fullName: true },
+//           },
+//         },
+//       });
+
+//       await tx.orderHistory.create({
+//         data: {
+//           orderId,
+//           status,
+//           actorId: vendorId,
+//           actorType: "VENDOR",
+//           note: note ?? `Order status updated to ${status}`,
+//         },
+//       });
+
+//       return updated;
+//     });
+
+//     // Emit order update
+//     try {
+//       socketService.emitOrderUpdate(result);
+//     } catch (e: Error | any) {
+//       console.warn("Failed to emit order update:", e?.message || e);
+//     }
+
+//     return sendSuccess(res, {
+//       message: `Order status updated to ${status}`,
+//       order: result,
+//     });
+//   } catch (error) {
+//     handleError(res, error);
+//   }
+// };
+/**
+ * PATCH /vendors/orders/:orderId/status
+ * Update order status (Vendor Only)
+ * Allowed statuses: ACCEPTED, PREPARING, READY_FOR_PICKUP, CANCELLED
+ */
 export const updateOrderStatus = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor', 'Vendor Orders']
    * #swagger.summary = 'Update order status'
-   * #swagger.description = 'Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, or CANCELLED.'
+   * #swagger.description = 'Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, READY_FOR_PICKUP, or CANCELLED.'
    * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'CANCELLED'] }, note: { type: 'string' } } } }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'CANCELLED'] }, note: { type: 'string' } } } }
    */
   try {
-    const vendorId = req.user?.sub;
+    const actor = getActorFromReq(req);
     const { orderId } = req.params;
     const { status, note } = req.body;
 
-    if (!vendorId) throw new AppError(401, "Unauthorized");
+    if (!actor) throw new AppError(401, "Unauthorized");
+    if (actor.role !== "vendor")
+      throw new AppError(403, "Only vendors can update order status");
     if (!orderId) throw new AppError(400, "Order ID is required");
     if (!status) throw new AppError(400, "Status is required");
 
-    // Verify order belongs to vendor
-    const order = await prisma.order.findFirst({
-      where: { id: orderId, vendorId },
-    });
-
-    if (!order) throw new AppError(404, "Order not found");
-
-    // Vendor can only set these statuses
-    const allowedStatuses = ["ACCEPTED", "PREPARING", "CANCELLED"];
+    // Allowed statuses for vendors
+    const allowedStatuses = [
+      "ACCEPTED",
+      "PREPARING",
+      "READY_FOR_PICKUP",
+      "CANCELLED",
+    ];
     if (!allowedStatuses.includes(status)) {
       throw new AppError(
         400,
@@ -759,13 +844,15 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id: orderId },
-        data: { status },
+      // Verify order belongs to vendor
+      const order = await tx.order.findFirst({
+        where: { id: orderId, vendorId: actor.id },
         include: {
-          items: true,
           customer: {
             select: { id: true, fullName: true, email: true },
+          },
+          vendor: {
+            select: { id: true, businessName: true },
           },
           rider: {
             select: { id: true, fullName: true },
@@ -773,28 +860,118 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         },
       });
 
+      if (!order) throw new AppError(404, "Order not found or access denied");
+
+      // Validate status transitions
+      if (status === "ACCEPTED" && order.status !== "PENDING") {
+        throw new AppError(400, "Can only accept orders with PENDING status");
+      }
+
+      if (status === "PREPARING" && order.status !== "ACCEPTED") {
+        throw new AppError(400, "Can only prepare ACCEPTED orders");
+      }
+
+      if (status === "READY_FOR_PICKUP" && order.status !== "PREPARING") {
+        throw new AppError(400, "Can only mark PREPARING orders as ready");
+      }
+
+      if (
+        status === "CANCELLED" &&
+        !["PENDING", "ACCEPTED"].includes(order.status)
+      ) {
+        throw new AppError(400, "Can only cancel PENDING or ACCEPTED orders");
+      }
+
+      // Update order
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { status },
+        include: {
+          items: {
+            include: {
+              product: true,
+              variant: true,
+            },
+          },
+          customer: {
+            select: { id: true, fullName: true, email: true },
+          },
+          vendor: {
+            select: { id: true, businessName: true },
+          },
+          rider: {
+            select: { id: true, fullName: true },
+          },
+        },
+      });
+
+      // Record history
       await tx.orderHistory.create({
         data: {
           orderId,
           status,
-          actorId: vendorId,
+          actorId: actor.id,
           actorType: "VENDOR",
-          note: note ?? `Order status updated to ${status}`,
+          note:
+            note ??
+            `Order status updated to ${status} by ${order.vendor.businessName}`,
         },
       });
 
       return updated;
     });
 
-    // Emit order update
-    try {
-      socketService.emitOrderUpdate(result);
-    } catch (e: Error | any) {
-      console.warn("Failed to emit order update:", e?.message || e);
+    // Emit socket notifications
+    const notificationRecipients = [
+      result.customerId,
+      result.vendorId,
+      result.riderId,
+    ].filter(Boolean) as string[];
+
+    const notificationMap: Record<
+      string,
+      { title: string; message: string; event: AppSocketEvent }
+    > = {
+      ACCEPTED: {
+        title: `Order Accepted: ${result.id}`,
+        message: `${result.vendor.businessName} has accepted your order`,
+        event: AppSocketEvent.NOTIFICATION,
+      },
+      PREPARING: {
+        title: `Order Preparing: ${result.id}`,
+        message: `${result.vendor.businessName} is preparing your order`,
+        event: AppSocketEvent.NOTIFICATION,
+      },
+      READY_FOR_PICKUP: {
+        title: `Order Ready: ${result.id}`,
+        message: `Order is ready for pickup from ${result.vendor.businessName}`,
+        event: AppSocketEvent.NOTIFICATION,
+      },
+      CANCELLED: {
+        title: `Order Cancelled: ${result.id}`,
+        message: `${result.vendor.businessName} cancelled order: ${result.id}`,
+        event: AppSocketEvent.NOTIFICATION,
+      },
+    };
+
+    const notification = notificationMap[status as string];
+    if (notification) {
+      socketService.notifyTo(notificationRecipients, notification.event, {
+        title: notification.title,
+        type: status,
+        message: notification.message,
+        priority: "high",
+        metadata: {
+          orderId: result.id,
+          vendorId: result.vendorId,
+          actionUrl: `/orders/${result.id}`,
+        },
+        timestamp: result.updatedAt.toISOString(),
+      });
     }
 
     return sendSuccess(res, {
-      message: `Order status updated to ${status}`,
+      message: notification.message,
       order: result,
     });
   } catch (error) {

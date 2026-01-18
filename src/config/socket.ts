@@ -30,7 +30,7 @@ class WebSocketService {
         origin: [
           "http://localhost:3000",
           "https://dooriteuser-ui.vercel.app",
-          "https://doorrite-user-ui.netlify.app/",
+          "https://*.netlify.app/",
         ],
         methods: ["GET", "POST"],
         credentials: true,
@@ -39,6 +39,7 @@ class WebSocketService {
 
     //Middleware for jwt Token verification
     this.io.use((socket, next) => {
+      console.log("New Connection Detected");
       const token = socket.handshake.auth.token || socket.handshake.query.token;
       if (!token) {
         console.error("Connection rejected: No token provided");
@@ -59,7 +60,7 @@ class WebSocketService {
     //On Connection
     this.io.on("connection", async (socket) => {
       const user = socket.user;
-      const userId = user?.sub;
+      const userId = socket.user?.sub;
 
       if (!user || !userId) {
         console.error(
@@ -90,7 +91,7 @@ class WebSocketService {
       });
 
       //3. Notify user
-      socket.emit("notification", "Welcome to Doorrite");
+      // socket.emit("notification", "Welcome to Doorrite");
 
       socket.on("notification-read", (id) => {
         NotificationService.remove(userId, id);
@@ -104,10 +105,15 @@ class WebSocketService {
     });
   }
 
-  // 🚀 Public Method to send notifications from anywhere
+  /**
+   * Public Method to send notifications from anywhere
+   * @param userId string
+   * @param event string
+   * @param data Notification
+   */
   public notify(
     userId: string,
-    event: AppSocketEvent,
+    event: string | undefined = "notification",
     data: Omit<Notification, "id">,
   ) {
     if (!this.io) throw new Error("Socket IO not initialized!");
@@ -123,6 +129,26 @@ class WebSocketService {
 
     NotificationService.add(userId, notifId, { id: notifId, ...data });
     return false; // Offline
+  }
+
+  public notifyTo(
+    users: string[],
+    event: string | undefined = "notification",
+    data: Omit<Notification, "id">,
+  ) {
+    users.forEach((u) => {
+      this.notify(u, event, data);
+    });
+  }
+
+  public logIn(id: string, fullName: string) {
+    this.notify(id, AppSocketEvent.SYSTEM, {
+      type: "SYSTEM",
+      title: "Welcome Back",
+      message: `Welcome back to Doorrite, ${fullName}`,
+      priority: "normal",
+      timestamp: new Date().toISOString(),
+    });
   }
 
   public getIo() {

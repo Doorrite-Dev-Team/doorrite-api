@@ -21,6 +21,12 @@ export const createOrderSchema = z.object({
     .min(1, "vendorId cannot be empty"),
   items: z.array(orderItemSchema).nonempty("items array must not be empty"),
   deliveryAddress: addressSchema,
+  contactInfo: z.object({
+    fullName: z.string(),
+    phone: z.string(),
+    email: z.string().email(),
+    instructions: z.string().optional(),
+  }),
   paymentMethod: z.enum(["PAYSTACK", "CASH_ON_DELIVERY"], {
     required_error: "paymentMethod is required",
   }),
@@ -28,7 +34,7 @@ export const createOrderSchema = z.object({
 
 //Helper function to calculate order total
 export const calculateOrderTotal = async (
-  items: CreateOrderItem[]
+  items: CreateOrderItem[],
 ): Promise<number> => {
   let total = 0;
   for (const item of items) {

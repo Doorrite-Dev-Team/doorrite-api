@@ -27,6 +27,7 @@ import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
 import { createResetToken } from "@config/redis";
 import { getActorFromReq } from "@lib/utils/req-res";
+import { socketService } from "@config/socket";
 
 export const createRider = async (req: Request, res: Response) => {
   /**
@@ -194,6 +195,10 @@ export const loginRider = async (req: Request, res: Response) => {
     const access = makeAccessTokenForRider(rider.id);
     const refresh = makeRefreshTokenForRider(rider.id);
     setAuthCookies(res, access, refresh, "rider");
+
+    // Web Socket...
+    socketService.logIn(rider.id, rider.fullName!);
+
     return sendSuccess(
       res,
       { message: "Login successful", riderId: rider.id, access },

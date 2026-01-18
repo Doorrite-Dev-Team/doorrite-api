@@ -198,9 +198,9 @@ export const getUserOrders = async (req: Request, res: Response) => {
     const take = limit;
 
     const [totalItems, orders] = await Promise.all([
-      prisma.order.count({ where: { id: userId } }),
+      prisma.order.count({ where: { customerId: userId } }),
       prisma.order.findMany({
-        where: { id: userId },
+        where: { customerId: userId },
         include: {
           items: {
             include: { product: true },

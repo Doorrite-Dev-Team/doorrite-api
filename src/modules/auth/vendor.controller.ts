@@ -26,6 +26,7 @@ import { Request, Response } from "express";
 import { createResetToken } from "@config/redis";
 import { addressSchema } from "@lib/utils/address";
 import { Address, OtpType } from "../../generated/prisma";
+import { socketService } from "@config/socket";
 
 export const createVendor = async (req: Request, res: Response) => {
   /**
@@ -215,6 +216,10 @@ export const loginVendor = async (req: Request, res: Response) => {
     const access = makeAccessTokenForVendor(vendor.id);
     const refresh = makeRefreshTokenForVendor(vendor.id);
     setAuthCookies(res, access, refresh, "vendor");
+
+    // Web Socket
+    socketService.logIn(vendor.id, vendor.businessName!);
+
     return sendSuccess(
       res,
       {

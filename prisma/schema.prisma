@@ -34,9 +34,11 @@ enum VehicleType {
 }
 
 enum OrderStatus {
+  PENDING_PAYMENT
   PENDING
   ACCEPTED
   PREPARING
+  READY_FOR_PICKUP
   OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
@@ -52,6 +54,7 @@ enum PaymentStatus {
   SUCCESSFUL
   FAILED
   REFUNDED
+  COD
 }
 
 enum DeliveryStatus {
@@ -74,6 +77,13 @@ type Address {
   state        String? @default("Ilorin")
   country      String? @default("Nigeria")
   coordinates  Coordinates?
+}
+
+type ContactInfo {
+  fullName      String
+  phone         String
+  email         String
+  instructions  String?
 }
 
 type Coordinates {
@@ -190,6 +200,7 @@ model Order {
   vendor          Vendor        @relation(fields: [vendorId], references: [id])
   riderId         String?       @db.ObjectId
   rider           Rider?        @relation("rider_orders", fields: [riderId], references: [id])
+  contactInfo     ContactInfo
   status          OrderStatus   @default(PENDING)
   deliveryAddress Address
   deliveryVerificationCode  String?

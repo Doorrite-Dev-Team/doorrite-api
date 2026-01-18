@@ -7,13 +7,13 @@ import {
 } from "@modules/order/utils";
 import { Request, Response } from "express";
 import prisma from "@config/db";
-import { Prisma } from "../../generated/prisma";
 // import socketService from "@lib/socketService";
 import { socketService } from "@config/socket";
 import { ZodError } from "zod/v3";
 import paystack from "@config/payments/paystack";
 // import { handleSuccessfulCharge } from "../_payment/helper";
 import { redis } from "@config/redis";
+import { AppSocketEvent } from "constants/socket";
 
 // GET api/v1/orders?status=&vendorId=&customerId=&page=&limit=&from=&to=
 export const getOrders = async (req: Request, res: Response) => {
@@ -163,48 +163,47 @@ export const createOrder = async (req: Request, res: Response) => {
    * #swagger.description = 'Create a new order'
    */
   try {
-    // ✅ Validate request body using Zod (throws if invalid)
     const parsed = createOrderSchema.parse(req.body || {});
-    const { vendorId, items, deliveryAddress, paymentMethod } = parsed;
+    const { vendorId, items, contactInfo, deliveryAddress, paymentMethod } =
+      parsed;
 
-    // ✅ Get authenticated user (avoid destructuring undefined)
     const actor = getActorFromReq(req);
-    // const role = String(actor?.role || "").toLowerCase();
     if (!actor || !actor.id) throw new AppError(401, "Unauthorized");
     const customerId = actor.id;
 
-    // ✅ Run transactional logic
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Verify vendor exists
+      // Verify vendor and customer
       const vendor = await tx.vendor.findUnique({ where: { id: vendorId } });
       if (!vendor) throw new AppError(404, "Vendor not found");
 
-      // 2. Verify customer exists
       const customer = await tx.user.findUnique({ where: { id: customerId } });
       if (!customer) throw new AppError(404, "Customer not found");
 
-      // 3. Calculate total amount
+      // Calculate total
       const calcAmount = await calculateOrderTotal(items);
-      // Work in minor units (kobo) to avoid floating errors. If calculateOrderTotal returns Naira,
-      // convert to kobo, add 10% fee, round, then store back as Naira with 2 decimals.
       const totalKobo = Math.round(calcAmount * 100 * 1.1);
       const totalAmount = Math.round((totalKobo / 100) * 100) / 100;
 
-      // 5. Create order
+      // Determine initial status based on payment method
+      const initialStatus =
+        paymentMethod === "PAYSTACK" ? "PENDING_PAYMENT" : "PENDING";
+      // const paymentStatus = paymentMethod === "PAYSTACK" ? "PENDING" : "";
+
+      // Create order
       const order = await tx.order.create({
         data: {
           customerId,
           vendorId,
           deliveryAddress,
+          contactInfo,
           totalAmount,
-          status: "PENDING",
+          status: initialStatus,
           paymentStatus: "PENDING",
           items: {
             create: await Promise.all(
               items.map(async (item) => {
                 const { productId, variantId, quantity = 1 } = item as any;
 
-                // Fetch product & basic fields
                 const product = await tx.product.findUnique({
                   where: { id: productId },
                   select: {
@@ -214,14 +213,15 @@ export const createOrder = async (req: Request, res: Response) => {
                     basePrice: true,
                   },
                 });
+
                 if (!product)
                   throw new AppError(404, `Product ${productId} not found`);
                 if (product.vendorId !== vendorId)
                   throw new AppError(
                     400,
-                    `Product ${productId} does not belong to vendor ${vendorId}`,
+                    `Product ${productId} does not belong to vendor`,
                   );
-                if (product.isAvailable === false)
+                if (!product.isAvailable)
                   throw new AppError(
                     400,
                     `Product ${productId} is not available`,
@@ -233,17 +233,13 @@ export const createOrder = async (req: Request, res: Response) => {
                     where: { id: variantId },
                   });
                   if (!variant || variant.productId !== productId)
-                    throw new AppError(
-                      404,
-                      `Variant ${variantId} not found for product ${productId}`,
-                    );
-                  if (variant.isAvailable === false)
+                    throw new AppError(404, `Variant ${variantId} not found`);
+                  if (!variant.isAvailable)
                     throw new AppError(
                       400,
                       `Variant ${variantId} is not available`,
                     );
 
-                  // If variant has stock tracked (number), ensure sufficient quantity and decrement
                   if (typeof variant.stock === "number") {
                     if (variant.stock < quantity)
                       throw new AppError(
@@ -280,44 +276,51 @@ export const createOrder = async (req: Request, res: Response) => {
         },
       });
 
-      // 6. Create payment if Paystack
-      let payment: Prisma.PaymentCreateArgs["data"] | null = null;
+      // Create payment record for Paystack
+      let payment = null;
       if (paymentMethod === "PAYSTACK") {
-        // prevent duplicate pending payment records
-        const existing = await tx.payment.findFirst({
-          where: { orderId: order.id, status: "PENDING" },
+        payment = await tx.payment.create({
+          data: {
+            orderId: order.id,
+            userId: customerId,
+            amount: totalAmount,
+            status: "PENDING",
+            method: "PAYSTACK",
+          },
         });
-        if (existing) {
-          payment = existing;
-        } else {
-          payment = await tx.payment.create({
-            data: {
-              orderId: order.id,
-              userId: customerId,
-              amount: totalAmount,
-              status: "PENDING",
-              method: "PAYSTACK",
-            },
-          });
-        }
       }
 
-      // 7. Record history
+      // Record history
       await tx.orderHistory.create({
         data: {
           orderId: order.id,
-          status: "PENDING",
+          status: initialStatus,
           actorId: customerId,
-          actorType: "SYSTEM",
-          note: "Order created and placed",
+          actorType: "USER",
+          note: `Order created by ${customer.fullName}`,
         },
       });
 
-      socketService;
+      // Only notify vendor if payment is COD (order is ready to process)
+      if (paymentMethod !== "PAYSTACK") {
+        socketService.notify(vendorId, AppSocketEvent.NEW_ORDER, {
+          title: `New Order From: ${customer.fullName}`,
+          type: "ORDER_PLACED",
+          message: `Kindly Accept or Reject Order: ${order.id}`,
+          priority: "high",
+          metadata: {
+            orderId: order.id,
+            vendorId: vendorId,
+            amount: order.totalAmount,
+            actionUrl: `/orders/${order.id}`,
+          },
+          timestamp: order.createdAt.toISOString(),
+        });
+      }
+
       return { order, payment };
     });
 
-    // ✅ Send response
     return sendSuccess(
       res,
       {
@@ -330,7 +333,6 @@ export const createOrder = async (req: Request, res: Response) => {
       201,
     );
   } catch (error: any) {
-    // ✅ Graceful Zod validation error handling
     if (error instanceof ZodError) {
       const formatted = error.errors.map((e) => ({
         path: e.path.join("."),
@@ -348,108 +350,99 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
-// PATCH /orders/:orderId/cancel - Cancel order
+// PATCH /orders/:id/cancel - Cancel order (User/Admin only)
 export const cancelOrder = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Order']
    * #swagger.summary = 'Cancel order'
-   * #swagger.description = 'Cancel an order'
+   * #swagger.description = 'Cancel an order (User/Admin only)'
    */
   const { id } = req.params;
   const { reason } = req.body;
   const actor = getActorFromReq(req);
-  // const { id: customerId } = getActorFromReq(req);
 
   try {
     if (!id) throw new AppError(400, "Order id is required");
     if (!reason) throw new AppError(400, "Cancellation reason is required");
     if (!actor) throw new AppError(401, "Unauthorized");
-    if (
-      actor.role !== "user" &&
-      actor.role !== "admin" &&
-      actor.role !== "vendor"
-    )
-      throw new AppError(
-        403,
-        "Only customers, admins and vendors can cancel orders",
-      );
+    if (actor.role !== "user" && actor.role !== "admin") {
+      throw new AppError(403, "Only customers and admins can cancel orders");
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      // Fetch order
       const order = await tx.order.findUnique({
         where: { id },
         include: { items: true, customer: true, vendor: true, rider: true },
       });
+
       if (!order) throw new AppError(404, "Order not found");
+
       if (actor.role === "user" && order.customerId !== actor.id) {
         throw new AppError(403, "You can only cancel your own orders");
       }
-      if (order.status !== "PENDING") {
-        throw new AppError(
-          400,
-          "You can only cancel orders in the PENDING status",
-        );
+
+      if (!["PENDING", "PENDING_PAYMENT", "ACCEPTED"].includes(order.status)) {
+        throw new AppError(400, "Cannot cancel order at this stage");
       }
-      //
+
       const updatedOrder = await tx.order.update({
         where: { id },
-        data: {
-          status: "CANCELLED",
-        },
+        data: { status: "CANCELLED" },
         include: {
-          items: {
-            include: {
-              product: true,
-              variant: true,
-            },
-          },
-          customer: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-            },
-          },
-
-          vendor: {
-            select: {
-              id: true,
-              businessName: true,
-            },
-          },
-          rider: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              phoneNumber: true,
-            },
-          },
+          items: { include: { product: true, variant: true } },
+          customer: { select: { id: true, fullName: true, email: true } },
+          vendor: { select: { id: true, businessName: true } },
+          rider: { select: { id: true, fullName: true } },
         },
       });
-      //
+
       await tx.orderHistory.create({
         data: {
           orderId: updatedOrder.id,
-
           status: "CANCELLED",
-
           actorId: actor.id,
-          actorType: "user",
-          note: `Order cancelled by customer. Reason: ${reason}`,
+          actorType: actor.role === "admin" ? "ADMIN" : "USER",
+          note: `Order cancelled by ${actor.role === "admin" ? "Admin" : order.customer.fullName}. Reason: ${reason}`,
         },
       });
+
       return updatedOrder;
     });
-    // Emit order update to clients
-    // socketService.emitOrderUpdate(result);
+
+    // Emit notifications
+    const notificationRecipients = [
+      result.vendorId,
+      result.customerId,
+      result.riderId,
+    ].filter(Boolean) as string[];
+
+    const cancellerName =
+      actor.role === "admin" ? "Admin" : result.customer.fullName;
+
+    socketService.notifyTo(
+      notificationRecipients,
+      AppSocketEvent.NOTIFICATION,
+      {
+        title: `Order Cancelled: ${result.id}`,
+        type: "ORDER_CANCELLED",
+        message: `${cancellerName} cancelled order: ${result.id}`,
+        priority: "high",
+        metadata: {
+          orderId: result.id,
+          vendorId: result.vendorId,
+          actionUrl: `/orders/${result.id}`,
+          cancelledBy: actor.role,
+        },
+        timestamp: result.updatedAt.toISOString(),
+      },
+    );
 
     return sendSuccess(res, {
       order: result,
-      nextAction: "ORDER_CANCELLED",
+      message: "Order cancelled successfully",
     });
   } catch (error: any) {
     console.error("Error canceling order:", error);
-
     handleError(res, error);
   }
 };
@@ -631,13 +624,111 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
 };
 
 // POST /orders/:reference/payments/confirm
+// export const confirmPayment = async (req: Request, res: Response) => {
+//   /**
+//    * #swagger.tags = ['Payment']
+//    * #swagger.summary = 'Confirm a payment'
+//    * #swagger.description = 'Confirms a payment using the payment reference.'
+//    * #swagger.security = [{ "bearerAuth": [] }]
+//    * #swagger.parameters['body'] = { in: 'body', description: 'Payment reference', required: true, schema: { type: 'object', properties: { reference: { type: 'string' } } } }
+//    */
+//   try {
+//     const { reference } = req.body;
+//     const actor = getActorFromReq(req);
+
+//     if (!actor) throw new AppError(401, "Unauthorized");
+//     if (!reference) throw new AppError(400, "Payment reference is required");
+
+//     const result = await prisma.$transaction(async (tx) => {
+//       // 1. Verify payment exists
+//       const payment = await tx.payment.findFirst({
+//         where: {
+//           transactionId: reference,
+//           userId: actor.id,
+//         },
+//         include: {
+//           order: true,
+//         },
+//       });
+
+//       if (!payment) {
+//         throw new AppError(404, "Payment not found");
+//       }
+
+//       // 2. Verify with Paystack via helper
+//       const verifyResponse = await paystack.verifyTransaction(reference);
+//       const paymentData = verifyResponse.raw;
+//       // paystack returns amount in kobo (minor unit) — verify it matches our stored amount
+//       // (ensure consistent units: if payment.amount is Naira, convert)
+//       const paystackAmountKobo = Number(paymentData.amount || 0);
+//       const expectedKobo = Math.round(payment.amount * 100);
+//       if (paystackAmountKobo && paystackAmountKobo !== expectedKobo) {
+//         throw new AppError(400, "Payment amount mismatch");
+//       }
+//       // Map Paystack status to our Prisma PaymentStatus enum
+//       const status = paymentData.status === "success" ? "SUCCESSFUL" : "FAILED";
+
+//       // 3. Update payment record
+//       const updatedPayment = await tx.payment.update({
+//         where: { id: payment.id },
+//         data: {
+//           status,
+//           paidAt: status === "SUCCESSFUL" ? new Date() : undefined,
+//         },
+//       });
+
+//       // 4. Update order status (on success we mark order ACCEPTED, otherwise leave as-is)
+//       const orderUpdateData: Prisma.OrderUpdateInput = {
+//         paymentStatus: status,
+//       };
+//       if (status === "SUCCESSFUL") orderUpdateData.status = "ACCEPTED";
+
+//       await tx.order.update({
+//         where: { id: payment.orderId },
+//         data: orderUpdateData,
+//       });
+
+//       // 5. Create order history entry
+//       await tx.orderHistory.create({
+//         data: {
+//           orderId: payment.orderId,
+//           status: status === "SUCCESSFUL" ? "ACCEPTED" : "PENDING",
+//           actorId: actor.id,
+//           actorType: "SYSTEM",
+//           note: `Payment ${status.toLowerCase()} - Reference: ${reference}`,
+//         },
+//       });
+
+//       return { status, payment: updatedPayment };
+//     });
+
+//     // Emit order update after transaction completes
+//     // try {
+//     //   socketService.emitOrderUpdate({
+//     //     orderId: result.payment.orderId,
+//     //     paymentStatus: result.status,
+//     //   });
+//     // } catch (e: Error | any) {
+//     //   console.warn("Failed to emit order update:", e?.message || e);
+//     // }
+
+//     return sendSuccess(res, {
+//       ...result,
+//       message: `Payment ${result.status.toLowerCase()} successfully`,
+//     });
+//   } catch (error: any) {
+//     console.error("Payment confirmation error:", error);
+//     return handleError(res, error);
+//   }
+// };
+//
+// Update confirmPayment to notify vendor after successful payment
 export const confirmPayment = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Payment']
    * #swagger.summary = 'Confirm a payment'
    * #swagger.description = 'Confirms a payment using the payment reference.'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['body'] = { in: 'body', description: 'Payment reference', required: true, schema: { type: 'object', properties: { reference: { type: 'string' } } } }
    */
   try {
     const { reference } = req.body;
@@ -647,35 +738,24 @@ export const confirmPayment = async (req: Request, res: Response) => {
     if (!reference) throw new AppError(400, "Payment reference is required");
 
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Verify payment exists
       const payment = await tx.payment.findFirst({
-        where: {
-          transactionId: reference,
-          userId: actor.id,
-        },
-        include: {
-          order: true,
-        },
+        where: { transactionId: reference, userId: actor.id },
+        include: { order: { include: { customer: true, vendor: true } } },
       });
 
-      if (!payment) {
-        throw new AppError(404, "Payment not found");
-      }
+      if (!payment) throw new AppError(404, "Payment not found");
 
-      // 2. Verify with Paystack via helper
       const verifyResponse = await paystack.verifyTransaction(reference);
       const paymentData = verifyResponse.raw;
-      // paystack returns amount in kobo (minor unit) — verify it matches our stored amount
-      // (ensure consistent units: if payment.amount is Naira, convert)
+
       const paystackAmountKobo = Number(paymentData.amount || 0);
       const expectedKobo = Math.round(payment.amount * 100);
       if (paystackAmountKobo && paystackAmountKobo !== expectedKobo) {
         throw new AppError(400, "Payment amount mismatch");
       }
-      // Map Paystack status to our Prisma PaymentStatus enum
+
       const status = paymentData.status === "success" ? "SUCCESSFUL" : "FAILED";
 
-      // 3. Update payment record
       const updatedPayment = await tx.payment.update({
         where: { id: payment.id },
         data: {
@@ -684,40 +764,43 @@ export const confirmPayment = async (req: Request, res: Response) => {
         },
       });
 
-      // 4. Update order status (on success we mark order ACCEPTED, otherwise leave as-is)
-      const orderUpdateData: Prisma.OrderUpdateInput = {
-        paymentStatus: status,
-      };
-      if (status === "SUCCESSFUL") orderUpdateData.status = "ACCEPTED";
+      const orderUpdateData: any = { paymentStatus: status };
+      if (status === "SUCCESSFUL") orderUpdateData.status = "PENDING";
 
       await tx.order.update({
         where: { id: payment.orderId },
         data: orderUpdateData,
       });
 
-      // 5. Create order history entry
       await tx.orderHistory.create({
         data: {
           orderId: payment.orderId,
-          status: status === "SUCCESSFUL" ? "ACCEPTED" : "PENDING",
+          status: status === "SUCCESSFUL" ? "PENDING" : "PENDING_PAYMENT",
           actorId: actor.id,
           actorType: "SYSTEM",
           note: `Payment ${status.toLowerCase()} - Reference: ${reference}`,
         },
       });
 
+      // Notify vendor after successful payment
+      if (status === "SUCCESSFUL") {
+        socketService.notify(payment.order.vendorId, AppSocketEvent.NEW_ORDER, {
+          title: `New Paid Order From: ${payment.order.customer.fullName}`,
+          type: "ORDER_PLACED",
+          message: `Payment confirmed. Kindly Accept or Reject Order: ${payment.order.id}`,
+          priority: "high",
+          metadata: {
+            orderId: payment.order.id,
+            vendorId: payment.order.vendorId,
+            amount: payment.order.totalAmount,
+            actionUrl: `/orders/${payment.order.id}`,
+          },
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       return { status, payment: updatedPayment };
     });
-
-    // Emit order update after transaction completes
-    // try {
-    //   socketService.emitOrderUpdate({
-    //     orderId: result.payment.orderId,
-    //     paymentStatus: result.status,
-    //   });
-    // } catch (e: Error | any) {
-    //   console.warn("Failed to emit order update:", e?.message || e);
-    // }
 
     return sendSuccess(res, {
       ...result,

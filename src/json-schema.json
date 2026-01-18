@@ -410,13 +410,18 @@
             }
           ]
         },
+        "contactInfo": {
+          "$ref": "#/definitions/ContactInfo"
+        },
         "status": {
           "type": "string",
           "default": "PENDING",
           "enum": [
+            "PENDING_PAYMENT",
             "PENDING",
             "ACCEPTED",
             "PREPARING",
+            "READY_FOR_PICKUP",
             "OUT_FOR_DELIVERY",
             "DELIVERED",
             "CANCELLED"
@@ -726,9 +731,11 @@
         "status": {
           "type": "string",
           "enum": [
+            "PENDING_PAYMENT",
             "PENDING",
             "ACCEPTED",
             "PREPARING",
+            "READY_FOR_PICKUP",
             "OUT_FOR_DELIVERY",
             "DELIVERED",
             "CANCELLED"
@@ -834,6 +841,26 @@
             {
               "type": "null"
             }
+          ]
+        }
+      }
+    },
+    "ContactInfo": {
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "instructions": {
+          "type": [
+            "string",
+            "null"
           ]
         }
       }

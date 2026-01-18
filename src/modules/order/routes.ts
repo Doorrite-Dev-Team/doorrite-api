@@ -14,7 +14,7 @@ import {
 
 const router = Router();
 
-router.get("/", auth("any"), getOrders);
+router.get("/", getOrders);
 
 router.get("/:id", auth("any"), getOrderById);
 

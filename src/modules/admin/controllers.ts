@@ -4,7 +4,7 @@ import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { verifyPassword } from "@lib/hash";
 import { setAuthCookies } from "@config/cookies";
 import { makeAccessTokenForAdmin, makeRefreshTokenForAdmin } from "@config/jwt";
-import socketService from "@lib/socketService";
+// import socketService from "@lib/socketService";
 // import { getActorFromReq } from "@lib/utils/req-res";
 
 // POST /admin/login
@@ -40,7 +40,7 @@ export const adminLogin = async (req: Request, res: Response) => {
         user: { id: admin.id, email: admin.email, fullName: admin.fullName },
         access,
       },
-      200
+      200,
     );
   } catch (err: any) {
     return handleError(res, err);
@@ -136,7 +136,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
     // Emit order update
     try {
-      socketService.emitOrderUpdate(order);
+      // socketService.emitOrderUpdate(order);
     } catch (e: Error | any) {
       console.warn("Failed to emit order update:", e?.message || e);
     }

@@ -1,21 +1,8 @@
 export enum AppSocketEvent {
   // Order Lifecycle
-  ORDER_PLACED = "order:placed",
-  ORDER_ACCEPTED = "order:accepted",
-  ORDER_PREPARING = "order:preparing",
-  ORDER_OUT_FOR_DELIVERY = "order:shipping",
-  ORDER_DELIVERED = "order:delivered",
-  ORDER_CANCELLED = "order:cancelled",
-
-  // Payment
-  PAYMENT_SUCCESS = "payment:success",
-  PAYMENT_FAILED = "payment:failed",
-
-  // Logistics & Marketing
-  DELIVERY_DELAYED = "delivery:delayed",
-  PROMOTION = "marketing:promotion",
-  NEW_RESTAURANT = "discovery:new-restaurant",
-  RATING_REQUEST = "feedback:rating-request",
+  ORDER_ACCEPTED = "order:accepted", //--vendor, user
+  NEW_ORDER = "new:order",
+  NOTIFICATION = "notification",
 
   // System
   SYSTEM = "system:alert",

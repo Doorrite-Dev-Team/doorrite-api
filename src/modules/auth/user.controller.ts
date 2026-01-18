@@ -179,14 +179,7 @@ export const login = async (req: Request, res: Response) => {
     const refresh = makeRefreshTokenForUser(user.id);
     setAuthCookies(res, access, refresh, "user");
 
-    socketService.notify(user.id, AppSocketEvent.SYSTEM, {
-      // id: `${user.id}-${new Date()}`,
-      type: "SYSTEM",
-      title: "Welcome Back",
-      message: `Welcome back to Doorrite, ${user.fullName}`,
-      priority: "normal",
-      timestamp: new Date().toISOString(),
-    });
+    socketService.logIn(user.id, user.fullName!);
 
     return sendSuccess(
       res,
