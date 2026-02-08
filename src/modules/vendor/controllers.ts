@@ -14,6 +14,9 @@ import { verifyOCCode } from "@config/redis";
 import { getActorFromReq } from "@lib/utils/req-res";
 import { AppSocketEvent } from "constants/socket";
 import { socketService } from "@config/socket";
+import { cacheService } from "@config/cache";
+import { Pagination } from "types/types";
+import { Vendor } from "generated/prisma";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -30,6 +33,20 @@ export const getVendorById = async (req: Request, res: Response) => {
       throw new AppError(400, "Invalid vendor ID");
     }
 
+    const key = cacheService.generateKey("vendors", vendorId);
+    const cacheHit = await cacheService.get<{ vendor: Vendor }>(key);
+
+    if (cacheHit) {
+      console.debug(
+        "--------------------------------Cache----------------------------",
+      );
+      return sendSuccess(res, cacheHit);
+    }
+
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
+
     const vendor = await prisma.vendor.findUnique({
       where: { id: vendorId },
       include: {
@@ -42,7 +59,13 @@ export const getVendorById = async (req: Request, res: Response) => {
       throw new AppError(404, "Vendor not found");
     }
 
-    return sendSuccess(res, { vendor });
+    const data = { vendor };
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
+    await cacheService.set(key, data);
+
+    return sendSuccess(res, data);
   } catch (error) {
     handleError(res, error);
   }
@@ -62,6 +85,20 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
       throw new AppError(401, "Authentication required");
     }
 
+    const key = cacheService.generateKey("vendors", `profile_${vendorId}`);
+    const cacheHit = await cacheService.get<{ vendor: Vendor }>(key);
+
+    if (cacheHit) {
+      console.debug(
+        "--------------------------------Cache----------------------------",
+      );
+      return sendSuccess(res, cacheHit);
+    }
+
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
+
     const vendor = await prisma.vendor.findUnique({
       where: { id: vendorId },
       include: {
@@ -75,7 +112,13 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
       throw new AppError(404, "Vendor not found");
     }
 
-    return sendSuccess(res, { vendor });
+    const data = { vendor };
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
+    await cacheService.set(key, data);
+
+    return sendSuccess(res, data);
   } catch (error) {
     handleError(res, error);
   }
@@ -98,6 +141,33 @@ export const getAllVendors = async (req: Request, res: Response) => {
     const totalVendors = await prisma.vendor.count();
     const totalPages = Math.ceil(totalVendors / limit);
 
+    const key = cacheService.generateKey(
+      "vendors",
+      `${page}_${limit}_${offset}`,
+    );
+    const cacheHit = await cacheService.get<{
+      vendors: Vendor[];
+      pagination: {
+        totalVendors: number;
+        totalPages: number;
+        currentPage: number;
+        pageSize: number;
+      };
+    }>(key);
+
+    if (cacheHit) {
+      console.debug(
+        "--------------------------------Cache Hits----------------------------",
+        key,
+      );
+
+      return sendSuccess(res, cacheHit);
+    }
+
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
+
     const vendors = await prisma.vendor.findMany({
       skip: offset,
       take: limit,
@@ -110,7 +180,7 @@ export const getAllVendors = async (req: Request, res: Response) => {
       throw new AppError(404, "Vendors not found");
     }
 
-    return sendSuccess(res, {
+    const data = {
       vendors: vendors.map((v) => {
         return { ...v, isOpen: false };
       }),
@@ -120,7 +190,14 @@ export const getAllVendors = async (req: Request, res: Response) => {
         currentPage: page,
         pageSize: limit,
       },
-    });
+    };
+
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
+    await cacheService.set(key, data);
+
+    return sendSuccess(res, data);
   } catch (error) {
     handleError(res, error);
   }
@@ -197,6 +274,13 @@ type Address {
     where: { id: vendorId },
     data,
   });
+
+  // Invalidate vendor cache
+  await cacheService.invalidate(cacheService.generateKey("vendors", vendorId));
+  await cacheService.invalidate(
+    cacheService.generateKey("vendors", `profile_${vendorId}`),
+  );
+  await cacheService.invalidatePattern("vendors");
 
   return sendSuccess(res, {
     message: "Vendor updated successfully",
@@ -318,6 +402,10 @@ export const createProduct = async (req: Request, res: Response) => {
       },
     });
 
+    // Invalidate vendor and product caches
+    await cacheService.invalidatePattern("vendors");
+    await cacheService.invalidatePattern("products");
+
     return sendSuccess(
       res,
       { message: "Product created successfully", product: complete },
@@ -367,6 +455,10 @@ export const updateProduct = async (req: Request, res: Response) => {
       },
       include: { variants: { orderBy: { createdAt: "asc" } } },
     });
+
+    // Invalidate vendor and product caches
+    await cacheService.invalidatePattern("vendors");
+    await cacheService.invalidatePattern("products");
 
     return sendSuccess(res, {
       message: "Product updated successfully",
@@ -456,6 +548,10 @@ export const deleteProduct = async (req: Request, res: Response) => {
       await tx.product.delete({ where: { id: productId } });
     });
 
+    // Invalidate vendor and product caches
+    await cacheService.invalidatePattern("vendors");
+    await cacheService.invalidatePattern("products");
+
     return sendSuccess(res, { message: "Product permanently deleted" });
   } catch (err) {
     return handleError(res, err);
@@ -511,6 +607,10 @@ export const createProductVariant = async (req: Request, res: Response) => {
         isAvailable: isAvailable === undefined ? true : Boolean(isAvailable),
       },
     });
+
+    // Invalidate vendor and product caches
+    await cacheService.invalidatePattern("vendors");
+    await cacheService.invalidatePattern("products");
 
     return sendSuccess(
       res,
@@ -585,6 +685,10 @@ export const updateProductVariant = async (req: Request, res: Response) => {
       data: updateData,
     });
 
+    // Invalidate vendor and product caches
+    await cacheService.invalidatePattern("vendors");
+    await cacheService.invalidatePattern("products");
+
     return sendSuccess(res, {
       message: "Product variant updated successfully",
       variant: updated,
@@ -632,6 +736,10 @@ export const deleteProductVariant = async (req: Request, res: Response) => {
       throw new AppError(400, "Cannot delete variant that has been ordered");
 
     await prisma.productVariant.delete({ where: { id: variantId } });
+
+    // Invalidate vendor and product caches
+    await cacheService.invalidatePattern("vendors");
+    await cacheService.invalidatePattern("products");
 
     return sendSuccess(res, {
       message: "Product variant deleted successfully",
@@ -970,6 +1078,11 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       });
     }
 
+    // Invalidate order and vendor caches
+    await cacheService.invalidatePattern("orders");
+    await cacheService.invalidatePattern("userOrders");
+    await cacheService.invalidatePattern("vendors");
+
     return sendSuccess(res, {
       message: notification.message,
       order: result,
@@ -1049,6 +1162,24 @@ export const getVendorReviews = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
+
+    // Check cache first
+    const key = cacheService.generateKey(
+      "vendorReviews",
+      `${vendorId}_${page}_${limit}`,
+    );
+    const cacheHit = await cacheService.get<any>(key);
+
+    if (cacheHit) {
+      console.debug(
+        "--------------------------------Cache----------------------------",
+      );
+      return sendSuccess(res, cacheHit);
+    }
+
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
 
     // 1. Check if Vendor exists
     const vendorExists = await prisma.vendor.findUnique({
@@ -1150,7 +1281,13 @@ export const getVendorReviews = async (req: Request, res: Response) => {
       ratingDistribution: ratingDistribution,
     };
 
-    return sendSuccess(res, { reviewsData });
+    const data = { reviewsData };
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
+    await cacheService.set(key, data);
+
+    return sendSuccess(res, data);
   } catch (error) {
     handleError(res, error);
   }

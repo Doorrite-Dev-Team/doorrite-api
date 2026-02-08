@@ -321,6 +321,7 @@ export const deleteVendor = async (req: Request, res: Response) => {
     handleError(res, error);
   }
 };
+
 //DELETE /admin/rider/:riderId
 export const deleteRider = async (req: Request, res: Response) => {
   /**

@@ -1,4 +1,4 @@
-type User = {
+declare type User = {
   id: string;
   createdAt: Date;
   updatedAt: Date;
@@ -17,4 +17,10 @@ type User = {
     state?: string;
     country?: string;
   } | null;
+};
+
+export type Pagination<T> = T & {
+  total: number;
+  page: number;
+  limit: number;
 };

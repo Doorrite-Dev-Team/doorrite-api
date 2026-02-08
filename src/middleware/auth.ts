@@ -35,7 +35,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
       const headerToken = req.headers.authorization?.split(" ")[1];
       const cookieAccess = getAccessTokenFromReq(req, canonical);
       const accessToken = headerToken ?? cookieAccess;
-      console.debug(req.headers.authorization, req.headers.Authorization);
+      // console.debug(req.headers.authorization, req.headers.Authorization);
       if (accessToken) {
         // console.log(`-${accessToken}-`);
         const payload = safeVerify(accessToken);
@@ -47,7 +47,7 @@ export function requireAuth(userType: string = "user"): RequestHandler {
           return next();
         }
       }
-      console.log("No Token Found");
+      console.warn("No Token Found");
       // 2) Access not present or invalid -> attempt refresh flow using entity-specific refresh cookie
       const refreshed = await attemptRefreshFlow(req, res, canonical);
       if (refreshed) {

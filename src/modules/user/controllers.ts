@@ -9,6 +9,8 @@ import {
   validatePassword,
 } from "@modules/auth/helper";
 import { Request, Response } from "express";
+import { cacheService } from "@config/cache";
+import { Pagination } from "types/types";
 
 // Get User by ID
 // GET api/v1/users/:id
@@ -21,11 +23,28 @@ export const getUser = async (req: Request, res: Response) => {
    */
   try {
     const { id } = req.params;
+
+    const key = cacheService.generateKey("users", id);
+    const cacheHit = await cacheService.get<{ user: any }>(key);
+
+    if (cacheHit) {
+      console.debug("--------------------------------Cache----------------------------");
+      return sendSuccess(res, cacheHit, 200);
+    }
+
+    console.debug("--------------------------------Missed----------------------------");
+
     const user = await prisma.user.findUnique({
       where: { id },
     });
+
     if (!user) throw new AppError(404, "User not found");
-    return sendSuccess(res, { user }, 200);
+
+    const data = { user };
+    console.debug("--------------------------------Adding to Cache----------------------------");
+    await cacheService.set(key, data);
+
+    return sendSuccess(res, data, 200);
   } catch (err) {
     return handleError(res, err);
   }
@@ -70,19 +89,34 @@ export const getCurrentUserProfile = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['User']
    * #swagger.summary = 'Get current user profile'
-   * #swagger.description = 'Retrieves the profile of the currently authenticated user.'
+   * #swagger.description = 'Retrieves profile of currently authenticated user.'
    * #swagger.security = [{ "bearerAuth": [] }]
    */
   try {
-    console.log(req.user);
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
+
+    const key = cacheService.generateKey("users", `profile_${userId}`);
+    const cacheHit = await cacheService.get<{ user: any }>(key);
+
+    if (cacheHit) {
+      console.debug("--------------------------------Cache----------------------------");
+      return sendSuccess(res, cacheHit, 200);
+    }
+
+    console.debug("--------------------------------Missed----------------------------");
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
+
     if (!user) throw new AppError(404, "User not found");
-    return sendSuccess(res, { user }, 200);
+
+    const data = { user };
+    console.debug("--------------------------------Adding to Cache----------------------------");
+    await cacheService.set(key, data);
+
+    return sendSuccess(res, data, 200);
   } catch (error) {
     handleError(res, error);
   }
@@ -168,6 +202,10 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       }, // ✅ only whitelisted fields
     });
 
+    // Invalidate user cache
+    await cacheService.invalidate(cacheService.generateKey("users", id));
+    await cacheService.invalidate(cacheService.generateKey("users", `profile_${id}`));
+
     return sendSuccess(res, {
       message: "User updated successfully",
       user: updatedUser,
@@ -195,7 +233,16 @@ export const getUserOrders = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
-    const take = limit;
+
+    const key = cacheService.generateKey("userOrders", `${userId}_${page}_${limit}_${skip}`);
+    const cacheHit = await cacheService.get<Pagination<{ orders: any[]; pagination: any }>>(key);
+
+    if (cacheHit) {
+      console.debug("--------------------------------Cache----------------------------");
+      return sendSuccess(res, cacheHit, 200);
+    }
+
+    console.debug("--------------------------------Missed----------------------------");
 
     const [totalItems, orders] = await Promise.all([
       prisma.order.count({ where: { customerId: userId } }),
@@ -207,7 +254,7 @@ export const getUserOrders = async (req: Request, res: Response) => {
           },
         },
         skip,
-        take,
+        take: limit,
         orderBy: { createdAt: "desc" },
       }),
     ]);
@@ -222,7 +269,11 @@ export const getUserOrders = async (req: Request, res: Response) => {
       hasPrev: page > 1,
     };
 
-    return sendSuccess(res, { orders, pagination }, 200);
+    const data = { orders, pagination };
+    console.debug("--------------------------------Adding to Cache----------------------------");
+    await cacheService.set(key, data);
+
+    return sendSuccess(res, data, 200);
   } catch (error) {
     handleError(res, error);
   }
@@ -265,6 +316,11 @@ export const createUserReview = async (req: Request, res: Response) => {
         ...(targetType === "product" && { productId: targetId }),
       },
     });
+
+    // Invalidate vendor reviews cache if reviewing a vendor
+    if (targetType === "vendor") {
+      await cacheService.invalidatePattern("vendorReviews");
+    }
 
     return sendSuccess(res, { review }, 201);
   } catch (error) {

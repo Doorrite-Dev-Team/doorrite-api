@@ -1,151 +1,143 @@
-import axios, { AxiosInstance } from "axios";
+import Paystack from "paystack-sdk";
 import crypto from "crypto";
 import { AppError } from "@lib/utils/AppError";
+import { Transaction } from "paystack-sdk/dist/transaction/interface";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "";
-const PAYSTACK_BASE_URL =
-  process.env.PAYSTACK_BASE_URL || "https://api.paystack.co";
 
 if (!PAYSTACK_SECRET_KEY) {
-  // Fail fast in development when not configured
-  // In production, env should be set by deployment
-  // We throw an AppError so upstream handlers can produce a nice response if used at runtime.
-  throw new AppError(
-    500,
-    "PAYSTACK_SECRET_KEY is not configured in environment"
-  );
+  throw new AppError(500, "PAYSTACK_SECRET_KEY is not configured");
 }
 
-const client: AxiosInstance = axios.create({
-  baseURL: PAYSTACK_BASE_URL,
-  headers: {
-    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-    "Content-Type": "application/json",
-  },
-  timeout: 10000,
-});
-
-// Types
-export type InitializeOptions = {
-  email: string;
-  amount: number; // in Naira (will be converted to kobo/cents by the helper)
-  reference?: string;
-  callback_url?: string;
-  metadata?: Record<string, any>;
-};
-
-export type InitializeResult = {
-  authorization_url: string;
-  access_code?: string;
-  reference: string;
-  raw: any;
-};
-
-export type VerifyResult = { raw: any };
-
-export type RefundResult = { raw: any };
+const paystack = new Paystack(PAYSTACK_SECRET_KEY);
 
 /**
  * Initialize a Paystack transaction
+ * @param email - Customer email
+ * @param amount - Amount in Naira (will be converted to kobo)
+ * @param reference - Unique transaction reference
+ * @param callback_url - URL to redirect after payment
+ * @param metadata - Additional transaction metadata
+ * @returns Transaction initialization data or null on error
  */
 export async function initializeTransaction(
-  opts: InitializeOptions
-): Promise<InitializeResult> {
+  email: string,
+  amount: number,
+  reference?: string,
+  callback_url?: string,
+  metadata?: Record<string, any>,
+) {
   try {
-    const payload = {
-      email: opts.email,
-      amount: Math.round(opts.amount * 100), // convert to kobo
-      reference: opts.reference,
-      callback_url: opts.callback_url,
-      metadata: opts.metadata,
-    } as any;
+    const response = await paystack.transaction.initialize({
+      email,
+      amount: String(Math.round(amount * 100)),
+      reference,
+      callback_url,
+      metadata,
+    });
 
-    // Remove undefined keys
-    Object.keys(payload).forEach(
-      (k) => payload[k] === undefined && delete payload[k]
-    );
-
-    const resp = await client.post("/transaction/initialize", payload);
-    
-    if (!resp.data || resp.data.status !== true) {
-      throw new Error(resp.data?.message || "Paystack initialize failed");
+    if (!response.status) {
+      console.error("Paystack initialize failed:", response.message);
+      return null;
     }
 
-    const d = resp.data.data;
-    return {
-      authorization_url: d.authorization_url,
-      access_code: d.access_code,
-      reference: d.reference,
-      raw: d,
-    };
-  } catch (err: any) {
-    throw new AppError(
-      502,
-      `Paystack initialize error: ${err?.message || err}`
-    );
+    return response.data;
+  } catch (error: any) {
+    throw new AppError(502, `Payment initialization failed: ${error?.message}`);
   }
 }
 
 /**
- * Verify transaction status by reference
+ * Verify a Paystack transaction
+ * @param reference - Transaction reference to verify
+ * @returns Verification data or null on error
  */
-export async function verifyTransaction(
-  reference: string
-): Promise<VerifyResult> {
+export async function verifyTransaction(reference: string) {
   try {
-    const resp = await client.get(
-      `/transaction/verify/${encodeURIComponent(reference)}`
-    );
-    if (!resp.data || resp.data.status !== true) {
-      throw new Error(resp.data?.message || "Paystack verify failed");
+    const response = await paystack.transaction.verify(reference);
+
+    if (!response.status) {
+      console.error("Paystack verification failed:", response.message);
+      return null;
     }
 
-    return { raw: resp.data.data };
-  } catch (err: any) {
-    throw new AppError(502, `Paystack verify error: ${err?.message || err}`);
+    return response.data;
+  } catch (error: any) {
+    throw new AppError(502, `Payment verification failed: ${error?.message}`);
   }
 }
 
 /**
  * Create a refund for a transaction
- * amount is optional and in major currency unit (Naira)
+ * @param transactionReference - Transaction reference or ID
+ * @param amount - Amount to refund in Naira (optional, defaults to full amount)
+ * @param merchant_note - Internal note about the refund
+ * @param customer_note - Note visible to customer
+ * @returns Refund data or null on error
  */
 export async function refundTransaction(
   transactionReference: string,
-  amount?: number
-): Promise<RefundResult> {
+  amount?: number,
+  merchant_note?: string,
+  customer_note?: string,
+) {
   try {
-    const payload: any = { transaction: transactionReference };
-    if (amount !== undefined) payload.amount = Math.round(amount * 100);
+    const response = await paystack.refund.create({
+      transaction: transactionReference,
+      amount: amount ? Math.round(amount * 100) : undefined,
+      merchant_note,
+      customer_note,
+    });
 
-    const resp = await client.post(`/refund`, payload);
-    if (!resp.data || resp.data.status !== true) {
-      throw new Error(resp.data?.message || "Paystack refund failed");
+    if (!response.status) {
+      console.error("Paystack refund failed:", response.message);
+      return null;
     }
 
-    return { raw: resp.data.data };
-  } catch (err: any) {
-    throw new AppError(502, `Paystack refund error: ${err?.message || err}`);
+    return response.data;
+  } catch (error: any) {
+    throw new AppError(502, `Refund processing failed: ${error?.message}`);
   }
 }
 
 /**
- * Validate webhook signature from Paystack
- * Paystack sends `x-paystack-signature` header with sha512 HMAC of the raw body using the secret key
+ * Validate Paystack webhook signature
+ * @param rawBody - Raw request body as string
+ * @param signature - Signature from x-paystack-signature header
+ * @returns true if signature is valid
  */
 export function validateWebhookSignature(
   rawBody: string,
-  signatureHeader?: string | string[] | undefined
+  signature?: string,
 ): boolean {
-  if (!signatureHeader || Array.isArray(signatureHeader)) return false;
-  const computed = crypto
-    .createHmac("sha512", PAYSTACK_SECRET_KEY)
-    .update(rawBody)
-    .digest("hex");
-  return crypto.timingSafeEqual(
-    Buffer.from(computed),
-    Buffer.from(signatureHeader)
-  );
+  if (!signature) return false;
+  try {
+    const hash = crypto
+      .createHmac("sha512", PAYSTACK_SECRET_KEY)
+      .update(rawBody)
+      .digest("hex");
+
+    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature));
+  } catch (error) {
+    return false;
+  }
+}
+
+export const toKobo = (naira: number) => Math.round(naira * 100);
+export const toNaira = (kobo: number) => kobo / 100;
+
+/**
+ * Check if transaction was successful
+ */
+export function isTransactionSuccessful(data: Transaction | null): boolean {
+  return data?.status === "success";
+}
+
+/**
+ * Check if transaction failed
+ */
+export function isTransactionFailed(data: Transaction | null): boolean {
+  return data?.status === "failed";
 }
 
 export default {
@@ -153,4 +145,8 @@ export default {
   verifyTransaction,
   refundTransaction,
   validateWebhookSignature,
+  toKobo,
+  toNaira,
+  isTransactionSuccessful,
+  isTransactionFailed,
 };

@@ -60,7 +60,13 @@ app.use(
 );
 
 // 4️⃣ Parse JSON + cookies
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf.toString();
+    },
+  }),
+);
 app.use(cookieParser());
 
 // 5️⃣ Response compression

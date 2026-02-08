@@ -66,7 +66,7 @@ export const setAuthCookies = (
   res: Response,
   accessToken: string,
   refreshToken: string,
-  entity: EntityType = "user"
+  entity: EntityType = "user",
 ) => {
   const e = normalizeEntityType(entity);
   res.cookie(getAccessCookieName(e), accessToken, accessCookieOptions);
@@ -76,7 +76,7 @@ export const setAuthCookies = (
 export const setAccessCookies = (
   res: Response,
   accessToken: string,
-  entity: EntityType = "user"
+  entity: EntityType = "user",
 ) => {
   const e = normalizeEntityType(entity);
   res.cookie(getAccessCookieName(e), accessToken, accessCookieOptions);
@@ -87,7 +87,7 @@ export const setAccessCookies = (
  */
 export const clearAuthCookies = (
   res: Response,
-  entity: EntityType = "user"
+  entity: EntityType = "user",
 ) => {
   const e = normalizeEntityType(entity);
   res.clearCookie(getAccessCookieName(e));
@@ -100,7 +100,7 @@ export const clearAuthCookies = (
  */
 export const getRefreshTokenFromReq = (
   req: Request,
-  entity: EntityType = "user"
+  entity: EntityType = "user",
 ) => {
   const e = normalizeEntityType(entity);
   return req.cookies?.[getRefreshCookieName(e)];
@@ -111,7 +111,7 @@ export const getRefreshTokenFromReq = (
  */
 export const getAccessTokenFromReq = (
   req: Request,
-  entity: EntityType = "user"
+  entity: EntityType = "user",
 ) => {
   const e = normalizeEntityType(entity);
   return req.cookies?.[getAccessCookieName(e)];

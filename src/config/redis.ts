@@ -58,14 +58,14 @@ const getResetTokenKey = (type: string, identifier: string, token: string) =>
 const getOrderConfirmKey = (
   riderId: string,
   vendorId: string,
-  orderId: string
+  orderId: string,
 ) => `oc:code:${riderId}:${vendorId}:${orderId}`;
 
 /** Generates the Redis key for tracking OC verification attempts. */
 const getOrderConfirmAttemptsKey = (
   riderId: string,
   vendorId: string,
-  orderId: string
+  orderId: string,
 ) => `oc:attempts:${riderId}:${vendorId}:${orderId}`;
 
 // =====================================================================
@@ -116,7 +116,7 @@ export type CreateOtpResult = CreateOtpSuccess | CreateOtpExists;
  */
 export async function createOtp(
   type: string,
-  identifier: string
+  identifier: string,
 ): Promise<CreateOtpResult> {
   const kOtp = getAuthKey(type, identifier);
   const kAttempts = getAuthAttemptsKey(type, identifier);
@@ -169,7 +169,7 @@ export type VerifyOtpResult = VerifyOtpSuccess | VerifyOtpFailure;
 export async function verifyOtp(
   type: string,
   identifier: string,
-  code: string
+  code: string,
 ): Promise<VerifyOtpResult> {
   const kOtp = getAuthKey(type, identifier);
   const kAttempts = getAuthAttemptsKey(type, identifier);
@@ -243,7 +243,7 @@ export async function verifyOtp(
 export async function deleteOtp(type: string, identifier: string) {
   await redis.del(
     getAuthKey(type, identifier),
-    getAuthAttemptsKey(type, identifier)
+    getAuthAttemptsKey(type, identifier),
   );
 }
 
@@ -256,7 +256,7 @@ export async function deleteOtp(type: string, identifier: string) {
 export async function createResetToken(
   type: string,
   identifier: string,
-  ttlSeconds = 15 * 60 // Default 15 minutes
+  ttlSeconds = 15 * 60, // Default 15 minutes
 ) {
   const token = generateRandomHex(32);
   await redis.set(getResetTokenKey(type, identifier, token), "1", {
@@ -269,7 +269,7 @@ export async function createResetToken(
 export async function validateResetToken(
   type: string,
   identifier: string,
-  token: string
+  token: string,
 ) {
   const k = getResetTokenKey(type, identifier, token);
   const v = await redis.get(k);
@@ -280,7 +280,7 @@ export async function validateResetToken(
 export async function deleteResetToken(
   type: string,
   identifier: string,
-  token: string
+  token: string,
 ) {
   await redis.del(getResetTokenKey(type, identifier, token));
 }
@@ -314,7 +314,7 @@ export type CreateOcResult = CreateOcSuccess | CreateOcRetrieved;
 export async function createOCCode(
   riderId: string,
   vendorId: string,
-  orderId: string
+  orderId: string,
 ): Promise<CreateOcResult> {
   const kOC = getOrderConfirmKey(riderId, vendorId, orderId);
   const kAttempts = getOrderConfirmAttemptsKey(riderId, vendorId, orderId);
@@ -375,7 +375,7 @@ export async function verifyOCCode(
   riderId: string,
   vendorId: string,
   orderId: string,
-  code: string
+  code: string,
 ): Promise<VerifyOcResult> {
   const kOC = getOrderConfirmKey(riderId, vendorId, orderId);
   const kAttempts = getOrderConfirmAttemptsKey(riderId, vendorId, orderId);
@@ -449,10 +449,10 @@ export async function verifyOCCode(
 export async function deleteOCCode(
   riderId: string,
   vendorId: string,
-  orderId: string
+  orderId: string,
 ) {
   await redis.del(
     getOrderConfirmKey(riderId, vendorId, orderId),
-    getOrderConfirmAttemptsKey(riderId, vendorId, orderId)
+    getOrderConfirmAttemptsKey(riderId, vendorId, orderId),
   );
 }
