@@ -10,9 +10,10 @@ import prisma from "@config/db";
 import { socketService } from "@config/socket";
 import { ZodError } from "zod/v3";
 import { AppSocketEvent } from "constants/socket";
-import { CacheMemory, cacheService } from "@config/cache";
+import { cacheService } from "@config/cache";
 import { Pagination } from "types/types";
 import { Order } from "generated/prisma";
+import { calculateDeliveryFee } from "@lib/utils/location";
 
 // GET api/v1/orders?status=&vendorId=&customerId=&page=&limit=&from=&to=
 export const getOrders = async (req: Request, res: Response) => {
@@ -138,11 +139,15 @@ export const getOrderById = async (req: Request, res: Response) => {
     const cacheHit = await cacheService.get<{ order: Order }>(key);
 
     if (cacheHit) {
-      console.debug("--------------------------------Cache----------------------------");
+      console.debug(
+        "--------------------------------Cache----------------------------",
+      );
       return sendSuccess(res, cacheHit);
     }
 
-    console.debug("--------------------------------Missed----------------------------");
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
 
     // Build role-aware WHERE
     const where: any = { id };
@@ -179,7 +184,9 @@ export const getOrderById = async (req: Request, res: Response) => {
     }
 
     const data = { order };
-    console.debug("--------------------------------Adding to Cache----------------------------");
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
     await cacheService.set(key, data);
 
     return sendSuccess(res, data);
@@ -216,7 +223,12 @@ export const createOrder = async (req: Request, res: Response) => {
 
       // Calculate total
       const calcAmount = await calculateOrderTotal(items);
-      const totalKobo = Math.round(calcAmount * 100 * 1.1);
+      const deliveryFee = await calculateDeliveryFee(
+        vendor,
+        deliveryAddress.coordinates?.lat,
+        deliveryAddress.coordinates?.long,
+      );
+      const totalKobo = Math.round((calcAmount + deliveryFee) * 100 * 1.1);
       const totalAmount = Math.round((totalKobo / 100) * 100) / 100;
 
       // Determine initial status based on payment method
@@ -225,6 +237,182 @@ export const createOrder = async (req: Request, res: Response) => {
       // const paymentStatus = paymentMethod === "PAYSTACK" ? "PENDING" : "";
 
       // Create order
+      const prepareOrderItems = async () =>
+        Promise.all(
+          items.map(async (item) => {
+            const {
+              productId,
+              variantId,
+              quantity = 1,
+              modifiers,
+            } = item as any;
+
+            // ✅ Fetch product
+            const product = await tx.product.findUnique({
+              where: { id: productId },
+              select: {
+                id: true,
+                vendorId: true,
+                isAvailable: true,
+                basePrice: true,
+              },
+            });
+
+            if (!product)
+              throw new AppError(404, `Product ${productId} not found`);
+            if (product.vendorId !== vendorId)
+              throw new AppError(400, `Product does not belong to vendor`);
+            if (!product.isAvailable)
+              throw new AppError(400, `Product is not available`);
+
+            // ✅ Handle variant (existing logic)
+            let variant: any = null;
+            if (variantId) {
+              variant = await tx.productVariant.findUnique({
+                where: { id: variantId },
+              });
+              if (!variant || variant.productId !== productId)
+                throw new AppError(404, `Variant not found`);
+              if (!variant.isAvailable)
+                throw new AppError(400, `Variant is not available`);
+
+              if (typeof variant.stock === "number") {
+                if (variant.stock < quantity)
+                  throw new AppError(400, `Insufficient stock`);
+                await tx.productVariant.update({
+                  where: { id: variantId },
+                  data: { stock: variant.stock - quantity },
+                });
+              }
+            }
+
+            const basePrice = variant ? variant.price : product.basePrice;
+
+            // ✅ VALIDATE AND PROCESS MODIFIERS
+            let modifiersTotal = 0;
+            const modifierData: any[] = [];
+
+            if (modifiers && modifiers.length > 0) {
+              // Fetch product's assigned modifier groups
+              const assignedGroups = await tx.productModifierGroup.findMany({
+                where: { productId },
+                include: {
+                  modifierGroup: {
+                    include: {
+                      options: { where: { isAvailable: true } },
+                    },
+                  },
+                },
+              });
+
+              const groupMap = new Map(
+                assignedGroups.map((ag) => [
+                  ag.modifierGroupId,
+                  ag.modifierGroup,
+                ]),
+              );
+
+              // Validate each modifier selection
+              for (const modSelection of modifiers) {
+                const { modifierGroupId, selectedOptions } = modSelection;
+
+                const group = groupMap.get(modifierGroupId);
+                if (!group) {
+                  throw new AppError(
+                    400,
+                    `Modifier group ${modifierGroupId} not assigned to product`,
+                  );
+                }
+
+                // Validate selection count
+                const optionCount = selectedOptions.length;
+
+                if (group.isRequired && optionCount < group.minSelect) {
+                  throw new AppError(
+                    400,
+                    `${group.name} requires at least ${group.minSelect} selection(s)`,
+                  );
+                }
+
+                if (optionCount > group.maxSelect) {
+                  throw new AppError(
+                    400,
+                    `${group.name} allows maximum ${group.maxSelect} selection(s)`,
+                  );
+                }
+
+                // Process each selected option
+                for (const selection of selectedOptions) {
+                  const { modifierOptionId, quantity: modQty = 1 } = selection;
+
+                  const option = group.options.find(
+                    (o) => o.id === modifierOptionId,
+                  );
+
+                  if (!option) {
+                    throw new AppError(
+                      400,
+                      `Invalid option ${modifierOptionId}`,
+                    );
+                  }
+
+                  if (!option.isAvailable) {
+                    throw new AppError(400, `${option.name} is not available`);
+                  }
+
+                  const optionTotal = option.priceAdjustment * modQty;
+                  modifiersTotal += optionTotal;
+
+                  modifierData.push({
+                    modifierOptionId: option.id,
+                    groupName: group.name,
+                    optionName: option.name,
+                    priceAdjustment: option.priceAdjustment,
+                    quantity: modQty,
+                  });
+                }
+              }
+            }
+
+            // ✅ Validate required modifiers
+            const requiredGroups = await tx.productModifierGroup.findMany({
+              where: {
+                productId,
+                modifierGroup: { isRequired: true },
+              },
+              select: {
+                modifierGroupId: true,
+                modifierGroup: { select: { name: true } },
+              },
+            });
+
+            const providedGroupIds = new Set(
+              (modifiers || []).map((m: any) => m.modifierGroupId),
+            );
+
+            for (const reqGroup of requiredGroups) {
+              if (!providedGroupIds.has(reqGroup.modifierGroupId)) {
+                throw new AppError(
+                  400,
+                  `${reqGroup.modifierGroup.name} is required`,
+                );
+              }
+            }
+
+            // ✅ Return order item
+            return {
+              productId,
+              variantId: variantId || undefined,
+              quantity,
+              price: basePrice,
+              modifiersTotal,
+              modifiers: {
+                create: modifierData,
+              },
+            };
+          }),
+        );
+
       const order = await tx.order.create({
         data: {
           customerId,
@@ -234,74 +422,79 @@ export const createOrder = async (req: Request, res: Response) => {
           totalAmount,
           status: initialStatus,
           paymentStatus: "PENDING",
+          // items: {
+          //   create: await Promise.all(
+          //     items.map(async (item) => {
+          //       const { productId, variantId, quantity = 1 } = item as any;
+
+          //       const product = await tx.product.findUnique({
+          //         where: { id: productId },
+          //         select: {
+          //           id: true,
+          //           vendorId: true,
+          //           isAvailable: true,
+          //           basePrice: true,
+          //         },
+          //       });
+
+          //       if (!product)
+          //         throw new AppError(404, `Product ${productId} not found`);
+          //       if (product.vendorId !== vendorId)
+          //         throw new AppError(
+          //           400,
+          //           `Product ${productId} does not belong to vendor`,
+          //         );
+          //       if (!product.isAvailable)
+          //         throw new AppError(
+          //           400,
+          //           `Product ${productId} is not available`,
+          //         );
+
+          //       let variant: any = null;
+          //       if (variantId) {
+          //         variant = await tx.productVariant.findUnique({
+          //           where: { id: variantId },
+          //         });
+          //         if (!variant || variant.productId !== productId)
+          //           throw new AppError(404, `Variant ${variantId} not found`);
+          //         if (!variant.isAvailable)
+          //           throw new AppError(
+          //             400,
+          //             `Variant ${variantId} is not available`,
+          //           );
+
+          //         if (typeof variant.stock === "number") {
+          //           if (variant.stock < quantity)
+          //             throw new AppError(
+          //               400,
+          //               `Insufficient stock for variant ${variantId}`,
+          //             );
+          //           await tx.productVariant.update({
+          //             where: { id: variantId },
+          //             data: { stock: variant.stock - quantity },
+          //           });
+          //         }
+          //       }
+
+          //       const price = variant
+          //         ? variant.price
+          //         : (product.basePrice ?? 0);
+
+          //       return {
+          //         productId,
+          //         variantId: variantId || undefined,
+          //         quantity,
+          //         price,
+          //         // unitPrice: price,
+          //         // subtotal: price * quantity,
+          //       };
+          //     }),
+          //   ),
+          // },
+          // Inside createOrder, replace the items creation section:
+
           items: {
-            create: await Promise.all(
-              items.map(async (item) => {
-                const { productId, variantId, quantity = 1 } = item as any;
-
-                const product = await tx.product.findUnique({
-                  where: { id: productId },
-                  select: {
-                    id: true,
-                    vendorId: true,
-                    isAvailable: true,
-                    basePrice: true,
-                  },
-                });
-
-                if (!product)
-                  throw new AppError(404, `Product ${productId} not found`);
-                if (product.vendorId !== vendorId)
-                  throw new AppError(
-                    400,
-                    `Product ${productId} does not belong to vendor`,
-                  );
-                if (!product.isAvailable)
-                  throw new AppError(
-                    400,
-                    `Product ${productId} is not available`,
-                  );
-
-                let variant: any = null;
-                if (variantId) {
-                  variant = await tx.productVariant.findUnique({
-                    where: { id: variantId },
-                  });
-                  if (!variant || variant.productId !== productId)
-                    throw new AppError(404, `Variant ${variantId} not found`);
-                  if (!variant.isAvailable)
-                    throw new AppError(
-                      400,
-                      `Variant ${variantId} is not available`,
-                    );
-
-                  if (typeof variant.stock === "number") {
-                    if (variant.stock < quantity)
-                      throw new AppError(
-                        400,
-                        `Insufficient stock for variant ${variantId}`,
-                      );
-                    await tx.productVariant.update({
-                      where: { id: variantId },
-                      data: { stock: variant.stock - quantity },
-                    });
-                  }
-                }
-
-                const price = variant
-                  ? variant.price
-                  : (product.basePrice ?? 0);
-
-                return {
-                  productId,
-                  variantId: variantId || undefined,
-                  quantity,
-                  price,
-                  // unitPrice: price,
-                  // subtotal: price * quantity,
-                };
-              }),
-            ),
+            create: await prepareOrderItems(),
           },
         },
         include: {

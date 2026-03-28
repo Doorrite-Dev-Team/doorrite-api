@@ -5,7 +5,11 @@ import {
   setAuthCookies,
 } from "@config/cookies";
 import prisma from "@config/db";
-import { validateCategoryIds } from "@lib/category";
+import {
+  validateCategoryIds,
+  isValidCategoryId,
+  vendorCategoryId,
+} from "@lib/category";
 import {
   makeAccessTokenForVendor,
   makeRefreshTokenForVendor,
@@ -55,14 +59,17 @@ export const createVendor = async (req: Request, res: Response) => {
       categoryIds,
     });
 
-    // Ensure provided categoryIds are valid according to in-memory DeliveryCategories
+    // Ensure provided categoryIds are valid according to vendorCategoryId list
     const uniqueCategoryIds: string[] = Array.from(
       new Set(((categoryIds as string[]) || []).map((c) => String(c).trim())),
     );
 
     const invalid = validateCategoryIds(uniqueCategoryIds);
     if (invalid.length > 0) {
-      throw new AppError(400, `Invalid categoryIds: ${invalid.join(", ")}`);
+      throw new AppError(
+        400,
+        `Invalid categoryIds: ${invalid.join(", ")}. Allowed: ${vendorCategoryId().join(", ")}`,
+      );
     }
 
     // Check if vendor (email/phone) already exists
@@ -88,11 +95,11 @@ export const createVendor = async (req: Request, res: Response) => {
         businessName: businessName.trim(),
         phoneNumber: phoneNumber.trim(),
         passwordHash,
-        address:
-          typeof address === "string" ? { address } : (address as Address),
+        address: address,
         logoUrl: logoUrl || undefined,
         isVerified: false,
-        isActive: false, // requires admin approval
+        isActive: false, // requires admin approval,
+        categories: uniqueCategoryIds,
       },
     });
 
@@ -407,15 +414,9 @@ export function validateVendorData({
 
   // Address — supports object or string (for backward compatibility)
   try {
-    if (typeof address === "string") {
-      if (address.trim().length < 5) {
-        throw new Error("Address string too short");
-      }
-    } else {
-      const parsed = addressSchema.safeParse(address);
-      if (!parsed.success) {
-        throw new AppError(400, parsed.error.message ?? "Invalid address");
-      }
+    const parsed = addressSchema.safeParse(address);
+    if (!parsed.success) {
+      throw new AppError(400, parsed.error.message ?? "Invalid address");
     }
   } catch (err: any) {
     throw new AppError(400, `Invalid address: ${err.message || err}`);
@@ -425,7 +426,9 @@ export function validateVendorData({
   if (
     !Array.isArray(categoryIds) ||
     categoryIds.length === 0 ||
-    !categoryIds.every((id) => typeof id === "string" && id.trim().length > 0)
+    !categoryIds.every(
+      (id: string) => typeof id === "string" && id.trim().length > 0,
+    )
   ) {
     throw new AppError(400, "At least one valid categoryId is required");
   }

@@ -1,10 +1,10 @@
 // src/routes/auth.ts
-import express, { type Response, Request } from "express";
+import express, { type Response } from "express";
 import { requireAuth } from "middleware/auth";
 import * as userAuth from "./user.controller";
 import * as vendorAuth from "./vendor.controller";
 import * as riderAuth from "./rider.controller";
-import DeliveryCategories, { listAllowedCategoryKeys } from "@lib/category";
+import { CUISINES, vendorCategoryId } from "@lib/category";
 
 const router = express.Router();
 
@@ -79,8 +79,8 @@ router.get("/vendor-categories", (_, res: Response) => {
 
   return res.json({
     ok: true,
-    categories: DeliveryCategories,
-    keys: listAllowedCategoryKeys(),
+    categories: CUISINES,
+    keys: vendorCategoryId(),
   });
 });
 

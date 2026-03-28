@@ -36,6 +36,7 @@ class WebSocketService {
         credentials: true,
       },
     });
+    console.log("Successfully Conected to WebSocket Client");
 
     //Middleware for jwt Token verification
     this.io.use((socket, next) => {

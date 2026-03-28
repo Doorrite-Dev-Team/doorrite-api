@@ -64,9 +64,32 @@ enum DeliveryStatus {
   DELIVERED
 }
 
-enum OtpType {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
+enum TransactionType {
+  EARNING
+  PAYOUT
+  BONUS
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum PayoutRequestType {
+  WEEKLY
+  INSTANT
 }
 
 // ===============================
@@ -76,7 +99,7 @@ type Address {
   address      String         // Human-readable formatted address
   state        String? @default("Ilorin")
   country      String? @default("Nigeria")
-  coordinates  Coordinates?
+  coordinates  Coordinates
 }
 
 type ContactInfo {
@@ -129,11 +152,13 @@ model Vendor {
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
   address             Address
+  categories          String[]
 
   // Relations
   products            Product[]
   orders              Order[]
   reviews             Review[]
+  modifierGroups ModifierGroup[]
   wallet              Wallet?
 }
 
@@ -153,6 +178,7 @@ model Product {
   variants    ProductVariant[]
   orderItems  OrderItem[]
   reviews     Review[]
+  modifierGroups ProductModifierGroup[]
 }
 
 model ProductVariant {
@@ -190,6 +216,7 @@ model Rider {
   orders     Order[]    @relation("rider_orders")
   reviews    Review[]
   wallet     Wallet?
+  earningsRecords EarningsRecord[]
 }
 
 model Order {
@@ -215,6 +242,7 @@ model Order {
   payment  Payment?
   delivery Delivery?
   history  OrderHistory[]
+  earningsRecord EarningsRecord?
 }
 
 model OrderItem {
@@ -229,6 +257,9 @@ model OrderItem {
   price      Float
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  modifiers      OrderItemModifier[]
+  modifiersTotal Float   @default(0)  // Sum of modifier adjustments
 }
 
 model Payment {
@@ -292,11 +323,91 @@ model OrderHistory {
 }
 
 // ===============================
+// MODIFIER SYSTEM (MVP)
+// ===============================
+
+// Reusable modifier group template
+model ModifierGroup {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  vendorId    String   @db.ObjectId
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  name        String   // e.g., "Size", "Protein Options"
+  isRequired  Boolean  @default(false)
+  minSelect   Int      @default(0)  // 0 = optional
+  maxSelect   Int      @default(1)  // 1 = single choice, >1 = multiple
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  options             ModifierOption[]
+  productAssignments  ProductModifierGroup[]
+
+  @@index([vendorId])
+}
+
+// Options within a modifier group
+model ModifierOption {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  modifierGroupId String        @db.ObjectId
+  group           ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+
+  name            String        // e.g., "Chicken", "Large"
+  priceAdjustment Float         @default(0)  // Can be positive or negative
+  isAvailable     Boolean       @default(true)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  orderItemModifiers OrderItemModifier[]
+
+  @@index([modifierGroupId])
+}
+
+// Links products to modifier groups
+model ProductModifierGroup {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  productId       String        @db.ObjectId
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifierGroupId String        @db.ObjectId
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([productId, modifierGroupId])
+  @@index([productId])
+  @@index([modifierGroupId])
+}
+
+// Tracks selected modifiers in an order
+model OrderItemModifier {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  orderItemId     String         @db.ObjectId
+  orderItem       OrderItem      @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  modifierOptionId String        @db.ObjectId
+  modifierOption   ModifierOption @relation(fields: [modifierOptionId], references: [id])
+
+  // Snapshot data at order time
+  groupName       String  // e.g., "Size"
+  optionName      String  // e.g., "Large"
+  priceAdjustment Float   // Snapshot of price
+
+  quantity        Int     @default(1)  // For "2x Extra Cheese"
+
+  createdAt       DateTime @default(now())
+
+  @@index([orderItemId])
+}
+
+// ===============================
 // WALLET MODEL
 // ===============================
 model Wallet {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
   balance         Float    @default(0)
+  pendingBalance  Float    @default(0)
   totalEarned     Float    @default(0)
   totalWithdrawn  Float    @default(0)
   lastUpdated     DateTime @updatedAt
@@ -307,4 +418,85 @@ model Wallet {
 
   riderId  String? @unique @db.ObjectId
   rider    Rider?  @relation(fields: [riderId], references: [id])
+
+  transactions    Transaction[]
+  earningsRecords EarningsRecord[]
+  payoutSchedules PayoutSchedule[]
+}
+
+model Transaction {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  type        TransactionType
+  amount      Float
+  description String
+  reference   String?
+  orderId     String?          @db.ObjectId
+  breakdown   Json?
+  status      TransactionStatus @default(COMPLETED)
+  createdAt   DateTime         @default(now())
+
+  walletId    String           @db.ObjectId
+  wallet      Wallet           @relation(fields: [walletId], references: [id])
+
+  payoutSchedule PayoutSchedule?
+
+  @@index([walletId, createdAt])
+  @@index([orderId])
+}
+
+model EarningsRecord {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+
+  riderId         String    @db.ObjectId
+  rider           Rider     @relation(fields: [riderId], references: [id])
+
+  orderId         String    @unique @db.ObjectId
+  order           Order     @relation(fields: [orderId], references: [id])
+
+  walletId        String    @db.ObjectId
+  wallet          Wallet    @relation(fields: [walletId], references: [id])
+
+  baseFee         Float
+  distanceFee     Float
+  distanceKm      Float
+  peakMultiplier  Float     @default(1.0)
+  subtotal        Float
+  platformFee     Float
+  riderEarnings   Float
+  waitTimeMinutes Int       @default(0)
+  waitTimeFee     Float     @default(0)
+
+  completedAt     DateTime
+
+  createdAt       DateTime  @default(now())
+
+  @@index([riderId, completedAt])
+  @@index([walletId])
+}
+
+model PayoutSchedule {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  amount          Float
+  requestType     PayoutRequestType @default(WEEKLY)
+  status          PayoutStatus   @default(PENDING)
+
+  scheduledDate   DateTime
+  processedAt     DateTime?
+
+  bankName        String?
+  accountNumber   String?
+  accountName     String?
+
+  adminNotes      String?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  walletId        String         @db.ObjectId
+  wallet          Wallet         @relation(fields: [walletId], references: [id])
+
+  transactionId   String?        @unique @db.ObjectId
+  transaction     Transaction?   @relation(fields: [transactionId], references: [id])
+
+  @@index([walletId, status])
 }

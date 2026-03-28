@@ -8,7 +8,8 @@
       "@config/*": ["config/*"],
       "@lib/*": ["lib/*"],
       "@middleware/*": ["middleware/*"],
-      "@modules/*": ["modules/*"]
+      "@modules/*": ["modules/*"],
+      "@services/*": ["services/*"]
     },
     "rootDir": "src",
     "skipLibCheck": true,

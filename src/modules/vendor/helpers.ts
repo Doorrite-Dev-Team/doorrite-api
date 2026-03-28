@@ -141,35 +141,6 @@ function validateCreateProduct(body: any) {
   return out;
 }
 
-// export const createProductSchema = z.object({
-//   name: z.string().nonempty().min(2),
-//   description: z.string().optional(),
-//   basePrice: z.number().positive(),
-//   sku: z.string().optional(),
-//   attributes: z.record(z.any(), z.any()).optional(),
-//   isAvailable: z.boolean().optional(),
-//   variants: z
-//     .array(
-//       z.object({
-//         name: z.string().nonempty(),
-//         price: z.number().positive(),
-//         attributes: z.record(z.any(), z.any()).optional(),
-//         stock: z.number().int().nonnegative().optional(),
-//         isAvailable: z.boolean().optional(),
-//       })
-//     )
-//     .optional(),
-// });
-
-// export const updateProductSchema = z.object({
-//   name: z.string().min(2).optional(),
-//   description: z.string().optional(),
-//   basePrice: z.number().positive().optional(),
-//   sku: z.string().optional(),
-//   attributes: z.record(z.any(), z.any()).optional(),
-//   isAvailable: z.boolean().optional(),
-// });
-
 function validateUpdateProduct(body: any) {
   if (!body || typeof body !== "object")
     throw new AppError(400, "Invalid request body");
@@ -230,18 +201,18 @@ const positiveNumberSchema = z.preprocess(
     val === null || val === undefined || val === ""
       ? val
       : z.coerce.number().safeParse(val).success
-      ? z.coerce.number().parse(val)
-      : val,
+        ? z.coerce.number().parse(val)
+        : val,
   z
     .number("basePrice must be a number and Required")
-    .positive("basePrice must be a positive number")
+    .positive("basePrice must be a positive number"),
 );
 
 const variantSchema = z.object({
   name: z.string().trim().min(1, "name required"),
   price: positiveNumberSchema.refine(
     (val) => val > 0,
-    "price required and must be > 0"
+    "price required and must be > 0",
   ),
   attributes: z.record(z.any(), z.any()).optional().default({}),
   stock: z.number().int().nonnegative().optional(),
@@ -270,6 +241,96 @@ export const updateProductSchema = z.object({
   basePrice: positiveNumberSchema.optional(),
   sku: z.string().trim().optional(),
   attributes: z.record(z.any(), z.any()).optional(),
+});
+
+// ===============================
+// MODIFIER SCHEMAS (MVP)
+// ===============================
+
+export const createModifierGroupSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    isRequired: z.boolean().default(false),
+    minSelect: z.number().int().min(0).default(0),
+    maxSelect: z.number().int().min(1).default(1),
+    options: z
+      .array(
+        z.object({
+          name: z.string().min(1, "Option name required"),
+          priceAdjustment: z.number().default(0),
+        }),
+      )
+      .min(1, "At least one option required"),
+  })
+  .refine((data) => data.maxSelect >= data.minSelect, {
+    message: "maxSelect must be >= minSelect",
+  });
+
+export const updateModifierGroupSchema = z.object({
+  name: z.string().min(2).optional(),
+  isRequired: z.boolean().optional(),
+  minSelect: z.number().int().min(0).optional(),
+  maxSelect: z.number().int().min(1).optional(),
+});
+
+export const createModifierOptionSchema = z.object({
+  name: z.string().min(1, "Option name required"),
+  priceAdjustment: z.number().default(0),
+});
+
+export const updateModifierOptionSchema = z.object({
+  name: z.string().min(1).optional(),
+  priceAdjustment: z.number().optional(),
+  isAvailable: z.boolean().optional(),
+});
+
+// ===============================
+// ORDER WITH MODIFIERS SCHEMA
+// ===============================
+
+export const orderItemWithModifiersSchema = z.object({
+  productId: z.string().min(1),
+  variantId: z.string().optional(),
+  quantity: z.number().int().min(1).default(1),
+  modifiers: z
+    .array(
+      z.object({
+        modifierGroupId: z.string(),
+        selectedOptions: z
+          .array(
+            z.object({
+              modifierOptionId: z.string(),
+              quantity: z.number().int().min(1).default(1),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .optional(),
+});
+
+// Update existing createOrderSchema
+export const createOrderSchemaWithModifiers = z.object({
+  vendorId: z.string().min(1),
+  items: z.array(orderItemWithModifiersSchema).min(1),
+  contactInfo: z.object({
+    fullName: z.string().min(2),
+    phone: z.string().min(10),
+    email: z.email(),
+    instructions: z.string().optional(),
+  }),
+  deliveryAddress: z.object({
+    address: z.string().min(5),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    coordinates: z
+      .object({
+        lat: z.number(),
+        long: z.number(),
+      })
+      .optional(),
+  }),
+  paymentMethod: z.enum(["PAYSTACK", "CASH_ON_DELIVERY"]),
 });
 
 export {

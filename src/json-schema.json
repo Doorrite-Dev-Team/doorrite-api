@@ -142,6 +142,12 @@
         "address": {
           "$ref": "#/definitions/Address"
         },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "products": {
           "type": "array",
           "items": {
@@ -158,6 +164,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Review"
+          }
+        },
+        "modifierGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ModifierGroup"
           }
         },
         "wallet": {
@@ -237,6 +249,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Review"
+          }
+        },
+        "modifierGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductModifierGroup"
           }
         }
       }
@@ -385,6 +403,12 @@
               "type": "null"
             }
           ]
+        },
+        "earningsRecords": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EarningsRecord"
+          }
         }
       }
     },
@@ -446,7 +470,8 @@
             "PENDING",
             "SUCCESSFUL",
             "FAILED",
-            "REFUNDED"
+            "REFUNDED",
+            "COD"
           ]
         },
         "placedAt": {
@@ -499,6 +524,16 @@
           "items": {
             "$ref": "#/definitions/OrderHistory"
           }
+        },
+        "earningsRecord": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EarningsRecord"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -537,6 +572,16 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrderItemModifier"
+          }
+        },
+        "modifiersTotal": {
+          "type": "number",
+          "default": 0
         }
       }
     },
@@ -575,7 +620,8 @@
             "PENDING",
             "SUCCESSFUL",
             "FAILED",
-            "REFUNDED"
+            "REFUNDED",
+            "COD"
           ]
         },
         "paidAt": {
@@ -765,6 +811,141 @@
         }
       }
     },
+    "ModifierGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "vendor": {
+          "$ref": "#/definitions/Vendor"
+        },
+        "name": {
+          "type": "string"
+        },
+        "isRequired": {
+          "type": "boolean",
+          "default": false
+        },
+        "minSelect": {
+          "type": "integer",
+          "default": 0
+        },
+        "maxSelect": {
+          "type": "integer",
+          "default": 1
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ModifierOption"
+          }
+        },
+        "productAssignments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductModifierGroup"
+          }
+        }
+      }
+    },
+    "ModifierOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "group": {
+          "$ref": "#/definitions/ModifierGroup"
+        },
+        "name": {
+          "type": "string"
+        },
+        "priceAdjustment": {
+          "type": "number",
+          "default": 0
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "default": true
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "orderItemModifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrderItemModifier"
+          }
+        }
+      }
+    },
+    "ProductModifierGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "product": {
+          "$ref": "#/definitions/Product"
+        },
+        "modifierGroup": {
+          "$ref": "#/definitions/ModifierGroup"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "OrderItemModifier": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "orderItem": {
+          "$ref": "#/definitions/OrderItem"
+        },
+        "modifierOption": {
+          "$ref": "#/definitions/ModifierOption"
+        },
+        "groupName": {
+          "type": "string"
+        },
+        "optionName": {
+          "type": "string"
+        },
+        "priceAdjustment": {
+          "type": "number"
+        },
+        "quantity": {
+          "type": "integer",
+          "default": 1
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
     "Wallet": {
       "type": "object",
       "properties": {
@@ -772,6 +953,10 @@
           "type": "string"
         },
         "balance": {
+          "type": "number",
+          "default": 0
+        },
+        "pendingBalance": {
           "type": "number",
           "default": 0
         },
@@ -810,6 +995,238 @@
               "type": "null"
             }
           ]
+        },
+        "transactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transaction"
+          }
+        },
+        "earningsRecords": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EarningsRecord"
+          }
+        },
+        "payoutSchedules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PayoutSchedule"
+          }
+        }
+      }
+    },
+    "Transaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "EARNING",
+            "PAYOUT",
+            "BONUS",
+            "ADJUSTMENT"
+          ]
+        },
+        "amount": {
+          "type": "number"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "orderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "breakdown": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "default": "COMPLETED",
+          "enum": [
+            "PENDING",
+            "COMPLETED",
+            "CANCELLED",
+            "FAILED"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "wallet": {
+          "$ref": "#/definitions/Wallet"
+        },
+        "payoutSchedule": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PayoutSchedule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "EarningsRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "rider": {
+          "$ref": "#/definitions/Rider"
+        },
+        "order": {
+          "$ref": "#/definitions/Order"
+        },
+        "wallet": {
+          "$ref": "#/definitions/Wallet"
+        },
+        "baseFee": {
+          "type": "number"
+        },
+        "distanceFee": {
+          "type": "number"
+        },
+        "distanceKm": {
+          "type": "number"
+        },
+        "peakMultiplier": {
+          "type": "number",
+          "default": 1
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "platformFee": {
+          "type": "number"
+        },
+        "riderEarnings": {
+          "type": "number"
+        },
+        "waitTimeMinutes": {
+          "type": "integer",
+          "default": 0
+        },
+        "waitTimeFee": {
+          "type": "number",
+          "default": 0
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "PayoutSchedule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "requestType": {
+          "type": "string",
+          "default": "WEEKLY",
+          "enum": [
+            "WEEKLY",
+            "INSTANT"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "default": "PENDING",
+          "enum": [
+            "PENDING",
+            "APPROVED",
+            "PROCESSING",
+            "COMPLETED",
+            "REJECTED",
+            "FAILED"
+          ]
+        },
+        "scheduledDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "processedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "bankName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accountNumber": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accountName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "adminNotes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "wallet": {
+          "$ref": "#/definitions/Wallet"
+        },
+        "transaction": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Transaction"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -834,14 +1251,7 @@
           "default": "Nigeria"
         },
         "coordinates": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Coordinates"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/definitions/Coordinates"
         }
       }
     },
@@ -912,8 +1322,29 @@
     "orderHistory": {
       "$ref": "#/definitions/OrderHistory"
     },
+    "modifierGroup": {
+      "$ref": "#/definitions/ModifierGroup"
+    },
+    "modifierOption": {
+      "$ref": "#/definitions/ModifierOption"
+    },
+    "productModifierGroup": {
+      "$ref": "#/definitions/ProductModifierGroup"
+    },
+    "orderItemModifier": {
+      "$ref": "#/definitions/OrderItemModifier"
+    },
     "wallet": {
       "$ref": "#/definitions/Wallet"
+    },
+    "transaction": {
+      "$ref": "#/definitions/Transaction"
+    },
+    "earningsRecord": {
+      "$ref": "#/definitions/EarningsRecord"
+    },
+    "payoutSchedule": {
+      "$ref": "#/definitions/PayoutSchedule"
     }
   }
 }

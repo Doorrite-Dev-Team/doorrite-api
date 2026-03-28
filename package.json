@@ -16,6 +16,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
     "helmet": "^8.1.0",
+    "ioredis": "^5.9.3",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "nodemailer": "^7.0.5",
@@ -49,7 +50,7 @@
   "license": "ISC",
   "main": "index.js",
   "name": "doorrite-api",
-  "packageManager": "pnpm@10.29.1",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json && tsc-alias",
     "dev": "pnpm run dev:server",

@@ -28,11 +28,15 @@ export const getUser = async (req: Request, res: Response) => {
     const cacheHit = await cacheService.get<{ user: any }>(key);
 
     if (cacheHit) {
-      console.debug("--------------------------------Cache----------------------------");
+      console.debug(
+        "--------------------------------Cache----------------------------",
+      );
       return sendSuccess(res, cacheHit, 200);
     }
 
-    console.debug("--------------------------------Missed----------------------------");
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -41,7 +45,9 @@ export const getUser = async (req: Request, res: Response) => {
     if (!user) throw new AppError(404, "User not found");
 
     const data = { user };
-    console.debug("--------------------------------Adding to Cache----------------------------");
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
     await cacheService.set(key, data);
 
     return sendSuccess(res, data, 200);
@@ -100,11 +106,15 @@ export const getCurrentUserProfile = async (req: Request, res: Response) => {
     const cacheHit = await cacheService.get<{ user: any }>(key);
 
     if (cacheHit) {
-      console.debug("--------------------------------Cache----------------------------");
+      console.debug(
+        "--------------------------------Cache----------------------------",
+      );
       return sendSuccess(res, cacheHit, 200);
     }
 
-    console.debug("--------------------------------Missed----------------------------");
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -113,7 +123,9 @@ export const getCurrentUserProfile = async (req: Request, res: Response) => {
     if (!user) throw new AppError(404, "User not found");
 
     const data = { user };
-    console.debug("--------------------------------Adding to Cache----------------------------");
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
     await cacheService.set(key, data);
 
     return sendSuccess(res, data, 200);
@@ -204,7 +216,9 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     // Invalidate user cache
     await cacheService.invalidate(cacheService.generateKey("users", id));
-    await cacheService.invalidate(cacheService.generateKey("users", `profile_${id}`));
+    await cacheService.invalidate(
+      cacheService.generateKey("users", `profile_${id}`),
+    );
 
     return sendSuccess(res, {
       message: "User updated successfully",
@@ -234,15 +248,25 @@ export const getUserOrders = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const key = cacheService.generateKey("userOrders", `${userId}_${page}_${limit}_${skip}`);
-    const cacheHit = await cacheService.get<Pagination<{ orders: any[]; pagination: any }>>(key);
+    const key = cacheService.generateKey(
+      "userOrders",
+      `${userId}_${page}_${limit}_${skip}`,
+    );
+    const cacheHit =
+      await cacheService.get<Pagination<{ orders: any[]; pagination: any }>>(
+        key,
+      );
 
     if (cacheHit) {
-      console.debug("--------------------------------Cache----------------------------");
+      console.debug(
+        "--------------------------------Cache----------------------------",
+      );
       return sendSuccess(res, cacheHit, 200);
     }
 
-    console.debug("--------------------------------Missed----------------------------");
+    console.debug(
+      "--------------------------------Missed----------------------------",
+    );
 
     const [totalItems, orders] = await Promise.all([
       prisma.order.count({ where: { customerId: userId } }),
@@ -270,7 +294,9 @@ export const getUserOrders = async (req: Request, res: Response) => {
     };
 
     const data = { orders, pagination };
-    console.debug("--------------------------------Adding to Cache----------------------------");
+    console.debug(
+      "--------------------------------Adding to Cache----------------------------",
+    );
     await cacheService.set(key, data);
 
     return sendSuccess(res, data, 200);

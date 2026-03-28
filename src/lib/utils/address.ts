@@ -27,7 +27,7 @@ export const addressSchema = z.object({
     })
     .min(5, "Address must be at least 5 characters long")
     .max(200, "Address must be under 200 characters"),
-  coordinates: coordinatesSchema.optional(),
+  coordinates: coordinatesSchema,
   state: z
     .string()
     .optional()

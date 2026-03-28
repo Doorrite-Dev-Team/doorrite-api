@@ -1,4 +1,4 @@
-import { redis } from "./redis";
+import { redis, redisSet } from "./redis";
 
 export class CacheMemory {
   // Used for local tracking or L1 bypass; optional for pure Redis setups
@@ -9,9 +9,13 @@ export class CacheMemory {
   }
 
   public async get<T>(key: string): Promise<T | null> {
-    const data = await redis.get<T>(key);
+    const data = (await redis.get(key)) as T | null;
 
     if (!data) return null;
+
+    if (typeof data === "string") {
+      return JSON.parse(data) as T;
+    }
     return data;
   }
 
@@ -20,7 +24,7 @@ export class CacheMemory {
     value: any,
     ttlSeconds: number = 3600,
   ): Promise<void> {
-    await redis.set(key, JSON.stringify(value), { ex: ttlSeconds });
+    await redisSet(key, JSON.stringify(value), ttlSeconds);
     this.CacheKeys.add(key);
   }
 

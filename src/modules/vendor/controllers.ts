@@ -4,19 +4,19 @@ import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { isValidNigerianPhone } from "@modules/auth/helper";
 import { isValidObjectId } from "@modules/product/helpers";
 import { Request, Response } from "express";
-import {
-  coerceNumber,
-  createProductSchema,
-  updateProductSchema,
-} from "./helpers";
 import { addressSchema } from "@lib/utils/address";
 import { verifyOCCode } from "@config/redis";
 import { getActorFromReq } from "@lib/utils/req-res";
 import { AppSocketEvent } from "constants/socket";
 import { socketService } from "@config/socket";
 import { cacheService } from "@config/cache";
-import { Pagination } from "types/types";
 import { Vendor } from "generated/prisma";
+import {
+  calculateDeliveryTime,
+  calculateDeliveryFee,
+  calculateIsOpen,
+  calculateDistance,
+} from "@lib/utils/location";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -203,6 +203,213 @@ export const getAllVendors = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllVendorsV2 = async (req: Request, res: Response) => {
+  try {
+    const {
+      page = "1",
+      limit = "20",
+      q, // Search vendor name
+      cuisine, // Filter by cuisine/category
+      open, // Filter by open/closed
+      sort = "recommended", // Sort option
+      freeDelivery, // Filter free delivery (NEW FIELD NEEDED)
+      fastDelivery, // Filter fast delivery
+      topRated, // Filter top rated (4.5+)
+      priceRange, // budget/mid/premium
+      lat, // User latitude for distance calculation
+      lng, // User longitude
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.min(
+      100,
+      Math.max(1, parseInt(String(limit), 10) || 20),
+    );
+
+    const where: any = {
+      isActive: true,
+      isVerified: true,
+      isApproved: true, // Only show approved vendors
+    };
+
+    // 1. SEARCH BY VENDOR NAME
+    if (q && typeof q === "string" && q.trim().length) {
+      where.businessName = {
+        contains: q.trim(),
+        mode: "insensitive",
+      };
+    }
+
+    // 2. FILTER BY CUISINE/CATEGORY
+    if (cuisine && typeof cuisine === "string" && cuisine !== "all") {
+      // categories is String[] in schema
+      where.categories = {
+        has: cuisine, // Check if array contains this cuisine
+      };
+    }
+
+    // 3. FILTER BY OPEN/CLOSED (needs calculation)
+    // NOTE: This requires runtime calculation based on openingTime/closingTime
+    // We'll handle this AFTER fetching vendors (see below)
+
+    // 4. FILTER BY TOP RATED
+    if (topRated === "true") {
+      where.rating = { gte: 4.5 };
+    }
+
+    // 5. FILTER BY PRICE RANGE (NEW FIELD NEEDED IN SCHEMA)
+    // You'll need to add a 'priceRange' field to Vendor schema
+    // OR calculate it based on average product prices
+    if (priceRange && priceRange !== "all") {
+      // Option A: Add field to schema
+      // where.priceRange = priceRange;
+      // Option B: Calculate from products (more accurate but slower)
+      // Skip for now, handle in frontend
+    }
+
+    // 6. SORTING
+    let orderBy: any = {};
+    switch (sort) {
+      case "rating":
+        orderBy = { rating: "desc" };
+        break;
+      case "distance":
+        // Handle distance sorting separately (needs lat/lng calculation)
+        orderBy = { createdAt: "desc" }; // Fallback
+        break;
+      case "delivery_time":
+        orderBy = { avrgPreparationTime: "asc" }; // Sort by prep time
+        break;
+      case "price_low":
+      case "price_high":
+        // Would need average product price calculation
+        orderBy = { createdAt: "desc" }; // Fallback
+        break;
+      case "popular":
+        // Would need order count calculation
+        orderBy = { createdAt: "desc" }; // Fallback
+      case "recommended":
+      default:
+        // ML-based or composite score
+        orderBy = { rating: "desc" }; // Simple fallback
+        break;
+    }
+
+    // FETCH VENDORS
+    const [vendors, total] = await Promise.all([
+      prisma.vendor.findMany({
+        where,
+        include: {
+          products: {
+            where: { isAvailable: true },
+            select: { id: true, basePrice: true }, // For price range calc
+            take: 5, // Just get a few for calculations
+          },
+          reviews: {
+            select: { rating: true },
+            take: 1, // Just to check if reviews exist
+          },
+        },
+        orderBy,
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+      }),
+      prisma.vendor.count({ where }),
+    ]);
+
+    // POST-PROCESSING: Add calculated fields
+    const enrichedVendors = vendors.map((vendor) => {
+      // Calculate if vendor is currently open
+      const isOpen = calculateIsOpen(
+        vendor.openingTime || undefined,
+        vendor.closingTime || undefined,
+      );
+
+      // Calculate delivery time (prep time + delivery estimate)
+      const deliveryTime = calculateDeliveryTime(
+        vendor.avrgPreparationTime || undefined,
+        lat ? parseFloat(String(lat)) : undefined,
+        lng ? parseFloat(String(lng)) : undefined,
+        vendor.address,
+      );
+      console.debug("Delivery time:", deliveryTime);
+
+      // Calculate delivery fee (NEEDS NEW LOGIC - see below)
+      const deliveryFee = calculateDeliveryFee(
+        vendor,
+        lat ? parseFloat(String(lat)) : undefined,
+        lng ? parseFloat(String(lng)) : undefined,
+      );
+
+      // Calculate distance if user location provided
+      const distance =
+        lat &&
+        lng &&
+        vendor.address?.coordinates?.lat &&
+        vendor.address?.coordinates?.long
+          ? calculateDistance(
+              parseFloat(String(lat)),
+              parseFloat(String(lng)),
+              vendor.address.coordinates.lat,
+              vendor.address.coordinates.long,
+            )
+          : undefined;
+
+      return {
+        id: vendor.id,
+        businessName: vendor.businessName,
+        logoUrl: vendor.logoUrl,
+        cuisine: vendor.categories, // Map to cuisine array
+        rating: vendor.rating || 0,
+        reviewCount: vendor.reviews?.length || 0,
+        deliveryTime, // "25-35 min"
+        deliveryFee, // 0 for free, number for paid
+        isOpen,
+        distance, // in km
+        address: vendor.address,
+        avrgPreparationTime: vendor.avrgPreparationTime,
+        // Don't expose internal fields
+      };
+    });
+
+    // FILTER BY OPEN (now that we calculated it)
+    let filteredVendors = enrichedVendors;
+    if (open === "true") {
+      filteredVendors = enrichedVendors.filter((v) => v.isOpen);
+    }
+
+    // FILTER BY FREE DELIVERY
+    if (freeDelivery === "true") {
+      filteredVendors = filteredVendors.filter((v) => v.deliveryFee === 0);
+    }
+
+    // FILTER BY FAST DELIVERY (under 30 min)
+    if (fastDelivery === "true") {
+      filteredVendors = filteredVendors.filter((v) => {
+        const maxTime = parseInt(v.deliveryTime.split("-")[1] || "99");
+        return maxTime <= 30;
+      });
+    }
+
+    // SORT BY DISTANCE (if applicable)
+    if (sort === "distance" && lat && lng) {
+      filteredVendors.sort((a, b) => (a.distance || 999) - (b.distance || 999));
+    }
+
+    return sendSuccess(res, {
+      vendors: filteredVendors,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: filteredVendors.length, // Adjusted total after filtering
+        pages: Math.ceil(filteredVendors.length / limitNum),
+      },
+    });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
 //Update Vendor Profile
 // PUT api/v1/vendors/me
 export const updateVendorProfile = async (req: Request, res: Response) => {
@@ -332,423 +539,6 @@ export const getVendorProducts = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/v1/products
-export const createProduct = async (req: Request, res: Response) => {
-  /**
-   * #swagger.tags = ['Vendor', 'Vendor Products']
-   * #swagger.summary = 'Create a new product'
-   * #swagger.description = 'Creates a new product for the authenticated vendor.'
-   * #swagger.parameters['body'] = {in: 'body',description: 'Required product data, including name, description, and base price.',required: true,schema: {type: 'object',required: ['name', 'basePrice'],properties: {name: { type: 'string', minLength: 2, description: 'Product name (min 2 characters, required).', example: 'Doorite Food' },description: { type: 'string', description: 'Detailed product description.', example: 'Doorite Food' },basePrice: { type: 'number', minimum: 0.01, description: 'Base price of the product (required, positive number).', example: 5000 },sku: { type: 'string', description: 'Stock keeping unit.', example: '' },attributes: { type: 'object', description: 'A dictionary of custom product attributes.', example: {} },isAvailable: { type: 'boolean', default: true, description: 'Product availability status.', example: false },variants: {type: 'array',description: 'List of product variants.', example: {}}}}}
-   */
-  try {
-    const vendorId = req.user?.sub;
-
-    if (!vendorId) throw new AppError(401, "Authentication required");
-
-    // const data = validateCreateProduct(req.body || {});
-    const { error, data } = createProductSchema.safeParse(req.body);
-    if (error) {
-      throw new AppError(400, `Fail to Validate the input ${error.cause}`);
-    }
-
-    // verify vendor
-    const vendor = await prisma.vendor.findUnique({
-      where: { id: vendorId },
-      select: { id: true, isActive: true, isVerified: true },
-    });
-
-    if (!vendor || !vendor.isActive || !vendor.isVerified)
-      throw new AppError(403, "Vendor account not active or verified");
-
-    const result = await prisma.$transaction(async (tx) => {
-      const product = await tx.product.create({
-        data: {
-          vendorId: vendorId,
-          name: data.name,
-          description: data.description,
-          basePrice: data.basePrice,
-          sku: data.sku,
-          attributes: data.attributes || {},
-          isAvailable: data.isAvailable !== false,
-        },
-      });
-
-      let variants = [] as any[];
-      if (data.variants && data.variants.length) {
-        const vPromises = data.variants.map((v: any) =>
-          tx.productVariant.create({
-            data: {
-              productId: product.id,
-              name: v.name,
-              price: v.price,
-              // attributes: v.attributes || {},
-              stock: v.stock ?? undefined,
-              isAvailable: v.isAvailable !== false,
-            },
-          }),
-        );
-        variants = await Promise.all(vPromises);
-      }
-
-      return { product, variants };
-    });
-
-    // fetch full product for response
-    const complete = await prisma.product.findUnique({
-      where: { id: result.product.id },
-      include: {
-        variants: { orderBy: { createdAt: "asc" } },
-        vendor: { select: { id: true, businessName: true } },
-      },
-    });
-
-    // Invalidate vendor and product caches
-    await cacheService.invalidatePattern("vendors");
-    await cacheService.invalidatePattern("products");
-
-    return sendSuccess(
-      res,
-      { message: "Product created successfully", product: complete },
-      201,
-    );
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
-
-// PUT /api/v1/vendors/products/:id
-export const updateProduct = async (req: Request, res: Response) => {
-  /**
-   * #swagger.tags = ['Vendor', 'Vendor Products']
-   * #swagger.summary = 'Update a product'
-   * #swagger.description = 'Updates an existing product for the authenticated vendor.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = {in: 'body',description: 'Product fields to update. At least one field is required.',required: true,schema: {type: 'object',properties: {name: { type: 'string', minLength: 2, description: 'New product name (min 2 characters).' },description: { type: 'string', description: 'New detailed product description.' },basePrice: { type: 'number', minimum: 0.01, description: 'New base price (positive number).' },sku: { type: 'string', description: 'New stock keeping unit.' },attributes: { type: 'object', description: 'A dictionary of custom product attributes.' },isAvailable: { type: 'boolean', description: 'New product availability status.' }}}}
-   */
-  try {
-    const vendorId = req.user?.sub;
-    const { id: productId } = req.params;
-    if (!isValidObjectId(productId))
-      throw new AppError(400, "Product ID is required");
-
-    const { data: updateData, error } = updateProductSchema.safeParse(
-      req.body || {},
-    );
-    if (error)
-      throw new AppError(400, `Error Validating the Inputs: ${error.cause}`);
-
-    const existing = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, vendorId: true },
-    });
-    if (!existing) throw new AppError(404, "Product not found");
-    if (existing.vendorId !== vendorId)
-      throw new AppError(
-        403,
-        "Unauthorized: Cannot modify another vendor's product",
-      );
-
-    const updated = await prisma.product.update({
-      where: { id: productId },
-      data: {
-        ...updateData,
-      },
-      include: { variants: { orderBy: { createdAt: "asc" } } },
-    });
-
-    // Invalidate vendor and product caches
-    await cacheService.invalidatePattern("vendors");
-    await cacheService.invalidatePattern("products");
-
-    return sendSuccess(res, {
-      message: "Product updated successfully",
-      product: updated,
-    });
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
-
-// POST /api/v1/vendors/products/:id/prepare-delete
-// export const prepareProductDeletion = async (req: Request, res: Response) => {
-//   try {
-//     const vendorId = req.user?.sub
-//     const { id: productId } = req.params;
-//     if (!isValidObjectId(productId))
-//       throw new AppError(400, "Product ID is required");
-
-//     const product = await prisma.product.findUnique({
-//       where: { id: productId },
-//       select: { id: true, vendorId: true, isAvailable: true },
-//     });
-//     if (!product) throw new AppError(404, "Product not found");
-//     if (product.vendorId !== vendorId)
-//       throw new AppError(
-//         403,
-//         "Unauthorized: Cannot delete another vendor's product"
-//       );
-
-//     const [updatedProduct] = await prisma.$transaction([
-//       prisma.product.update({
-//         where: { id: productId },
-//         data: { isAvailable: false },
-//       }),
-//       prisma.productVariant.updateMany({
-//         where: { productId },
-//         data: { isAvailable: false },
-//       }),
-//     ]);
-
-//     return sendSuccess(res, {
-//       message: "Product marked as unavailable (prepare-delete)",
-//       product: updatedProduct,
-//     });
-//   } catch (err) {
-//     return handleError(res, err);
-//   }
-// };
-
-// DELETE /api/v1/vendors/products/:id
-export const deleteProduct = async (req: Request, res: Response) => {
-  /**
-   * #swagger.tags = ['Vendor', 'Vendor Products']
-   * #swagger.summary = 'Delete a product'
-   * #swagger.description = 'Deletes a product for the authenticated vendor. Fails if the product has been ordered.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   */
-  try {
-    const vendorId = req.user?.sub;
-    const { id: productId } = req.params;
-    if (!isValidObjectId(productId))
-      throw new AppError(400, "Product ID is required");
-
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      // select: { id: true, vendorId: true },
-      include: { orderItems: { select: { id: true }, take: 1 } },
-    });
-
-    if (!product) throw new AppError(404, "Product not found");
-    if (product.vendorId !== vendorId)
-      throw new AppError(
-        403,
-        "Unauthorized: Cannot delete another vendor's product",
-      );
-
-    // if there are orderItems, refuse permanent deletion
-    if (product.orderItems && product.orderItems.length > 0) {
-      throw new AppError(
-        400,
-        "Cannot permanently delete product that has been ordered. Use prepare-delete instead.",
-      );
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.productVariant.deleteMany({ where: { productId } });
-      await tx.product.delete({ where: { id: productId } });
-    });
-
-    // Invalidate vendor and product caches
-    await cacheService.invalidatePattern("vendors");
-    await cacheService.invalidatePattern("products");
-
-    return sendSuccess(res, { message: "Product permanently deleted" });
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
-
-// POST /api/v1/vendors/products/:id/variants
-export const createProductVariant = async (req: Request, res: Response) => {
-  /**
-   * #swagger.tags = ['Vendor', 'Vendor Products']
-   * #swagger.summary = 'Create a product variant'
-   * #swagger.description = 'Creates a new variant for a specific product.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to create', required: true}
-   */
-  try {
-    const vendorId = req.user?.sub;
-    const { id: productId } = req.params;
-
-    if (!isValidObjectId(productId))
-      throw new AppError(400, "Product ID is required");
-
-    const { name, price, attributes, stock, isAvailable } = req.body || {};
-
-    if (attributes !== undefined && typeof attributes !== "object") {
-      throw new AppError(400, "attributes must be a JSON object");
-    }
-
-    if (!name || typeof name !== "string" || name.trim().length === 0)
-      throw new AppError(400, "Variant name is required");
-    const priceNum = coerceNumber(price);
-    if (priceNum === null || priceNum <= 0)
-      throw new AppError(400, "Valid variant price is required");
-
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, vendorId: true },
-    });
-    if (!product) throw new AppError(404, "Product not found");
-    if (product.vendorId !== vendorId)
-      throw new AppError(
-        403,
-        "Unauthorized: Cannot modify another vendor's product",
-      );
-
-    const variant = await prisma.productVariant.create({
-      data: {
-        productId,
-        name: name.trim(),
-        price: priceNum,
-        // attributes: attributes ?? {},
-        stock: Number.isInteger(stock) ? stock : undefined,
-        isAvailable: isAvailable === undefined ? true : Boolean(isAvailable),
-      },
-    });
-
-    // Invalidate vendor and product caches
-    await cacheService.invalidatePattern("vendors");
-    await cacheService.invalidatePattern("products");
-
-    return sendSuccess(
-      res,
-      { message: "Product variant created successfully", variant },
-      201,
-    );
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
-
-// PUT /api/v1/vendors/products/:id/variants/:variantId
-export const updateProductVariant = async (req: Request, res: Response) => {
-  /**
-   * #swagger.tags = ['Vendor', 'Vendor Products']
-   * #swagger.summary = 'Update a product variant'
-   * #swagger.description = 'Updates a specific product variant.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   * #swagger.parameters['variantId'] = { in: 'path', description: 'Variant ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to update', required: true}
-   */
-  try {
-    const vendorId = req.user?.sub;
-    const { id: productId, variantId } = req.params;
-
-    if (!isValidObjectId(productId) || !isValidObjectId(variantId))
-      throw new AppError(400, "Product ID and Variant ID are required");
-
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, vendorId: true },
-    });
-    if (!product) throw new AppError(404, "Product not found");
-    if (product.vendorId !== vendorId)
-      throw new AppError(
-        403,
-        "Unauthorized: Cannot modify another vendor's product",
-      );
-
-    const existingVariant = await prisma.productVariant.findFirst({
-      where: { id: variantId, productId },
-    });
-    if (!existingVariant) throw new AppError(404, "Product variant not found");
-
-    const { name, price, attributes, stock, isAvailable } = req.body || {};
-    const updateData: any = {};
-
-    if (name !== undefined) {
-      if (typeof name !== "string" || name.trim().length === 0)
-        throw new AppError(400, "Valid variant name is required");
-      updateData.name = name.trim();
-    }
-
-    if (price !== undefined) {
-      const priceNum = coerceNumber(price);
-      if (priceNum === null || priceNum <= 0)
-        throw new AppError(400, "Valid variant price is required");
-      updateData.price = priceNum;
-    }
-
-    if (attributes !== undefined) updateData.attributes = attributes;
-    if (stock !== undefined) {
-      if (!Number.isInteger(stock) || stock < 0)
-        throw new AppError(400, "stock must be an integer >= 0");
-      updateData.stock = stock;
-    }
-    if (isAvailable !== undefined)
-      updateData.isAvailable = Boolean(isAvailable);
-
-    const updated = await prisma.productVariant.update({
-      where: { id: variantId },
-      data: updateData,
-    });
-
-    // Invalidate vendor and product caches
-    await cacheService.invalidatePattern("vendors");
-    await cacheService.invalidatePattern("products");
-
-    return sendSuccess(res, {
-      message: "Product variant updated successfully",
-      variant: updated,
-    });
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
-
-// DELETE /api/v1/vendors/products/:id/variants/:variantId
-export const deleteProductVariant = async (req: Request, res: Response) => {
-  /**
-   * #swagger.tags = ['Vendor', 'Vendor Products']
-   * #swagger.summary = 'Delete a product variant'
-   * #swagger.description = 'Deletes a specific product variant. Fails if the variant has been ordered.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   * #swagger.parameters['variantId'] = { in: 'path', description: 'Variant ID', required: true, type: 'string' }
-   */
-  try {
-    const vendorId = req.user?.sub;
-    const { id: productId, variantId } = req.params;
-
-    if (!isValidObjectId(productId) || !isValidObjectId(variantId))
-      throw new AppError(400, "Product ID and Variant ID are required");
-
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, vendorId: true },
-    });
-    if (!product) throw new AppError(404, "Product not found");
-    if (product.vendorId !== vendorId)
-      throw new AppError(
-        403,
-        "Unauthorized: Cannot modify another vendor's product",
-      );
-
-    const variant = await prisma.productVariant.findUnique({
-      where: { id: variantId },
-      include: { orderItems: { select: { id: true }, take: 1 } },
-    });
-    if (!variant || variant.productId !== productId)
-      throw new AppError(404, "Product variant not found");
-
-    if (variant.orderItems && variant.orderItems.length > 0)
-      throw new AppError(400, "Cannot delete variant that has been ordered");
-
-    await prisma.productVariant.delete({ where: { id: variantId } });
-
-    // Invalidate vendor and product caches
-    await cacheService.invalidatePattern("vendors");
-    await cacheService.invalidatePattern("products");
-
-    return sendSuccess(res, {
-      message: "Product variant deleted successfully",
-    });
-  } catch (err) {
-    return handleError(res, err);
-  }
-};
-
 //GET /vendors/orders/?page=&limit= - List vendor orders
 export const getVendorOrders = async (req: Request, res: Response) => {
   /**
@@ -834,89 +624,6 @@ export const getVendorOrderById = async (req: Request, res: Response) => {
   }
 };
 
-// PATCH /vendors/orders/:orderId/status
-// export const updateOrderStatus = async (req: Request, res: Response) => {
-//   /**
-//    * #swagger.tags = ['Vendor', 'Vendor Orders']
-//    * #swagger.summary = 'Update order status'
-//    * #swagger.description = 'Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, or CANCELLED.'
-//    * #swagger.security = [{ "bearerAuth": [] }]
-//    * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
-//    * #swagger.parameters['body'] = { in: 'body', description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'CANCELLED'] }, note: { type: 'string' } } } }
-//    */
-//   try {
-//     const vendorId = req.user?.sub;
-//     const { orderId } = req.params;
-//     const { status, note } = req.body;
-
-//     if (!vendorId) throw new AppError(401, "Unauthorized");
-//     if (!orderId) throw new AppError(400, "Order ID is required");
-//     if (!status) throw new AppError(400, "Status is required");
-
-//     // Verify order belongs to vendor
-//     const order = await prisma.order.findFirst({
-//       where: { id: orderId, vendorId },
-//     });
-
-//     if (!order) throw new AppError(404, "Order not found");
-
-//     // Vendor can only set these statuses
-//     const allowedStatuses = ["ACCEPTED", "PREPARING", "CANCELLED"];
-//     if (!allowedStatuses.includes(status)) {
-//       throw new AppError(
-//         400,
-//         `Vendors can only set status to: ${allowedStatuses.join(", ")}`,
-//       );
-//     }
-
-//     const result = await prisma.$transaction(async (tx) => {
-//       const updated = await tx.order.update({
-//         where: { id: orderId },
-//         data: { status },
-//         include: {
-//           items: true,
-//           customer: {
-//             select: { id: true, fullName: true, email: true },
-//           },
-//           rider: {
-//             select: { id: true, fullName: true },
-//           },
-//         },
-//       });
-
-//       await tx.orderHistory.create({
-//         data: {
-//           orderId,
-//           status,
-//           actorId: vendorId,
-//           actorType: "VENDOR",
-//           note: note ?? `Order status updated to ${status}`,
-//         },
-//       });
-
-//       return updated;
-//     });
-
-//     // Emit order update
-//     try {
-//       socketService.emitOrderUpdate(result);
-//     } catch (e: Error | any) {
-//       console.warn("Failed to emit order update:", e?.message || e);
-//     }
-
-//     return sendSuccess(res, {
-//       message: `Order status updated to ${status}`,
-//       order: result,
-//     });
-//   } catch (error) {
-//     handleError(res, error);
-//   }
-// };
-/**
- * PATCH /vendors/orders/:orderId/status
- * Update order status (Vendor Only)
- * Allowed statuses: ACCEPTED, PREPARING, READY_FOR_PICKUP, CANCELLED
- */
 export const updateOrderStatus = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor', 'Vendor Orders']

@@ -2,6 +2,12 @@ import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { Request, Response } from "express";
 import { coerceNumber, isValidObjectId } from "./helpers";
 import prisma from "@config/db";
+import {
+  calculateDeliveryTime,
+  calculateDeliveryFee,
+  calculateIsOpen,
+  calculateDistance,
+} from "@lib/utils/location";
 
 /*
   Complete Product controllers (TypeScript + Express) matching the MVP Prisma schema
@@ -26,91 +32,130 @@ import prisma from "@config/db";
 */
 // ----- Controllers -----
 
-// GET /api/v1/products/?page=&limit=&vendorId=&search=&minPrice=&maxPrice=
+// GET /api/v1/products/?q=&lat=&lng=
 export const getProducts = async (req: Request, res: Response) => {
   try {
-    const {
-      page = "1",
-      limit = "20",
-      q,
-      category,
-      sort,
-      price,
-      open,
-    } = req.query;
+    const { q, lat, lng } = req.query;
 
-    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
-    const limitNum = Math.min(
-      100,
-      Math.max(1, parseInt(String(limit), 10) || 20),
+    if (!q || typeof q !== "string" || q.trim().length < 2) {
+      throw new AppError(400, "Search query must be at least 2 characters");
+    }
+
+    const userLat = lat ? parseFloat(String(lat)) : undefined;
+    const userLng = lng ? parseFloat(String(lng)) : undefined;
+
+    const products = await prisma.product.findMany({
+      where: {
+        isAvailable: true,
+        OR: [
+          { name: { contains: q.trim(), mode: "insensitive" } },
+          { description: { contains: q.trim(), mode: "insensitive" } },
+        ],
+        vendor: {
+          isActive: true,
+          isVerified: true,
+          isApproved: true,
+        },
+      },
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            logoUrl: true,
+            rating: true,
+            avrgPreparationTime: true,
+            openingTime: true,
+            closingTime: true,
+            address: true,
+            categories: true,
+          },
+        },
+        variants: {
+          where: { isAvailable: true },
+          select: { id: true, name: true, price: true },
+          take: 3,
+        },
+      },
+      take: 50,
+    });
+
+    const vendorMap = new Map<string, any>();
+
+    products.forEach((product) => {
+      const vendorId = product.vendor.id;
+
+      if (!vendorMap.has(vendorId)) {
+        const isOpen = calculateIsOpen(
+          product.vendor.openingTime || undefined,
+          product.vendor.closingTime || undefined,
+        );
+        const deliveryTime = calculateDeliveryTime(
+          product.vendor.avrgPreparationTime || undefined,
+          userLat,
+          userLng,
+          product.vendor.address,
+        );
+        const deliveryFee = calculateDeliveryFee(
+          product.vendor,
+          userLat,
+          userLng,
+        );
+        const distance =
+          userLat &&
+          userLng &&
+          product.vendor.address?.coordinates?.lat &&
+          product.vendor.address?.coordinates?.long
+            ? calculateDistance(
+                userLat,
+                userLng,
+                product.vendor.address.coordinates.lat,
+                product.vendor.address.coordinates.long,
+              )
+            : undefined;
+
+        vendorMap.set(vendorId, {
+          vendor: {
+            id: product.vendor.id,
+            businessName: product.vendor.businessName,
+            logoUrl: product.vendor.logoUrl,
+            cuisine: product.vendor.categories,
+            rating: product.vendor.rating || 0,
+            deliveryTime,
+            deliveryFee,
+            isOpen,
+            distance,
+          },
+          products: [],
+          matchCount: 0,
+        });
+      }
+
+      const vendorData = vendorMap.get(vendorId);
+      vendorData.products.push({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        basePrice: product.basePrice,
+        variants: product.variants,
+      });
+      vendorData.matchCount++;
+    });
+
+    const groupedResults = Array.from(vendorMap.values()).sort(
+      (a: any, b: any) => b.matchCount - a.matchCount,
     );
 
-    const where: any = { isAvailable: true };
+    const data = {
+      query: q,
+      groupedResults,
+      totalVendors: groupedResults.length,
+      totalProducts: products.length,
+    };
 
-    // Search by name or description
-    if (q && typeof q === "string" && q.trim().length) {
-      where.OR = [
-        { name: { contains: q.trim(), mode: "insensitive" } },
-        { description: { contains: q.trim(), mode: "insensitive" } },
-      ];
-    }
+    console.log(data);
 
-    // Filter by category
-    if (category && typeof category === "string" && category.trim().length) {
-      where.category = category.trim();
-    }
-
-    // Filter by price (Nigeria: find food closer to the price ±1000 NGN)
-    if (price && typeof price === "string") {
-      const priceNum = coerceNumber(price.replace(/[^0-9.]/g, ""));
-      if (priceNum !== null && priceNum >= 0) {
-        where.basePrice = {
-          gte: priceNum - 1000 >= 0 ? priceNum - 1000 : 0,
-          lte: priceNum + 1000,
-        };
-      }
-    }
-
-    // Filter by open vendors
-    if (open === "true") {
-      where.vendor = { isActive: true, isVerified: true };
-    }
-
-    // Sorting
-    let orderBy: any = { createdAt: "desc" };
-    if (sort === "distance") {
-      // Placeholder: sort by vendor's distance if available (requires geo data)
-      // orderBy = { vendor: { distance: "asc" } }; // Needs implementation
-    } else if (sort === "price") {
-      orderBy = { basePrice: "asc" };
-    }
-
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          variants: {
-            where: { isAvailable: true },
-            orderBy: { createdAt: "asc" },
-          },
-          vendor: { select: { id: true, businessName: true, logoUrl: true } },
-        },
-        orderBy,
-        skip: (pageNum - 1) * limitNum,
-        take: limitNum,
-      }),
-      prisma.product.count({ where }),
-    ]);
-
-    return sendSuccess(res, {
-      products,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum),
-      },
-    });
+    return sendSuccess(res, data);
   } catch (err) {
     return handleError(res, err);
   }

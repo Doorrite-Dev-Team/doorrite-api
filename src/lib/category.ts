@@ -1,113 +1,57 @@
-// Categories & Subcategories inspired by Chowdeck + Glovo Nigeria
-export const DeliveryCategories = {
-  food: {
-    cuisines: [
-      "Nigerian / Local",
-      "African (non-Nigerian)",
-      "International (Indian, Chinese, Italian, etc.)",
-    ],
-    mealTypes: [
-      "Breakfast",
-      "Lunch / Dinner",
-      "Fast Food",
-      "Healthy / Fit Fam",
-    ],
-    dishTypes: [
-      "Burgers",
-      "Pizza",
-      "Seafood",
-      "Sushi",
-      "Chicken (fried, grilled, etc.)",
-      "Soups",
-      "Rice / Pasta",
-      "Sandwiches",
-      "Desserts / Pastries / Ice Cream",
-    ],
-    combos: ["Value Meals", "Chowsmart-type Combos"],
-  },
+export const CUISINES = [
+  "Nigerian / Local",
+  "African / (non-Nigerian)",
+  "International/ (Indian, Chinese, Italian, etc.)",
+  "Fast Food / Snacks",
+  "Healthy / Fit Fam",
+  "Bakery / Pastries",
+  "Seafood / Grills",
+  "Drinks / Beverages",
+] as const;
 
-  groceries: {
-    freshProduce: ["Fruits", "Vegetables", "Herbs / Spices (fresh)"],
-    meatSeafoodDairy: [
-      "Poultry",
-      "Beef",
-      "Goat",
-      "Seafood",
-      "Eggs",
-      "Milk / Cheese / Yogurt",
-    ],
-    bakery: ["Bread", "Cakes", "Pastries"],
-    drinks: ["Water", "Juices / Soft Drinks", "Alcoholic Drinks"],
-    snacksAndSweets: [
-      "Chips / Crisps",
-      "Biscuits / Cookies",
-      "Chocolates",
-      "Candy",
-    ],
-    pantryStaples: [
-      "Rice",
-      "Pasta",
-      "Cooking Oils",
-      "Sauces",
-      "Seasonings",
-      "Flour",
-      "Sugar",
-      "Salt",
-      "Canned / Packaged Foods",
-    ],
-    frozenAndRefrigerated: ["Frozen Meat", "Frozen Vegetables", "Ice Cream"],
-    householdAndCare: [
-      "Cleaning Supplies",
-      "Toiletries",
-      "Baby Care",
-      "Pet Care",
-      "Beauty & Cosmetics",
-    ],
-  },
+export type Cuisine = (typeof CUISINES)[number];
 
-  deliveryServices: {
-    methods: ["Delivery from Restaurants / Stores", "Pick-Up from Vendor"],
-    other: [
-      "Errands / Package Delivery (non-food / supermarket)",
-      "Scheduled Orders",
-      "Instant Orders",
-      "Promotions / Bundles / Meal Deals",
-    ],
-  },
-} as const;
+export const vendorCategoryId = () => {
+  const ids = CUISINES.map((c) => {
+    const [id] = c.split("/");
 
-export type DeliveryCategory = typeof DeliveryCategories;
+    return id.trim();
+  });
 
-// Helpers
-// Return a flat set of allowed category identifiers (keys and nested values)
-export const listAllowedCategoryKeys = (): string[] => {
-  // We'll use simple keys for top-level categories and nested group names
-  const keys: string[] = [];
-  for (const top of Object.keys(DeliveryCategories)) {
-    keys.push(top);
-    const bucket: any = (DeliveryCategories as any)[top];
-    for (const sub of Object.keys(bucket)) {
-      keys.push(`${top}.${sub}`);
-    }
-  }
-  return keys;
+  return ids;
 };
 
-// Validate provided categoryIds: they should be strings and belong to listAllowedCategoryKeys
-export const isValidCategoryId = (id: string) => {
-  if (!id || typeof id !== "string") return false;
-  const allowed = listAllowedCategoryKeys();
-  return allowed.includes(id);
+export type CategoryId = ReturnType<typeof vendorCategoryId>[number];
+
+export const isValidCategoryId = (categoryId: string): boolean => {
+  return vendorCategoryId().includes(categoryId as CategoryId);
 };
 
-// Validate an array of categoryIds; returns list of invalid ids (empty if all valid)
-export const validateCategoryIds = (ids: string[] | any): string[] => {
-  if (!Array.isArray(ids)) return ["invalid_type"];
+export const validateCategoryIds = (categoryIds: string[] | unknown): string[] => {
+  if (!Array.isArray(categoryIds)) return ["invalid_type"];
+  const validIds = vendorCategoryId();
   const invalid: string[] = [];
-  for (const id of ids) {
-    if (typeof id !== "string" || !isValidCategoryId(id)) invalid.push(id);
+  for (const id of categoryIds) {
+    if (typeof id !== "string" || !validIds.includes(id.trim() as CategoryId)) {
+      invalid.push(id as string);
+    }
   }
   return invalid;
 };
 
-export default DeliveryCategories;
+export const isValidCuisine = (cuisine: string): boolean => {
+  return CUISINES.includes(cuisine as Cuisine);
+};
+
+export const validateCuisines = (cuisines: string[] | unknown): string[] => {
+  if (!Array.isArray(cuisines)) return ["invalid_type"];
+  const invalid: string[] = [];
+  for (const cuisine of cuisines) {
+    if (typeof cuisine !== "string" || !isValidCuisine(cuisine)) {
+      invalid.push(cuisine as string);
+    }
+  }
+  return invalid;
+};
+
+export default CUISINES;

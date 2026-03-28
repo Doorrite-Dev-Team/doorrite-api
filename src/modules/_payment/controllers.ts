@@ -3,7 +3,7 @@ import { getActorFromReq } from "@lib/utils/req-res";
 import { Request, Response } from "express";
 import prisma from "@config/db";
 import paystack from "@config/payments/paystack";
-import { redis } from "@config/redis";
+import { redis, redisSet } from "@config/redis";
 import { socketService } from "@config/socket";
 import { AppSocketEvent } from "constants/socket";
 
@@ -53,7 +53,7 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
       });
     }
 
-    const lock = await redis.set(lockKey, "1", { nx: true, ex: 30 });
+    const lock = await redisSet(lockKey, "1", 30);
     if (!lock) {
       throw new AppError(409, "Payment initialization in progress");
     }
@@ -114,7 +114,7 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
         };
       });
 
-      await redis.set(cacheKey, JSON.stringify(result), { ex: 600 });
+      await redisSet(cacheKey, JSON.stringify(result), 600);
 
       return sendSuccess(res, {
         ...result,
@@ -146,7 +146,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
     }
 
     const lockKey = `payment:verify:lock:${reference}`;
-    const lock = await redis.set(lockKey, "1", { nx: true, ex: 30 });
+    const lock = await redisSet(lockKey, "1", 30);
 
     if (!lock) {
       const payment = await prisma.payment.findFirst({

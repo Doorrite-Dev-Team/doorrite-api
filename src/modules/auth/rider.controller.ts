@@ -167,41 +167,52 @@ export const loginRider = async (req: Request, res: Response) => {
    * #swagger.description = 'Authenticate and receive a JWT for the rider'
    */
   try {
-    const { email, password } = req.body || {};
+    const { identifier: email, password } = req.body || {};
 
     if (!isValidEmail(email)) throw new AppError(400, "Valid email required");
     if (!password.trim()) throw new AppError(400, "Password is required");
 
-    const rider = await prisma.rider.findUnique({ where: { email } });
+    const rider = await prisma.rider.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        vehicleType: true,
+        isAvailable: true,
+        profileImageUrl: true,
+        rating: true,
+        passwordHash: true,
+      },
+    });
     if (!rider) throw new AppError(400, "Invalid credentials");
 
     const passwordValid = await verifyPassword(password, rider.passwordHash);
     if (!passwordValid) throw new AppError(400, "Invalid credentials");
 
-    // if (!rider.isVerified) {
-    //   // If not verified, send OTP for verification
-    //   await createAndSendOtp(rider.email, "rider", OtpType.EMAIL_VERIFICATION);
-    //   return sendSuccess(
-    //     res,
-    //     {
-    //       message:
-    //         "Account not verified. OTP sent to your email for verification.",
-    //       riderId: rider.id,
-    //     },
-    //     200
-    //   );
-    // }
-
     const access = makeAccessTokenForRider(rider.id);
     const refresh = makeRefreshTokenForRider(rider.id);
     setAuthCookies(res, access, refresh, "rider");
 
-    // Web Socket...
     socketService.logIn(rider.id, rider.fullName!);
 
     return sendSuccess(
       res,
-      { message: "Login successful", riderId: rider.id, access },
+      {
+        message: "Login successful",
+        rider: {
+          id: rider.id,
+          email: rider.email,
+          fullName: rider.fullName,
+          phoneNumber: rider.phoneNumber,
+          vehicleType: rider.vehicleType,
+          isAvailable: rider.isAvailable,
+          profileImage: rider.profileImageUrl,
+          rating: rider.rating,
+        },
+        access,
+      },
       200,
     );
   } catch (err) {

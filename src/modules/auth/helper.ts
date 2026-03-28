@@ -120,6 +120,7 @@ export const findEntityByIdentifier = async (
           passwordHash: true,
           isVerified: true,
           role: true,
+          address: true,
         },
       });
     case "vendor":
@@ -132,6 +133,7 @@ export const findEntityByIdentifier = async (
           phoneNumber: true,
           passwordHash: true,
           isVerified: true,
+          address: true,
         },
       });
       return vendor ? { ...vendor, fullName: vendor.businessName } : null;
@@ -145,6 +147,7 @@ export const findEntityByIdentifier = async (
           phoneNumber: true,
           passwordHash: true,
           isVerified: true,
+          address: true,
         },
       });
     default:

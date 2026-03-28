@@ -1,16 +1,50 @@
-import { Redis } from "@upstash/redis";
+import { Redis as UpstashRedis } from "@upstash/redis";
+import { Redis as LocalRedis } from "ioredis";
 import "dotenv/config";
 import * as crypto from "crypto";
 
-// =====================================================================
-// 1. CONFIGURATION & REDIS CLIENT
-// ---------------------------------------------------------------------
+const isProd = process.env.NODE_ENV === "production";
 
-/** Upstash Redis Client Initialization. */
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+let redis: UpstashRedis | LocalRedis;
+
+if (isProd) {
+  console.log(isProd);
+  redis = new UpstashRedis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  });
+} else {
+  // Connects to 127.0.0.1:6379 by default
+  redis = new LocalRedis(process.env.REDIS_URL || "redis://localhost:6379", {
+    maxRetriesPerRequest: 0,
+  });
+
+  redis.on("error", (err: Error) => {
+    console.error("Redis Local Error:", err.message);
+    process.exit(1); // Close app on failure
+  });
+}
+
+// Startup check to ensure Redis is alive
+export async function checkConnection() {
+  try {
+    await redis.ping();
+    console.log("Successfully Conected to redis Client");
+  } catch (err) {
+    console.error("Failed to connect to Redis at startup:", err);
+    process.exit(1);
+  }
+}
+
+export async function redisSet(key: string, value: string, ex: number) {
+  if (isProd) {
+    return await (redis as UpstashRedis).set(key, value, { ex });
+  } else {
+    // ioredis syntax: .set(key, value, "EX", seconds, "NX")
+    const args: [string, string, "EX", number] = [key, value, "EX", ex];
+    return await (redis as LocalRedis).set(...args);
+  }
+}
 
 // --- CODE CONFIGURATION ---
 
@@ -124,10 +158,7 @@ export async function createOtp(
   const code = generateNumericCode();
 
   // Atomically set OTP code only if it does NOT exist (nx: true)
-  const setResult = await redis.set(kOtp, code, {
-    nx: true,
-    ex: OTP_TTL_SECONDS,
-  });
+  const setResult = await redisSet(kOtp, code, OTP_TTL_SECONDS);
 
   if (!setResult) {
     // Key already exists, return failure with current TTL
@@ -140,7 +171,7 @@ export async function createOtp(
   }
 
   // Set attempts to 0 with same TTL
-  await redis.set(kAttempts, "0", { ex: OTP_TTL_SECONDS });
+  await redisSet(kAttempts, "0", OTP_TTL_SECONDS);
 
   return {
     ok: true as const,
@@ -259,9 +290,7 @@ export async function createResetToken(
   ttlSeconds = 15 * 60, // Default 15 minutes
 ) {
   const token = generateRandomHex(32);
-  await redis.set(getResetTokenKey(type, identifier, token), "1", {
-    ex: ttlSeconds,
-  });
+  await redisSet(getResetTokenKey(type, identifier, token), "1", ttlSeconds);
   return { token, ttlSeconds };
 }
 
@@ -323,10 +352,7 @@ export async function createOCCode(
   const code = generateNumericCode();
 
   // Attempt to set a NEW code only if it does NOT exist (nx: true)
-  const setResult = await redis.set(kOC, code, {
-    nx: true,
-    ex: ttlSeconds,
-  });
+  const setResult = await redisSet(kOC, code, ttlSeconds);
 
   if (!setResult) {
     // -----------------------------------------------------------
@@ -350,7 +376,7 @@ export async function createOCCode(
   }
 
   // New code created: set attempts to 0 with same TTL
-  await redis.set(kAttempts, "0", { ex: ttlSeconds });
+  await redisSet(kAttempts, "0", ttlSeconds);
 
   return { ok: true as const, code, ttlSeconds, status: "created" as const };
 }
@@ -456,3 +482,5 @@ export async function deleteOCCode(
     getOrderConfirmAttemptsKey(riderId, vendorId, orderId),
   );
 }
+
+export { redis };

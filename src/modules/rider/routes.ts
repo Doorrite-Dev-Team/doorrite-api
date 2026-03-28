@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "@middleware/auth";
 import * as riderController from "./controller";
+import * as earningsController from "./earnings.controller";
 
 const router = Router();
 
@@ -55,5 +56,47 @@ router.get(
 );
 
 router.get("/", requireAuth("admin"), riderController.getAllRiders);
+
+router.get(
+  "/earnings/summary",
+  requireAuth("rider"),
+  earningsController.getEarningsSummary,
+);
+
+router.get(
+  "/earnings/transactions",
+  requireAuth("rider"),
+  earningsController.getTransactions,
+);
+
+router.get(
+  "/earnings/history",
+  requireAuth("rider"),
+  earningsController.getEarningsHistory,
+);
+
+router.get(
+  "/earnings/metrics",
+  requireAuth("rider"),
+  earningsController.getMetrics,
+);
+
+router.post(
+  "/earnings/withdraw",
+  requireAuth("rider"),
+  earningsController.requestWithdrawal,
+);
+
+router.get(
+  "/earnings/withdrawals",
+  requireAuth("rider"),
+  earningsController.getWithdrawalHistory,
+);
+
+router.get(
+  "/payout-info",
+  requireAuth("rider"),
+  earningsController.getPayoutInfo,
+);
 
 export default router;

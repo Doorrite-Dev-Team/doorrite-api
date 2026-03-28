@@ -27,7 +27,7 @@ import { Request, Response } from "express";
 import { OtpType } from "../../generated/prisma";
 import { createResetToken } from "@config/redis";
 import { socketService } from "@config/socket";
-import { AppSocketEvent } from "../../constants/socket";
+// import { AppSocketEvent } from "../../constants/socket";
 
 export const createUser = async (req: Request, res: Response) => {
   /**
@@ -189,6 +189,7 @@ export const login = async (req: Request, res: Response) => {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
+          address: user.address,
         },
         access,
       },

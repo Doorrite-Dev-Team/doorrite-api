@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth, requireAdmin } from "@middleware/auth";
 import * as ctrl from "./controllers";
+import * as payoutCtrl from "./payout.controller";
 
 const router = Router();
 
@@ -30,6 +31,11 @@ router.patch("/riders/:riderId/suspend", ctrl.suspendRider);
 
 router.delete("/rider/:riderId", ctrl.deleteRider);
 
+//Rider Earnings
+router.get("/riders/:riderId/earnings", payoutCtrl.getRiderEarnings);
+
+router.patch("/riders/:riderId/adjust", payoutCtrl.adjustRiderBalance);
+
 //Users
 router.get("/users", ctrl.getAllUsers);
 
@@ -39,5 +45,16 @@ router.delete("/users/:userId", ctrl.deleteUser);
 router.patch("/orders/:orderId/status", ctrl.updateOrderStatus);
 
 router.get("/reports", ctrl.getReports);
+
+// Payouts
+router.get("/payouts", payoutCtrl.getAllPayouts);
+
+router.get("/payouts/:id", payoutCtrl.getPayoutById);
+
+router.patch("/payouts/:id/approve", payoutCtrl.approvePayout);
+
+router.patch("/payouts/:id/reject", payoutCtrl.rejectPayout);
+
+router.patch("/payouts/:id/complete", payoutCtrl.completePayout);
 
 export default router;
