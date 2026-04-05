@@ -12,7 +12,7 @@ import { ZodError } from "zod/v3";
 import { AppSocketEvent } from "constants/socket";
 import { cacheService } from "@config/cache";
 import { Pagination } from "types/types";
-import { Order } from "generated/prisma";
+import { Order } from "../../generated/prisma";
 import { calculateDeliveryFee } from "@lib/utils/location";
 import { PendingReviewService } from "@services/redis/pending-review";
 import {

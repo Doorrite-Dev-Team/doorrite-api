@@ -3,7 +3,7 @@ import { Server as HttpServer } from "http";
 import { NotificationService } from "../services/redis/notification";
 import { safeVerify } from "./jwt";
 import { riderService } from "services/socket/riders";
-import { Coordinates } from "generated/prisma";
+import { Coordinates } from "../generated/prisma";
 import type { Notification } from "../types/notifications";
 import { AppSocketEvent } from "../constants/socket";
 import { setupChatHandlers } from "../services/socket/chat-handler";

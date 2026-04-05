@@ -1,5 +1,4 @@
 import prisma from "@config/db";
-import { Prisma } from "generated/prisma";
 import { getDistance } from "@lib/utils/location";
 import { GEOAPIFY_API_KEY } from "@config/env";
 
@@ -197,7 +196,7 @@ export async function createEarningsRecord(
         amount: breakdown.riderEarnings,
         description: `Delivery earnings for order ${orderId}`,
         orderId,
-        breakdown: { ...breakdown } as unknown as Prisma.InputJsonValue,
+        breakdown: { ...breakdown } as any,
         status: "COMPLETED",
       },
     });

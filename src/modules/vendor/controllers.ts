@@ -11,7 +11,7 @@ import { AppSocketEvent } from "constants/socket";
 import { socketService } from "@config/socket";
 import { cacheService } from "@config/cache";
 import { riderService } from "@services/socket/riders";
-import { Vendor } from "generated/prisma";
+import { Vendor } from "../../generated/prisma";
 import {
   calculateDeliveryTime,
   calculateDeliveryFee,
