@@ -11,6 +11,8 @@ import {
 import { Request, Response } from "express";
 import { cacheService } from "@config/cache";
 import { Pagination } from "types/types";
+import { PendingReviewService } from "@services/redis/pending-review";
+import { updateVendorRating, updateProductRating } from "@services/review-hooks";
 
 // Get User by ID
 // GET api/v1/users/:id
@@ -204,14 +206,15 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     if (user.id !== req.user?.sub) throw new AppError(403, "Unauthorized");
 
+    const updateData: any = { ...data };
+    if (data.address) {
+      delete updateData.address;
+      updateData.address = { push: data.address };
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: {
-        ...data,
-        address: {
-          push: data.address,
-        },
-      }, // ✅ only whitelisted fields
+      data: updateData,
     });
 
     // Invalidate user cache
@@ -230,7 +233,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 };
 
 // Get User Orders with pagination
-//response : {  "data": [...],  "pagination": {    "totalItems": 95,    "totalPages": 10,    "currentPage": 3,    "limit": 10,    "hasNext": true,    "hasPrev": true  }}
+//response : {  "data": [...],  "pagination": {    "totalItems": 95,    "totalPages": 10,    "currentPage": 3,    "limit": 20,    "hasNext": true,    "hasPrev": true  }}
 // GET /users/orders/
 export const getUserOrders = async (req: Request, res: Response) => {
   /**
@@ -240,17 +243,26 @@ export const getUserOrders = async (req: Request, res: Response) => {
    * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
    * #swagger.parameters['limit'] = { in: 'query', description: 'Page size', type: 'integer' }
+   * #swagger.parameters['sort'] = { in: 'query', description: 'Sort order (asc/desc)', type: 'string' }
+   * #swagger.parameters['status'] = { in: 'query', description: 'Filter by status', type: 'string' }
    */
   try {
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const sort = (req.query.sort as string) === "asc" ? "asc" : "desc";
+    const status = req.query.status as string;
     const skip = (page - 1) * limit;
+
+    const whereClause: any = { customerId: userId };
+    if (status && status !== "all") {
+      whereClause.status = status.toUpperCase();
+    }
 
     const key = cacheService.generateKey(
       "userOrders",
-      `${userId}_${page}_${limit}_${skip}`,
+      `${userId}_${page}_${limit}_${sort}_${status || "all"}`,
     );
     const cacheHit =
       await cacheService.get<Pagination<{ orders: any[]; pagination: any }>>(
@@ -269,9 +281,9 @@ export const getUserOrders = async (req: Request, res: Response) => {
     );
 
     const [totalItems, orders] = await Promise.all([
-      prisma.order.count({ where: { customerId: userId } }),
+      prisma.order.count({ where: whereClause }),
       prisma.order.findMany({
-        where: { customerId: userId },
+        where: whereClause,
         include: {
           items: {
             include: { product: true },
@@ -279,7 +291,7 @@ export const getUserOrders = async (req: Request, res: Response) => {
         },
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: sort },
       }),
     ]);
     const totalPages = Math.ceil(totalItems / limit);
@@ -313,40 +325,73 @@ export const createUserReview = async (req: Request, res: Response) => {
    * #swagger.summary = 'Create a review'
    * #swagger.description = 'Creates a review for a vendor, rider, or product.'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['body'] = { in: 'body', description: 'Review data', required: true, schema: { type: 'object', properties: { targetId: { type: 'string' }, targetType: { type: 'string', enum: ['vendor', 'rider', 'product'] }, rating: { type: 'integer', minimum: 1, maximum: 5 }, comment: { type: 'string' } } } }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Review data', required: true, schema: { type: 'object', properties: { orderId: { type: 'string' }, vendorRating: { type: 'integer', minimum: 1, maximum: 5 }, riderRating: { type: 'integer', minimum: 1, maximum: 5 }, comment: { type: 'string' }, productRatings: { type: 'array', items: { type: 'object', properties: { productId: { type: 'string' }, rating: { type: 'integer' } } } } } } }
    */
   try {
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
 
-    const { targetId, targetType, rating, comment } = req.body;
+    const { orderId, vendorRating, riderRating, comment, productRatings } = req.body;
 
-    // Basic validation
-    if (!targetId || !targetType || !rating) {
-      throw new AppError(400, "targetId, targetType, and rating are required");
+    if (!orderId) {
+      throw new AppError(400, "orderId is required");
     }
-    if (!["vendor", "rider", "product"].includes(targetType)) {
-      throw new AppError(400, "Invalid targetType");
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: { include: { product: true } } },
+    });
+
+    if (!order) {
+      throw new AppError(404, "Order not found");
     }
-    if (rating < 1 || rating > 5) {
-      throw new AppError(400, "Rating must be between 1 and 5");
+
+    if (order.customerId !== userId) {
+      throw new AppError(403, "Not authorized to review this order");
+    }
+
+    if (order.status !== "DELIVERED") {
+      throw new AppError(400, "Can only review delivered orders");
+    }
+
+    const existingReview = await prisma.review.findUnique({
+      where: { orderId },
+    });
+
+    if (existingReview) {
+      throw new AppError(400, "Order already reviewed");
     }
 
     const review = await prisma.review.create({
       data: {
         userId,
-        rating,
+        orderId,
+        rating: vendorRating || riderRating || 5,
         comment,
-        ...(targetType === "vendor" && { vendorId: targetId }),
-        ...(targetType === "rider" && { riderId: targetId }),
-        ...(targetType === "product" && { productId: targetId }),
+        vendorId: order.vendorId,
+        riderId: order.riderId || undefined,
+        productReviews: productRatings
+          ? {
+              create: productRatings.map((pr: any) => ({
+                productId: pr.productId,
+                rating: pr.rating,
+              })),
+            }
+          : undefined,
       },
     });
 
-    // Invalidate vendor reviews cache if reviewing a vendor
-    if (targetType === "vendor") {
-      await cacheService.invalidatePattern("vendorReviews");
+    await updateVendorRating(order.vendorId);
+
+    if (productRatings) {
+      for (const pr of productRatings) {
+        await updateProductRating(pr.productId);
+      }
     }
+
+    await PendingReviewService.remove(userId, orderId);
+
+    await cacheService.invalidatePattern("vendorReviews");
 
     return sendSuccess(res, { review }, 201);
   } catch (error) {
@@ -399,6 +444,252 @@ export const deleteAddress = async (req: Request, res: Response) => {
       message: "Address deleted successfully",
       ok: true,
     });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Get User Addresses
+// GET /users/addresses
+export const getUserAddresses = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { address: true },
+    });
+
+    return sendSuccess(res, { addresses: user?.address || [] });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Create New Address
+// POST /users/addresses
+export const createAddress = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const { address, state, country, coordinates } = req.body;
+
+    if (!address) throw new AppError(400, "Address is required");
+
+    const newAddress = {
+      address: String(address),
+      state: state || "Ilorin",
+      country: country || "Nigeria",
+      coordinates: coordinates || { lat: 0, long: 0 },
+    };
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { address: true },
+    });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        address: {
+          push: newAddress,
+        },
+      },
+    });
+
+    const createdAddress = updatedUser.address[updatedUser.address.length - 1];
+
+    await cacheService.invalidate(cacheService.generateKey("users", userId));
+    await cacheService.invalidate(cacheService.generateKey("users", `profile_${userId}`));
+
+    return sendSuccess(res, { address: createdAddress }, 201);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Update Address
+// PUT /users/addresses/:id
+export const updateAddress = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const { id } = req.params;
+    const { address, state, country, coordinates } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { address: true },
+    });
+
+    if (!user || !user.address) {
+      throw new AppError(404, "User or addresses not found");
+    }
+
+    const addressIndex = parseInt(id, 10);
+    if (isNaN(addressIndex) || addressIndex < 0 || addressIndex >= user.address.length) {
+      throw new AppError(404, "Address not found");
+    }
+
+    const updatedAddresses = [...user.address];
+    updatedAddresses[addressIndex] = {
+      ...updatedAddresses[addressIndex],
+      ...(address && { address: String(address) }),
+      ...(state && { state: String(state) }),
+      ...(country && { country: String(country) }),
+      ...(coordinates && { coordinates }),
+    };
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { address: updatedAddresses },
+    });
+
+    await cacheService.invalidate(cacheService.generateKey("users", userId));
+    await cacheService.invalidate(cacheService.generateKey("users", `profile_${userId}`));
+
+    return sendSuccess(res, { address: updatedAddresses[addressIndex] });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Get User Favorites
+// GET /users/favorites
+export const getUserFavorites = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const favorites = await prisma.favorite.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const productIds = favorites.map(f => f.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            logoUrl: true,
+            rating: true,
+          },
+        },
+        variants: {
+          where: { isAvailable: true },
+          select: { id: true, name: true, price: true },
+          take: 3,
+        },
+      },
+    });
+
+    const productMap = new Map(products.map(p => [p.id, p]));
+    const favoritesWithProducts = favorites.map(f => ({
+      id: f.id,
+      createdAt: f.createdAt,
+      product: productMap.get(f.productId),
+    })).filter(f => f.product);
+
+    return sendSuccess(res, { favorites: favoritesWithProducts });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Add Product to Favorites
+// POST /users/favorites
+export const addFavorite = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const { productId } = req.body;
+    if (!productId) throw new AppError(400, "Product ID is required");
+
+    const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(productId);
+    if (!isValidObjectId) {
+      throw new AppError(400, "Invalid Product ID format");
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            logoUrl: true,
+          },
+        },
+      },
+    });
+    if (!product) throw new AppError(404, "Product not found");
+
+    const existingFavorite = await prisma.favorite.findUnique({
+      where: {
+        userId_productId: {
+          userId,
+          productId,
+        },
+      },
+    });
+
+    if (existingFavorite) {
+      return sendSuccess(res, { message: "Product already in favorites" });
+    }
+
+    const favorite = await prisma.favorite.create({
+      data: {
+        userId,
+        productId,
+      },
+    });
+
+    return sendSuccess(res, { favorite: { ...favorite, product } }, 201);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Remove Product from Favorites
+// DELETE /users/favorites/:productId
+export const removeFavorite = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const { productId } = req.params;
+    if (!productId) throw new AppError(400, "Product ID is required");
+
+    const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(productId);
+    if (!isValidObjectId) {
+      throw new AppError(400, "Invalid Product ID format");
+    }
+
+    const favorite = await prisma.favorite.findUnique({
+      where: {
+        userId_productId: {
+          userId,
+          productId,
+        },
+      },
+    });
+
+    if (!favorite) {
+      throw new AppError(404, "Favorite not found");
+    }
+
+    await prisma.favorite.delete({
+      where: { id: favorite.id },
+    });
+
+    return sendSuccess(res, { message: "Removed from favorites" });
   } catch (error) {
     handleError(res, error);
   }

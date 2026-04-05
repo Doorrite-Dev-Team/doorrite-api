@@ -81,7 +81,7 @@ function getVendorIdFromRequest(req: Request): string {
 
 // ----- Validation helpers (simple, no external deps) -----
 function isValidObjectId(id: unknown): id is string {
-  return typeof id === "string" && id.trim().length > 0; // assume string ObjectId; validate format in app if needed
+  return typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
 }
 
 function coerceNumber(value: any): number | null {

@@ -103,6 +103,12 @@ export const createVendor = async (req: Request, res: Response) => {
       },
     });
 
+    await prisma.wallet.create({
+      data: {
+        vendorId: newVendor.id,
+      },
+    });
+
     // Send email OTP for verification
     await createAndSendOtp(
       newVendor.email,

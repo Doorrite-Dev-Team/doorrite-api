@@ -3,6 +3,7 @@ import { requireAuth } from "@middleware/auth";
 import * as vendorController from "./controllers";
 import * as productsController from "./products.controllers";
 import * as modifiersController from "./modifiers.controllers";
+import * as earningsController from "./earnings.controller";
 
 const router = Router();
 
@@ -10,8 +11,7 @@ const router = Router();
 // EXISTING ROUTES
 // ============================================================================
 
-// Profile
-router.get("/:id", vendorController.getVendorById);
+// Profile - MUST be before /:id
 router.get(
   "/me",
   requireAuth("vendor"),
@@ -19,10 +19,10 @@ router.get(
 );
 router.put("/me", requireAuth("vendor"), vendorController.updateVendorProfile);
 
-// Products
+// Products - MUST be before /:id
 router.get(
-  "/:id/products",
-  requireAuth("any"),
+  "/products",
+  requireAuth("vendor"),
   productsController.getVendorProducts,
 );
 router.post(
@@ -53,7 +53,7 @@ router.delete(
   productsController.deleteProductVariant,
 );
 
-// Orders
+// Orders - MUST be before /:id
 router.get("/orders", requireAuth("vendor"), vendorController.getVendorOrders);
 router.get(
   "/orders/:orderId",
@@ -73,10 +73,9 @@ router.patch(
 
 // Public
 router.get("/", vendorController.getAllVendorsV2);
-router.get("/:id/reviews", vendorController.getVendorReviews);
 
 // ============================================================================
-// ✅ NEW MODIFIER ROUTES (MVP)
+// ✅ MODIFIER ROUTES (MVP) - MUST be before /:id
 // ============================================================================
 
 // Modifier Group CRUD
@@ -139,5 +138,36 @@ router.delete(
   requireAuth("vendor"),
   modifiersController.removeModifierFromProduct,
 );
+
+// ============================================================================
+// EARNINGS ROUTES
+// ============================================================================
+router.get(
+  "/earnings/summary",
+  requireAuth("vendor"),
+  earningsController.getVendorEarningsSummary,
+);
+router.get(
+  "/earnings/transactions",
+  requireAuth("vendor"),
+  earningsController.getVendorTransactions,
+);
+router.post(
+  "/earnings/withdraw",
+  requireAuth("vendor"),
+  earningsController.requestVendorWithdrawal,
+);
+router.get(
+  "/earnings/withdrawals",
+  requireAuth("vendor"),
+  earningsController.getVendorWithdrawalHistory,
+);
+
+// ============================================================================
+// CATCH-ALL ROUTES - MUST be last
+// ============================================================================
+router.get("/:id", vendorController.getVendorById);
+router.get("/:id/products", requireAuth("any"), productsController.getVendorProducts);
+router.get("/:id/reviews", vendorController.getVendorReviews);
 
 export default router;

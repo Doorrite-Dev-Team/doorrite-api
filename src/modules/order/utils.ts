@@ -3,6 +3,23 @@ import { addressSchema } from "@lib/utils/address";
 import prisma from "@config/db";
 import { AppError } from "@lib/utils/AppError";
 
+// Modifier selection schema
+export const modifierSelectionSchema = z.object({
+  modifierGroupId: z
+    .string({ required_error: "modifierGroupId is required" })
+    .min(1, "modifierGroupId cannot be empty"),
+  selectedOptions: z
+    .array(
+      z.object({
+        modifierOptionId: z
+          .string({ required_error: "modifierOptionId is required" })
+          .min(1, "modifierOptionId cannot be empty"),
+        quantity: z.number().int().min(1).default(1),
+      })
+    )
+    .min(1, "At least one option must be selected"),
+});
+
 // Order item schema
 export const orderItemSchema = z.object({
   productId: z
@@ -13,6 +30,7 @@ export const orderItemSchema = z.object({
     .number({ required_error: "quantity is required" })
     .int("quantity must be an integer")
     .positive("quantity must be greater than 0"),
+  modifiers: z.array(modifierSelectionSchema).optional(),
 });
 
 // Create order body schema
@@ -72,9 +90,8 @@ export async function calculateOrderTotal(items: any[]): Promise<number> {
   let total = 0;
 
   for (const item of items) {
-    const { productId, variantId, quantity = 1, modifiers } = item;
+    const { productId, variantId, quantity = 1 } = item;
 
-    // Get base price
     const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { basePrice: true },
@@ -92,29 +109,7 @@ export async function calculateOrderTotal(items: any[]): Promise<number> {
       if (variant) basePrice = variant.price;
     }
 
-    // Calculate modifiers total
-    let modifiersTotal = 0;
-
-    if (modifiers && modifiers.length > 0) {
-      for (const modSelection of modifiers) {
-        const { selectedOptions } = modSelection;
-
-        for (const selection of selectedOptions) {
-          const { modifierOptionId, quantity: modQty = 1 } = selection;
-
-          const option = await prisma.modifierOption.findUnique({
-            where: { id: modifierOptionId },
-            select: { priceAdjustment: true },
-          });
-
-          if (option) {
-            modifiersTotal += option.priceAdjustment * modQty;
-          }
-        }
-      }
-    }
-
-    total += (basePrice + modifiersTotal) * quantity;
+    total += basePrice * quantity;
   }
 
   return total;

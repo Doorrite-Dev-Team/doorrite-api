@@ -1,4 +1,4 @@
-import { listAllowedCategoryKeys } from "@lib/category";
+import { vendorCategoryId } from "@lib/category";
 import { addressSchema } from "@lib/utils/address";
 import z from "zod";
 

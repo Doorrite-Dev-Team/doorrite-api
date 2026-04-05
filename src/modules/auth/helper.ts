@@ -45,6 +45,7 @@ type EntityData = {
   passwordHash: string;
   isVerified: boolean;
   role?: any;
+  address?: any;
 };
 
 export const findEntityByEmail = async (
@@ -257,6 +258,8 @@ export const createAndSendOtp = async (
           entity.fullName || entity.businessName || "",
           redisRes.code,
         );
+
+  console.log(`TESTING: OTP for ${email} is ${redisRes.code}`); // TEMP FOR TESTING
 
   try {
     await sendmail(entity.email, tpl.subject, tpl.text, tpl.html);

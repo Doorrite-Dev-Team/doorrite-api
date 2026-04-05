@@ -92,12 +92,18 @@ enum PayoutRequestType {
   INSTANT
 }
 
+enum OtpType {
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+  PASSWORD_RESET
+}
+
 // ===============================
 // TYPES
 // ===============================
 type Address {
   address      String         // Human-readable formatted address
-  state        String? @default("Ilorin")
+  state        String
   country      String? @default("Nigeria")
   coordinates  Coordinates
 }
@@ -133,6 +139,7 @@ model User {
   orders          Order[]   @relation("customer_orders")
   payments        Payment[]
   reviews         Review[]
+  favorites       Favorite[]
 }
 
 model Vendor {
@@ -143,6 +150,7 @@ model Vendor {
   passwordHash        String
   logoUrl             String?
   rating              Float?
+  reviewCount         Int         @default(0)
   openingTime         String?  // e.g. "09:00 AM"
   closingTime         String?  // e.g. "09:00 PM"
   avrgPreparationTime String?  // e.g. "20-30 mins"
@@ -170,7 +178,10 @@ model Product {
   description String?
   basePrice   Float
   sku         String?
+  imageUrl    String?
   attributes  Json?    // e.g. {"weight":"500g","unit":"g"}
+  rating      Float?
+  reviewCount Int      @default(0)
   isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -178,6 +189,7 @@ model Product {
   variants    ProductVariant[]
   orderItems  OrderItem[]
   reviews     Review[]
+  productReviews ProductReview[]
   modifierGroups ProductModifierGroup[]
 }
 
@@ -243,6 +255,8 @@ model Order {
   delivery Delivery?
   history  OrderHistory[]
   earningsRecord EarningsRecord?
+  review   Review?
+  messages Message[]
 }
 
 model OrderItem {
@@ -296,6 +310,7 @@ model Review {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   rating    Int
   comment   String?
+  orderId   String   @unique @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -306,9 +321,37 @@ model Review {
   vendorId  String? @db.ObjectId
   riderId   String? @db.ObjectId
 
-  product Product? @relation(fields: [productId], references: [id])
-  vendor  Vendor?  @relation(fields: [vendorId], references: [id])
-  rider   Rider?   @relation(fields: [riderId], references: [id])
+  product        Product?        @relation(fields: [productId], references: [id])
+  vendor         Vendor?         @relation(fields: [vendorId], references: [id])
+  rider          Rider?          @relation(fields: [riderId], references: [id])
+  order          Order?          @relation(fields: [orderId], references: [id])
+  productReviews ProductReview[]
+}
+
+model ProductReview {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  reviewId  String  @db.ObjectId
+  review    Review  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  productId String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id])
+  rating    Int
+
+  @@index([productId])
+  @@index([reviewId])
+}
+
+model Favorite {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+
+  userId    String @db.ObjectId
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String @db.ObjectId
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }
 
 model OrderHistory {
@@ -499,4 +542,16 @@ model PayoutSchedule {
   transaction     Transaction?   @relation(fields: [transactionId], references: [id])
 
   @@index([walletId, status])
+}
+
+model Message {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  content    String
+  senderId   String   @db.ObjectId
+  senderType String
+  orderId    String   @db.ObjectId
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([orderId, createdAt])
 }

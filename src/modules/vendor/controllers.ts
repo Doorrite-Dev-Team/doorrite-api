@@ -10,6 +10,7 @@ import { getActorFromReq } from "@lib/utils/req-res";
 import { AppSocketEvent } from "constants/socket";
 import { socketService } from "@config/socket";
 import { cacheService } from "@config/cache";
+import { riderService } from "@services/socket/riders";
 import { Vendor } from "generated/prisma";
 import {
   calculateDeliveryTime,
@@ -17,6 +18,7 @@ import {
   calculateIsOpen,
   calculateDistance,
 } from "@lib/utils/location";
+import { creditVendorEarnings, settleVendorEarnings } from "@services/earnings";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -59,7 +61,37 @@ export const getVendorById = async (req: Request, res: Response) => {
       throw new AppError(404, "Vendor not found");
     }
 
-    const data = { vendor };
+    const [totalReviews, averageResult, distributionResult] =
+      await prisma.$transaction([
+        prisma.review.count({ where: { vendorId } }),
+        prisma.review.aggregate({ where: { vendorId }, _avg: { rating: true } }),
+        prisma.review.groupBy({
+          by: ["rating"],
+          where: { vendorId },
+          _count: { rating: true },
+          orderBy: { rating: "desc" },
+        }),
+      ]);
+
+    const avgRating = averageResult._avg.rating ?? 0;
+
+    const ratingDistribution = [5, 4, 3, 2, 1].map((star) => {
+      const group = distributionResult.find((r) => r.rating === star);
+      const count = (group?._count as any)?.rating || 0;
+      const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+      return { stars: star, count, percentage: parseFloat(percentage.toFixed(2)) };
+    });
+
+    const data = {
+      vendor: {
+        ...vendor,
+        stats: {
+          averageRating: parseFloat(avgRating.toFixed(2)),
+          totalReviews,
+          ratingDistribution,
+        },
+      },
+    };
     console.debug(
       "--------------------------------Adding to Cache----------------------------",
     );
@@ -220,6 +252,35 @@ export const getAllVendorsV2 = async (req: Request, res: Response) => {
       lng, // User longitude
     } = req.query;
 
+    // Auto-detect user state from their saved address
+    let userState: string | null = null;
+    try {
+      let userId: string | null = null;
+      // Try to get user ID from auth header (public endpoint — no req.user)
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.split(" ")[1];
+        if (token) {
+          const { verifyJwt } = await import("@config/jwt");
+          const payload = verifyJwt(token);
+          if (payload?.sub && payload.role === "CUSTOMER") {
+            userId = payload.sub;
+          }
+        }
+      }
+      if (userId) {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { address: true },
+        });
+        if (user?.address && user.address.length > 0) {
+          userState = user.address[0].state;
+        }
+      }
+    } catch {
+      // Silently ignore — fall back to no state filter
+    }
+
     const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
     const limitNum = Math.min(
       100,
@@ -378,6 +439,13 @@ export const getAllVendorsV2 = async (req: Request, res: Response) => {
       filteredVendors = enrichedVendors.filter((v) => v.isOpen);
     }
 
+    // FILTER BY AUTO-DETECTED USER STATE
+    if (userState) {
+      filteredVendors = filteredVendors.filter((v) =>
+        v.address?.state?.toLowerCase() === userState.toLowerCase(),
+      );
+    }
+
     // FILTER BY FREE DELIVERY
     if (freeDelivery === "true") {
       filteredVendors = filteredVendors.filter((v) => v.deliveryFee === 0);
@@ -396,15 +464,21 @@ export const getAllVendorsV2 = async (req: Request, res: Response) => {
       filteredVendors.sort((a, b) => (a.distance || 999) - (b.distance || 999));
     }
 
-    return sendSuccess(res, {
+    const response: any = {
       vendors: filteredVendors,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: filteredVendors.length, // Adjusted total after filtering
+        total: filteredVendors.length,
         pages: Math.ceil(filteredVendors.length / limitNum),
       },
-    });
+    };
+
+    if (userState && filteredVendors.length === 0) {
+      response.message = `We're not yet available in ${userState}. Kindly wait for updates — we're expanding soon!`;
+    }
+
+    return sendSuccess(res, response);
   } catch (err) {
     return handleError(res, err);
   }
@@ -712,7 +786,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             select: { id: true, fullName: true, email: true },
           },
           vendor: {
-            select: { id: true, businessName: true },
+            select: { id: true, businessName: true, address: true },
           },
           rider: {
             select: { id: true, fullName: true },
@@ -732,6 +806,16 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             `Order status updated to ${status} by ${order.vendor.businessName}`,
         },
       });
+
+      // Credit vendor pending balance when order is ACCEPTED
+      if (status === "ACCEPTED") {
+        try {
+          await creditVendorEarnings(orderId);
+          console.log("[VENDOR_UPDATE_STATUS] Vendor pending balance credited for order:", orderId);
+        } catch (earningsError) {
+          console.error("[VENDOR_UPDATE_STATUS] Failed to credit vendor earnings:", earningsError);
+        }
+      }
 
       return updated;
     });
@@ -783,6 +867,27 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         },
         timestamp: result.updatedAt.toISOString(),
       });
+    }
+
+    // Notify riders when order is ACCEPTED or READY_FOR_PICKUP
+    if (status === "ACCEPTED" || status === "READY_FOR_PICKUP") {
+      const vendorAddress = result.vendor?.address as any;
+      const vendorLat = vendorAddress?.coordinates?.lat;
+      const vendorLng = vendorAddress?.coordinates?.long;
+
+      if (!result.riderId) {
+        // No rider assigned yet - notify available riders to claim
+        if (vendorLat && vendorLng) {
+          riderService.notifyClosestRiders(result.id, vendorLat, vendorLng);
+        }
+      } else {
+        // Rider already assigned - notify them that order is ready for pickup
+        riderService.notify(result.riderId, "order-ready-for-pickup", {
+          orderId: result.id,
+          message: `Order ${result.id.slice(-6)} is ready for pickup from ${result.vendor?.businessName}`,
+          vendorAddress: vendorAddress?.address,
+        });
+      }
     }
 
     // Invalidate order and vendor caches
@@ -842,7 +947,36 @@ export const confirmOrderRider = async (req: Request, res: Response) => {
         `Failed to verify the rider's code: ${response.reason}`,
       );
 
-    return sendSuccess(res, { ...response });
+    // Update order status to OUT_FOR_DELIVERY and settle vendor earnings
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: { status: "OUT_FOR_DELIVERY" },
+      });
+
+      // Create history record
+      await tx.orderHistory.create({
+        data: {
+          orderId,
+          status: "OUT_FOR_DELIVERY",
+          actorId: vendorId,
+          actorType: "VENDOR",
+          note: `Rider verified and order picked up by ${order.riderId}`,
+        },
+      });
+
+      // Settle vendor earnings (move pending to available balance)
+      try {
+        await settleVendorEarnings(orderId);
+        console.log("[CONFIRM_RIDER] Vendor earnings settled for order:", orderId);
+      } catch (earningsError) {
+        console.error("[CONFIRM_RIDER] Failed to settle vendor earnings:", earningsError);
+      }
+
+      return updatedOrder;
+    });
+
+    return sendSuccess(res, { ...response, order: result });
   } catch (error) {
     handleError(res, error);
   }

@@ -5,8 +5,7 @@ import * as earningsController from "./earnings.controller";
 
 const router = Router();
 
-router.get("/:id", riderController.getRiderById);
-
+// Specific routes FIRST - /me must come before /:id
 router.get("/me", requireAuth("rider"), riderController.getCurrentRiderProfile);
 
 router.put("/me", requireAuth("rider"), riderController.updateRiderProfile);
@@ -98,5 +97,8 @@ router.get(
   requireAuth("rider"),
   earningsController.getPayoutInfo,
 );
+
+// Catch-all - MUST be last
+router.get("/:id", riderController.getRiderById);
 
 export default router;

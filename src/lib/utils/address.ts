@@ -29,9 +29,11 @@ export const addressSchema = z.object({
     .max(200, "Address must be under 200 characters"),
   coordinates: coordinatesSchema,
   state: z
-    .string()
-    .optional()
-    .default("Ilorin")
+    .string({
+      required_error: "State is required",
+      invalid_type_error: "State must be a string",
+    })
+    .min(2, "State must be at least 2 characters")
     .transform((s) => s.trim()),
   country: z
     .string()

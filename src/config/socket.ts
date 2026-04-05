@@ -6,6 +6,7 @@ import { riderService } from "services/socket/riders";
 import { Coordinates } from "generated/prisma";
 import type { Notification } from "../types/notifications";
 import { AppSocketEvent } from "../constants/socket";
+import { setupChatHandlers } from "../services/socket/chat-handler";
 
 class WebSocketService {
   private static instance: WebSocketService;
@@ -103,6 +104,8 @@ class WebSocketService {
         this.users.delete(userId);
         riderService.delete(userId);
       });
+
+      setupChatHandlers(this.io!, socket);
     });
   }
 

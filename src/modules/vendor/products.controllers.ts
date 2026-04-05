@@ -11,7 +11,7 @@ import {
 import { cacheService } from "@config/cache";
 
 // Get Vendor's Products with Pagination
-// GET /api/vendors/:id/products/?page=&limit=
+// GET /api/vendors/products
 export const getVendorProducts = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor']
@@ -21,12 +21,10 @@ export const getVendorProducts = async (req: Request, res: Response) => {
    * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
    */
   try {
-    console.log("Entered The getVendorProducts successfully", req.params);
-    const { id: vendorId } = req.params;
+    const vendorId = req.user?.sub;
 
-    console.log("Vendor ID:", vendorId);
     if (!vendorId) {
-      throw new AppError(404, "Kindly Provide Vendor's ID");
+      throw new AppError(401, "Authentication required");
     }
 
     const page = parseInt(req.query.page as string) || 1;

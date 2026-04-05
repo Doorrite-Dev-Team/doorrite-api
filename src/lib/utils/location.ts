@@ -1,4 +1,5 @@
 import * as turf from "@turf/turf";
+import { GEOAPIFY_API_KEY } from "@config/env";
 
 export function getDistance(
   lat1: number,
@@ -6,15 +7,8 @@ export function getDistance(
   lat2: number,
   lon2: number,
 ): number {
-  console.debug("Calculating distance between two points");
-  console.debug(`From: ${lat1}, ${lon1}`);
-  console.debug(`To: ${lat2}, ${lon2}`);
-
-  // 1. Create Turf points
   const from = turf.point([lon1, lat1]);
   const to = turf.point([lon2, lat2]);
-
-  // 2. Calculate distance in kilometers (default unit, can change to 'miles')
   return turf.distance(from, to, { units: "kilometers" });
 }
 
@@ -60,7 +54,7 @@ function parseTimeString(time: string): number {
   return hour24 * 60 + minutes;
 }
 
-// Calculate estimated delivery time
+// Calculate estimated delivery time (Ilorin-optimized)
 export function calculateDeliveryTime(
   avrgPreparationTime?: string,
   userLat?: number,
@@ -78,7 +72,7 @@ export function calculateDeliveryTime(
     }
   }
 
-  // Calculate delivery time based on distance
+  // Calculate delivery time based on distance (2 min per km for Ilorin)
   let deliveryTime = 10; // Default 10 min delivery
   if (
     userLat &&
@@ -92,44 +86,87 @@ export function calculateDeliveryTime(
       vendorAddress.coordinates.lat,
       vendorAddress.coordinates.long,
     );
-    // Estimate: 2 km per 5 minutes in Lagos traffic
-    deliveryTime = Math.ceil((distance / 1000 / 2) * 3);
+    // Ilorin: 2 min per km (lighter traffic)
+    deliveryTime = Math.ceil((distance / 1000) * 2);
   }
 
-  const totalMin = prepTime + deliveryTime;
+  // Peak hour multiplier
+  const now = new Date();
+  const hour = now.getHours();
+  const isPeak = (hour >= 7 && hour < 9) || (hour >= 17 && hour < 20);
+  const isNight = hour >= 22 || hour < 6;
+
+  let multiplier = 1.0;
+  if (isPeak) multiplier = 1.3;
+  else if (isNight) multiplier = 0.8;
+
+  const totalMin = Math.ceil((prepTime + deliveryTime) * multiplier);
   const minTime = Math.floor(totalMin * 0.8); // -20%
   const maxTime = Math.ceil(totalMin * 1.2); // +20%
 
   return `${minTime}-${maxTime} min`;
 }
 
-// Calculate delivery fee (you need to define your pricing logic)
+// Calculate delivery fee with peak multiplier
 export function calculateDeliveryFee(
   vendor: { address?: { coordinates?: { lat?: number; long?: number } } },
   lat?: number,
   long?: number,
 ): number {
-  // OPTION 1: Fixed fee per vendor (add field to schema)
-  // return vendor.deliveryFee || 500;
-
-  // OPTION 2: Distance-based pricing (common in Nigeria)
-  if (
-    !lat ||
-    !long ||
-    !vendor.address?.coordinates?.lat ||
-    !vendor.address?.coordinates?.long
-  ) {
+  // Check valid coordinates
+  if (!lat || !long || !vendor.address?.coordinates?.lat || !vendor.address?.coordinates?.long) {
     return 500; // Default fee
   }
 
-  const distance = getDistance(
-    lat,
-    long,
-    vendor.address.coordinates.lat,
-    vendor.address.coordinates.long,
-  );
+  const distance = getDistance(lat, long, vendor.address.coordinates.lat, vendor.address.coordinates.long);
 
-  // Example pricing: Free under 2km, ₦200/km after that
-  // if (distance < 2) return 0;
-  return Math.ceil((distance / 1000) * 2000);
+  // Determine peak multiplier
+  const hour = new Date().getHours();
+  const isPeak = (hour >= 7 && hour < 9) || (hour >= 17 && hour < 20);
+  const peakMultiplier = isPeak ? 1.3 : 1.0;
+
+  // Formula: ₦200 base + (₦150/km * peakMultiplier) * distance
+  const baseFee = 200;
+  const perKmFee = 150 * peakMultiplier;
+  
+  return Math.ceil(baseFee + (perKmFee * distance));
+}
+
+// Geoapify Routing API — returns road distance (meters) and travel time (seconds)
+export async function getGeoapifyRouting(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): Promise<{ distance: number; time: number } | null> {
+  if (!GEOAPIFY_API_KEY) {
+    console.warn("GEOAPIFY_API_KEY not set, falling back to Haversine");
+    return null;
+  }
+
+  try {
+    const url = `https://api.geoapify.com/v1/routing?waypoints=${lat1},${lon1}|${lat2},${lon2}&mode=drive&apiKey=${GEOAPIFY_API_KEY}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      console.warn(`Geoapify API returned ${res.status}, falling back to Haversine`);
+      return null;
+    }
+
+    const data = await res.json();
+
+    if (!data.features || data.features.length === 0) {
+      console.warn("Geoapify returned no routes, falling back to Haversine");
+      return null;
+    }
+
+    const props = data.features[0].properties;
+    return {
+      distance: props.distance / 1000, // Convert meters to km
+      time: props.time,         // seconds
+    };
+  } catch (err) {
+    console.warn("Geoapify API call failed, falling back to Haversine:", err);
+    return null;
+  }
 }

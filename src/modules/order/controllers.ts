@@ -14,6 +14,14 @@ import { cacheService } from "@config/cache";
 import { Pagination } from "types/types";
 import { Order } from "generated/prisma";
 import { calculateDeliveryFee } from "@lib/utils/location";
+import { PendingReviewService } from "@services/redis/pending-review";
+import {
+  deductVendorEarnings,
+  creditVendorEarnings,
+  calculateEarnings,
+  createEarningsRecord,
+  settleRiderEarnings,
+} from "@services/earnings";
 
 // GET api/v1/orders?status=&vendorId=&customerId=&page=&limit=&from=&to=
 export const getOrders = async (req: Request, res: Response) => {
@@ -221,22 +229,7 @@ export const createOrder = async (req: Request, res: Response) => {
       const customer = await tx.user.findUnique({ where: { id: customerId } });
       if (!customer) throw new AppError(404, "Customer not found");
 
-      // Calculate total
-      const calcAmount = await calculateOrderTotal(items);
-      const deliveryFee = await calculateDeliveryFee(
-        vendor,
-        deliveryAddress.coordinates?.lat,
-        deliveryAddress.coordinates?.long,
-      );
-      const totalKobo = Math.round((calcAmount + deliveryFee) * 100 * 1.1);
-      const totalAmount = Math.round((totalKobo / 100) * 100) / 100;
-
-      // Determine initial status based on payment method
-      const initialStatus =
-        paymentMethod === "PAYSTACK" ? "PENDING_PAYMENT" : "PENDING";
-      // const paymentStatus = paymentMethod === "PAYSTACK" ? "PENDING" : "";
-
-      // Create order
+      // Prepare order items first (validates products, modifiers, calculates modifiersTotal)
       const prepareOrderItems = async () =>
         Promise.all(
           items.map(async (item) => {
@@ -263,18 +256,21 @@ export const createOrder = async (req: Request, res: Response) => {
             if (product.vendorId !== vendorId)
               throw new AppError(400, `Product does not belong to vendor`);
             if (!product.isAvailable)
-              throw new AppError(400, `Product is not available`);
+              throw new AppError(400, `Product ${productId} is not available`);
 
-            // ✅ Handle variant (existing logic)
+            // ✅ Fetch variant if specified
             let variant: any = null;
             if (variantId) {
               variant = await tx.productVariant.findUnique({
                 where: { id: variantId },
               });
               if (!variant || variant.productId !== productId)
-                throw new AppError(404, `Variant not found`);
+                throw new AppError(404, `Variant ${variantId} not found`);
               if (!variant.isAvailable)
-                throw new AppError(400, `Variant is not available`);
+                throw new AppError(
+                  400,
+                  `Variant ${variantId} is not available`,
+                );
 
               if (typeof variant.stock === "number") {
                 if (variant.stock < quantity)
@@ -412,6 +408,35 @@ export const createOrder = async (req: Request, res: Response) => {
             };
           }),
         );
+
+      // Execute prepareOrderItems to validate and get totals
+      const preparedItems = await prepareOrderItems();
+
+      // Calculate total from prepared items (base prices + modifiers)
+      const itemsSubtotal = preparedItems.reduce((sum, item) => {
+        return sum + item.price * item.quantity + item.modifiersTotal;
+      }, 0);
+
+      const deliveryFee = calculateDeliveryFee(
+        vendor,
+        deliveryAddress.coordinates?.lat,
+        deliveryAddress.coordinates?.long,
+      );
+
+      // 10% vendor commission on items only
+      const itemsWithCommission = itemsSubtotal * 1.1;
+
+      // Small order fee: ₦200 if items subtotal is under ₦2,000
+      const smallOrderFee = itemsSubtotal < 2000 ? 200 : 0;
+
+      const totalKobo = Math.round(
+        (itemsWithCommission + deliveryFee + smallOrderFee) * 100,
+      );
+      const totalAmount = Math.round((totalKobo / 100) * 100) / 100;
+
+      // Determine initial status based on payment method
+      const initialStatus =
+        paymentMethod === "PAYSTACK" ? "PENDING_PAYMENT" : "PENDING";
 
       const order = await tx.order.create({
         data: {
@@ -589,24 +614,33 @@ export const cancelOrder = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Order']
    * #swagger.summary = 'Cancel order'
-   * #swagger.description = 'Cancel an order (User/Admin only)'
+   * #swagger.description = 'Cancel an order (User/Admin only). Cancellation fee of ₦1,000 applies if vendor has accepted the order.'
    */
   const { id } = req.params;
-  const { reason } = req.body;
+  const reason = req.body?.reason;
   const actor = getActorFromReq(req);
+
+  const CANCELLATION_FEE = 1000;
 
   try {
     if (!id) throw new AppError(400, "Order id is required");
     if (!reason) throw new AppError(400, "Cancellation reason is required");
     if (!actor) throw new AppError(401, "Unauthorized");
-    if (actor.role !== "user" && actor.role !== "admin") {
+    const role = String(actor.role || "").toUpperCase();
+    if (role !== "CUSTOMER" && role !== "ADMIN" && role !== "USER") {
       throw new AppError(403, "Only customers and admins can cancel orders");
     }
 
     const result = await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
-        include: { items: true, customer: true, vendor: true, rider: true },
+        include: {
+          items: true,
+          customer: true,
+          vendor: true,
+          rider: true,
+          payment: true,
+        },
       });
 
       if (!order) throw new AppError(404, "Order not found");
@@ -615,13 +649,28 @@ export const cancelOrder = async (req: Request, res: Response) => {
         throw new AppError(403, "You can only cancel your own orders");
       }
 
-      if (!["PENDING", "PENDING_PAYMENT", "ACCEPTED"].includes(order.status)) {
+      const canCancelStatuses = ["PENDING", "PENDING_PAYMENT"];
+      const acceptedWithFeeStatuses = ["ACCEPTED"];
+
+      if (
+        !canCancelStatuses.includes(order.status) &&
+        !acceptedWithFeeStatuses.includes(order.status)
+      ) {
         throw new AppError(400, "Cannot cancel order at this stage");
+      }
+
+      let cancellationNote = "";
+      const finalStatus = "CANCELLED" as const;
+
+      if (acceptedWithFeeStatuses.includes(order.status)) {
+        cancellationNote = `Order cancelled by ${actor.role === "admin" ? "Admin" : order.customer.fullName}. Reason: ${reason}. ₦${CANCELLATION_FEE} cancellation fee applies. Refund will be processed manually within 24 hours.`;
+      } else {
+        cancellationNote = `Order cancelled by ${actor.role === "admin" ? "Admin" : order.customer.fullName}. Reason: ${reason}`;
       }
 
       const updatedOrder = await tx.order.update({
         where: { id },
-        data: { status: "CANCELLED" },
+        data: { status: finalStatus },
         include: {
           items: { include: { product: true, variant: true } },
           customer: { select: { id: true, fullName: true, email: true } },
@@ -633,41 +682,57 @@ export const cancelOrder = async (req: Request, res: Response) => {
       await tx.orderHistory.create({
         data: {
           orderId: updatedOrder.id,
-          status: "CANCELLED",
+          status: finalStatus,
           actorId: actor.id,
           actorType: actor.role === "admin" ? "ADMIN" : "USER",
-          note: `Order cancelled by ${actor.role === "admin" ? "Admin" : order.customer.fullName}. Reason: ${reason}`,
+          note: cancellationNote,
         },
       });
 
-      return updatedOrder;
+      if (
+        acceptedWithFeeStatuses.includes(order.status) &&
+        order.payment?.status === "SUCCESSFUL"
+      ) {
+        await deductVendorEarnings(id, "Order cancelled by customer");
+      }
+
+      return {
+        order: updatedOrder,
+        cancellationFee: acceptedWithFeeStatuses.includes(order.status)
+          ? CANCELLATION_FEE
+          : 0,
+      };
     });
+
+    const order = result.order;
+    const cancellationFee = result.cancellationFee;
 
     // Emit notifications
     const notificationRecipients = [
-      result.vendorId,
-      result.customerId,
-      result.riderId,
+      order.vendorId,
+      order.customerId,
+      order.riderId,
     ].filter(Boolean) as string[];
 
     const cancellerName =
-      actor.role === "admin" ? "Admin" : result.customer.fullName;
+      actor.role === "admin" ? "Admin" : order.customer.fullName;
 
     socketService.notifyTo(
       notificationRecipients,
       AppSocketEvent.NOTIFICATION,
       {
-        title: `Order Cancelled: ${result.id}`,
+        title: `Order Cancelled: ${order.id}`,
         type: "ORDER_CANCELLED",
-        message: `${cancellerName} cancelled order: ${result.id}`,
+        message: `${cancellerName} cancelled order: ${order.id}`,
         priority: "high",
         metadata: {
-          orderId: result.id,
-          vendorId: result.vendorId,
-          actionUrl: `/orders/${result.id}`,
+          orderId: order.id,
+          vendorId: order.vendorId,
+          actionUrl: `/orders/${order.id}`,
           cancelledBy: actor.role,
+          cancellationFee,
         },
-        timestamp: result.updatedAt.toISOString(),
+        timestamp: order.updatedAt.toISOString(),
       },
     );
 
@@ -677,8 +742,12 @@ export const cancelOrder = async (req: Request, res: Response) => {
     await cacheService.invalidatePattern("vendors");
 
     return sendSuccess(res, {
-      order: result,
-      message: "Order cancelled successfully",
+      order,
+      message:
+        cancellationFee > 0
+          ? "Order cancelled successfully. Cancellation fee of ₦1,000 applies. Refund will be processed manually within 24 hours."
+          : "Order cancelled successfully",
+      cancellationFee,
     });
   } catch (error: any) {
     console.error("Error canceling order:", error);
@@ -753,13 +822,13 @@ export const getCustomerVerificationCode = async (
    */
 
   try {
-    const { orderId } = req.params;
+    const { id: orderId } = req.params;
     const actor = getActorFromReq(req);
 
     if (!orderId) throw new AppError(400, "Order ID is required");
     if (!actor) throw new AppError(401, "Unauthorized");
-    const role = String(actor.role || "").toLowerCase();
-    if (role !== "user")
+    const role = String(actor.role || "").toUpperCase();
+    if (role !== "CUSTOMER" && role !== "USER" && role !== "ADMIN")
       throw new AppError(403, "Only customers can access this");
 
     const order = await prisma.order.findUnique({
@@ -790,6 +859,166 @@ export const getCustomerVerificationCode = async (
     }
 
     return sendSuccess(res, { verificationCode: code });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+export const verifyDeliveryByUser = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['User Orders']
+   * #swagger.summary = 'Verify delivery using 6 digit code from rider'
+   * #swagger.description = 'Used by the customer to verify delivery by entering code from rider.'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = {
+   * in: 'body',
+   * description: 'Verification code from rider',
+   * required: true,
+   * schema: {
+   * type: 'object',
+   * properties: {
+   * verificationCode: { type: 'string', example: '123456' }
+   * }
+   * }
+   * }
+   */
+
+  try {
+    const { id: orderId } = req.params;
+    const { verificationCode } = req.body;
+    const actor = getActorFromReq(req);
+
+    if (!orderId) throw new AppError(400, "Order ID is required");
+    if (!verificationCode)
+      throw new AppError(400, "Verification code is required");
+    if (!actor) throw new AppError(401, "Unauthorized");
+    const role = String(actor.role || "").toUpperCase();
+    if (role !== "CUSTOMER" && role !== "USER" && role !== "ADMIN")
+      throw new AppError(403, "Only customers can verify delivery");
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) throw new AppError(404, "Order not found");
+    if (order.customerId !== actor.id)
+      throw new AppError(403, "You are not authorized to verify this order");
+
+    if (order.status !== "OUT_FOR_DELIVERY") {
+      throw new AppError(
+        400,
+        "This order is not currently out for delivery. Current status: " +
+          order.status,
+      );
+    }
+
+    if (!order.deliveryVerificationCode) {
+      throw new AppError(
+        500,
+        "Verification code has not been generated for this order.",
+      );
+    }
+
+    if (order.deliveryVerificationCode !== verificationCode) {
+      throw new AppError(400, "Invalid verification code");
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: "DELIVERED",
+        deliveryVerificationCode: null,
+      },
+    });
+
+    socketService.notify(order.customerId, AppSocketEvent.ORDER_DELIVERED, {
+      title: "Order Delivered",
+      type: "ORDER_DELIVERED",
+      message: `Your order has been confirmed as delivered!`,
+      priority: "high",
+      metadata: {
+        orderId: updatedOrder.id,
+        vendorId: updatedOrder.vendorId,
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    // Settle rider earnings (move pending to available balance)
+    if (order.riderId) {
+      try {
+        await settleRiderEarnings(orderId);
+        console.log(
+          "[DELIVERY_VERIFY] Rider earnings settled for order:",
+          orderId,
+        );
+      } catch (earningsError) {
+        console.error(
+          "[DELIVERY_VERIFY] Failed to settle rider earnings:",
+          earningsError,
+        );
+      }
+    }
+
+    await PendingReviewService.add(orderId, order.customerId);
+
+    await cacheService.invalidatePattern("orders");
+    await cacheService.invalidatePattern("userOrders");
+
+    return sendSuccess(res, { message: "Delivery successfully verified" });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// GET /orders/pending-review
+export const getPendingReviews = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    return sendSuccess(res, { orders: [] });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// GET /orders/:id/messages
+export const getOrderMessages = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const { id: orderId } = req.params;
+    const { limit = "50", before } = req.query;
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, customerId: true, riderId: true },
+    });
+
+    if (!order) {
+      throw new AppError(404, "Order not found");
+    }
+
+    const isAuthorized =
+      order.customerId === userId || order.riderId === userId;
+    if (!isAuthorized) {
+      throw new AppError(403, "Not authorized to view this order's messages");
+    }
+
+    const where: any = { orderId };
+    if (before) {
+      where.createdAt = { lt: new Date(before as string) };
+    }
+
+    const messages = await prisma.message.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: parseInt(limit as string, 10) || 50,
+    });
+
+    return sendSuccess(res, { messages: messages.reverse() });
   } catch (error) {
     handleError(res, error);
   }

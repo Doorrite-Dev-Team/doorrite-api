@@ -18,7 +18,7 @@ const withdrawalSchema = z.object({
 
 export const getEarningsSummary = async (req: Request, res: Response) => {
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }
@@ -97,7 +97,7 @@ export const getEarningsSummary = async (req: Request, res: Response) => {
 
 export const getTransactions = async (req: Request, res: Response) => {
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }
@@ -146,7 +146,7 @@ export const getTransactions = async (req: Request, res: Response) => {
 
 export const getEarningsHistory = async (req: Request, res: Response) => {
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }
@@ -190,7 +190,7 @@ export const getEarningsHistory = async (req: Request, res: Response) => {
 
 export const requestWithdrawal = async (req: Request, res: Response) => {
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }
@@ -275,7 +275,7 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
 
 export const getWithdrawalHistory = async (req: Request, res: Response) => {
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }
@@ -320,7 +320,7 @@ export const getWithdrawalHistory = async (req: Request, res: Response) => {
 
 export const getPayoutInfo = async (req: Request, res: Response) => {
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }
@@ -365,7 +365,7 @@ export const getPayoutInfo = async (req: Request, res: Response) => {
 
 export const getMetrics = async (req: Request, res: Response) => {
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }

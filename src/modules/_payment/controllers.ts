@@ -474,37 +474,45 @@ export const processRefund = async (req: Request, res: Response) => {
 // ============================================================================
 export const handlePaystackWebhook = async (req: Request, res: Response) => {
   try {
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
     const signature = req.headers["x-paystack-signature"] as string | undefined;
 
+    console.log("🔔 PAYSTACK WEBHOOK RECEIVED");
+    console.log("  - Signature present:", !!signature);
+    console.log("  - Body event:", req.body?.event);
+    console.log("  - Raw body length:", rawBody?.length);
+
     if (!paystack.validateWebhookSignature(rawBody, signature)) {
-      console.error("Invalid webhook signature");
+      console.error("❌ Invalid webhook signature");
+      console.error("  - Expected hash method: sha512");
+      console.error("  - Signature header:", signature?.substring(0, 20) + "...");
       throw new AppError(400, "Invalid signature");
     }
 
     const event = req.body;
-    console.log("Paystack webhook event:", event.event);
+    console.log("✅ Signature validated, event:", event.event);
 
     switch (event.event) {
       case "charge.success":
+        console.log("💰 Processing charge.success...");
         await handleChargeSuccess(event.data);
         break;
 
       case "transfer.success":
-        console.log("Transfer success:", event.data);
+        console.log("💸 Transfer success:", event.data);
         break;
 
       case "transfer.failed":
-        console.log("Transfer failed:", event.data);
+        console.log("⚠️ Transfer failed:", event.data);
         break;
 
       default:
-        console.log("Unhandled webhook event:", event.event);
+        console.log("📝 Unhandled webhook event:", event.event);
     }
 
     return sendSuccess(res, { message: "Webhook processed" });
   } catch (error: any) {
-    console.error("Webhook processing error:", error);
+    console.error("❌ Webhook processing error:", error);
     return handleError(res, error);
   }
 };
@@ -515,6 +523,8 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
 async function handleChargeSuccess(data: any) {
   try {
     const reference = data.reference;
+
+    console.log("💰 handleChargeSuccess called with reference:", reference);
 
     const payment = await prisma.payment.findFirst({
       where: { transactionId: reference },
@@ -529,20 +539,32 @@ async function handleChargeSuccess(data: any) {
     });
 
     if (!payment) {
-      console.error("Payment not found for reference:", reference);
+      console.error("❌ Payment not found for reference:", reference);
       return;
     }
 
+    console.log("✅ Payment found:", { 
+      paymentId: payment.id, 
+      status: payment.status, 
+      amount: payment.amount 
+    });
+
     if (payment.status !== "PENDING") {
-      console.log("Payment already processed:", reference);
+      console.log("⚠️ Payment already processed:", reference, "status:", payment.status);
       return;
     }
 
     const paystackAmountKobo = Number(data.amount || 0);
     const expectedKobo = Math.round(payment.amount * 100);
 
+    console.log("💵 Amount check:", { 
+      expectedKobo, 
+      paystackAmountKobo, 
+      diff: Math.abs(paystackAmountKobo - expectedKobo) 
+    });
+
     if (Math.abs(paystackAmountKobo - expectedKobo) > 1) {
-      console.error("Amount mismatch in webhook:", {
+      console.error("❌ Amount mismatch in webhook:", {
         expected: expectedKobo,
         received: paystackAmountKobo,
       });
@@ -576,6 +598,8 @@ async function handleChargeSuccess(data: any) {
         },
       });
     });
+
+    console.log("✅ Payment and order updated to SUCCESSFUL");
 
     socketService.notify(payment.order.vendorId, AppSocketEvent.NEW_ORDER, {
       title: `New Paid Order From: ${payment.order.customer.fullName}`,

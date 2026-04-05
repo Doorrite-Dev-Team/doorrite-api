@@ -6,6 +6,9 @@ import {
   createOrder,
   cancelOrder,
   getCustomerVerificationCode,
+  getPendingReviews,
+  getOrderMessages,
+  verifyDeliveryByUser,
 } from "./controllers";
 import {
   createPaymentIntent,
@@ -23,17 +26,26 @@ const router = Router();
 // Get all orders with filters
 router.get("/", auth("any"), getOrders);
 
-// Get single order by ID
+// Get pending reviews for user - MUST be before /:id
+router.get("/pending-review", auth("user"), getPendingReviews);
+
+// Get order chat messages - MUST be before /:id
+router.get("/:id/messages", auth("any"), getOrderMessages);
+
+// Get delivery verification code - MUST be before /:id
+router.get("/:id/verification", auth("user"), getCustomerVerificationCode);
+
+// Verify delivery by user - MUST be before /:id
+router.post("/:id/verify-delivery", auth("user"), verifyDeliveryByUser);
+
+// Cancel order - MUST be before /:id
+router.patch("/:id/cancel", auth("user"), cancelOrder);
+
+// Get single order by ID - MUST be last
 router.get("/:id", auth("any"), getOrderById);
 
 // Create new order
 router.post("/", auth("user"), createOrder);
-
-// Cancel order
-router.patch("/:id/cancel", auth("user"), cancelOrder);
-
-// Get delivery verification code
-router.get("/:id/verification", auth("user"), getCustomerVerificationCode);
 
 // ============================================================================
 // PAYMENT ROUTES (nested under orders)

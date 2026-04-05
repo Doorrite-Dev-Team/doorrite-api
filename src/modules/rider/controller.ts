@@ -4,9 +4,13 @@ import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { isValidNigerianPhone } from "@modules/auth/helper";
 import { $Enums } from "../../generated/prisma";
 import { getActorFromReq } from "@lib/utils/req-res";
-// import socketService from "@lib/socketService";
+import { socketService } from "@config/socket";
 import { addressSchema } from "@lib/utils/address";
 import { createOCCode } from "@config/redis";
+import { AppSocketEvent } from "constants/socket";
+import { PendingReviewService } from "@services/redis/pending-review";
+import { calculateEarnings, settleVendorEarnings, addRiderPendingEarnings } from "@services/earnings";
+import { cacheService } from "@config/cache";
 
 type LocationUpdate = {
   latitude: number;
@@ -49,16 +53,13 @@ export const getCurrentRiderProfile = async (req: Request, res: Response) => {
    * #swagger.security = [{ "bearerAuth": [] }]
    */
   try {
-    const riderId = req.rider?.id; // Assuming rider ID is available from auth middleware
+    const riderId = req.user?.sub;
     if (!riderId) {
       throw new AppError(401, "Authentication required");
     }
 
     const rider = await prisma.rider.findUnique({
       where: { id: riderId },
-      include: {
-        orders: true,
-      },
     });
 
     if (!rider) {
@@ -114,7 +115,7 @@ export const updateRiderProfile = async (req: Request, res: Response) => {
    * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['body'] = { in: 'body', description: 'Rider profile data', required: true, schema: { type: 'object', properties: { fullName: { type: 'string' }, phoneNumber: { type: 'string' }, profileImageUrl: { type: 'string' }, vehicleType: { type: 'string' }, licenseNumber: { type: 'string' }, currentLocation: { type: 'object' }, address: { type: 'object' } } } }
    */
-  const riderId = req.rider?.id;
+  const riderId = req.user?.sub;
   if (!riderId) throw new AppError(401, "Authentication required");
 
   const allowedFields = [
@@ -147,8 +148,9 @@ export const updateRiderProfile = async (req: Request, res: Response) => {
   }
 
   if (
-    (data.licenseNumber && typeof data.licenseNumber !== "string") ||
-    data.licenseNumber.trim().length === 0
+    data.licenseNumber &&
+    (typeof data.licenseNumber !== "string" ||
+      data.licenseNumber.trim().length === 0)
   ) {
     errors.push("License number must be a non-empty string");
   }
@@ -208,7 +210,7 @@ export const getRiderOrders = async (req: Request, res: Response) => {
    * #swagger.parameters['claimable'] = { in: 'query', description: 'Set to true to get claimable orders', required: false, type: 'boolean' }
    */
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) throw new AppError(401, "Unauthorized");
 
     const {
@@ -271,10 +273,11 @@ export const getRiderOrderById = async (req: Request, res: Response) => {
    * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
    */
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) throw new AppError(401, "Authentication required");
     const actor = getActorFromReq(req);
-    if (actor.role !== "rider" && actor.role !== "admin") {
+    const role = String(actor.role || "").toUpperCase();
+    if (role !== "RIDER" && role !== "ADMIN") {
       throw new AppError(403, "Forbidden: Access is denied");
     }
     const { orderId: id } = req.params;
@@ -283,7 +286,7 @@ export const getRiderOrderById = async (req: Request, res: Response) => {
       include: { items: true, customer: true, vendor: true, rider: true },
     });
     if (!order) throw new AppError(404, "Order not found");
-    if (actor.role !== "rider" && order.riderId !== riderId) {
+    if (role !== "ADMIN" && order.riderId !== riderId) {
       throw new AppError(403, "You do not have access to this order");
     }
     return sendSuccess(res, { order });
@@ -311,30 +314,83 @@ export const claimOrder = async (req: Request, res: Response) => {
   try {
     if (!id) throw new AppError(400, "Order id is required");
     if (!actor) throw new AppError(401, "Unauthorized");
-    if (actor.role !== "rider")
+    const role = String(actor.role || "").toUpperCase();
+    if (role !== "RIDER")
       throw new AppError(403, "Only riders can claim orders");
+
+    console.log("[CLAIM] actor:", actor);
+    console.log("[CLAIM] orderId:", id);
 
     const order = await prisma.order.findUnique({
       where: { id },
     });
+    console.log("[CLAIM] order:", order?.id, order?.status, order?.riderId);
     if (!order) throw new AppError(404, "Order Does not Exist");
 
     const result = await prisma.$transaction(async (tx) => {
-      // atomic guarded update: only update when riderId is null AND order in claimable status
-      const updateRes = await tx.order.updateMany({
+      // MongoDB fix: query by status only, then check riderId in application code
+      // Prisma MongoDB has issues with null filter in where clause
+      const availableOrder = await tx.order.findFirst({
         where: {
           id,
-          riderId: null,
-          status: { in: ["ACCEPTED", "PREPARING"] },
+          status: { in: ["ACCEPTED", "PREPARING", "READY_FOR_PICKUP"] },
         },
+      });
+
+      // Check riderId in application code (works around Prisma MongoDB bug)
+      if (!availableOrder || availableOrder.riderId !== null) {
+        throw new AppError(409, "Order already claimed or not claimable");
+      }
+
+      console.log(
+        "[CLAIM] availableOrder:",
+        availableOrder?.id,
+        availableOrder?.status,
+        availableOrder?.riderId,
+      );
+
+      // Now update the order
+      await tx.order.update({
+        where: { id: availableOrder.id },
         data: {
           riderId: actor.id,
           status: "OUT_FOR_DELIVERY",
         },
       });
 
-      if (updateRes.count === 0) {
-        throw new AppError(409, "Order already claimed or not claimable");
+      // Create Delivery record for earnings calculation
+      const vendor = await tx.vendor.findUnique({
+        where: { id: availableOrder.vendorId },
+        select: { address: true },
+      });
+
+      const vendorAddress = vendor?.address as {
+        coordinates?: { lat: number; long: number };
+      } | null;
+      const deliveryAddressCoords = availableOrder.deliveryAddress as {
+        coordinates?: { lat: number; long: number };
+      } | null;
+
+      await tx.delivery.create({
+        data: {
+          orderId: id,
+          riderId: actor.id,
+          pickupLocation: vendorAddress?.coordinates ?? { lat: 9.0, long: 7.0 },
+          dropoffLocation: deliveryAddressCoords?.coordinates ?? {
+            lat: 9.0,
+            long: 7.0,
+          },
+          status: "PICKED_UP",
+        },
+      });
+
+      // Add rider pending earnings (delivery fee)
+      try {
+        const breakdown = await calculateEarnings(id);
+        await addRiderPendingEarnings(actor.id, breakdown.riderEarnings, id);
+        console.log("[CLAIM] Rider pending earnings added:", breakdown.riderEarnings);
+      } catch (earningsError) {
+        console.error("[CLAIM] Failed to add rider pending earnings:", earningsError);
       }
 
       await tx.orderHistory.create({
@@ -386,7 +442,8 @@ export const generateVendorOrderCode = async (req: Request, res: Response) => {
 
     if (!id) throw new AppError(400, "Order id is required");
     if (!actor) throw new AppError(401, "Unauthorized");
-    if (actor.role !== "rider")
+    const role = String(actor.role || "").toUpperCase();
+    if (role !== "RIDER")
       throw new AppError(403, "Only riders can claim orders");
 
     const order = await prisma.order.findUnique({
@@ -438,10 +495,11 @@ export const verifyCustomerDelivery = async (req: Request, res: Response) => {
     if (!orderId) throw new AppError(400, "Order ID is required");
     if (!scannedCode) throw new AppError(400, "Verification code is required");
     if (!actor) throw new AppError(401, "Unauthorized");
-    if (actor.role !== "rider")
+    const role = String(actor.role || "").toUpperCase();
+    if (role !== "RIDER")
       throw new AppError(403, "Only riders can verify deliveries");
-    const [id, code] = scannedCode.split(" ");
-    if (id !== orderId) throw new AppError(401, "Unauthorized");
+
+    const code = scannedCode.trim();
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -471,13 +529,49 @@ export const verifyCustomerDelivery = async (req: Request, res: Response) => {
     }
 
     // Success! Update order status and nullify the code so it can't be reused.
-    await prisma.order.update({
+    const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
         status: "DELIVERED",
-        deliveryVerificationCode: null, // Important for security
+        deliveryVerificationCode: null,
+      },
+      include: {
+        customer: { select: { id: true, fullName: true } },
       },
     });
+
+    socketService.notify(
+      updatedOrder.customerId,
+      AppSocketEvent.ORDER_DELIVERED,
+      {
+        title: "Order Delivered",
+        type: "ORDER_DELIVERED",
+        message: `Your order has been delivered! Rate your experience.`,
+        priority: "high",
+        metadata: {
+          orderId: updatedOrder.id,
+          vendorId: updatedOrder.vendorId,
+        },
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    await PendingReviewService.add(orderId, updatedOrder.customerId);
+
+    try {
+      await calculateEarnings(orderId);
+    } catch (err) {
+      console.error("Failed to calculate rider earnings:", err);
+    }
+
+    try {
+      await settleVendorEarnings(orderId);
+    } catch (err) {
+      console.error("Failed to settle vendor earnings:", err);
+    }
+
+    await cacheService.invalidatePattern("orders");
+    await cacheService.invalidatePattern("userOrders");
 
     return sendSuccess(res, { message: "Delivery successfully verified" });
   } catch (error) {
@@ -499,7 +593,7 @@ export const verifyCustomerDelivery = async (req: Request, res: Response) => {
 //    * #swagger.parameters['body'] = { in: 'body', description: 'Location data', required: true, schema: { type: 'object', properties: { latitude: { type: 'number' }, longitude: { type: 'number' } } } }
 //    */
 //   const { latitude, longitude } = req.body;
-//   const riderId = req.rider?.id;
+//   const riderId = req.user?.sub;
 
 //   try {
 //     if (!riderId) throw new AppError(401, "Unauthorized");
@@ -559,10 +653,10 @@ export const toggleAvailability = async (req: Request, res: Response) => {
    * #swagger.summary = 'Toggle rider availability'
    * #swagger.description = 'Sets the rider as available or unavailable for new orders.'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['body'] = { in: 'body', description: 'Availability status', required: true, schema: { type: 'object', properties: { available: { type: 'boolean' } } } }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Availability status', required: true, schema: { type: 'object', properties: { isAvailable: { type: 'boolean' } } } }
    */
-  const { available } = req.body;
-  const riderId = req.rider?.id;
+  const available = req.body?.isAvailable ?? req.body?.available;
+  const riderId = req.user?.sub;
 
   try {
     if (!riderId) throw new AppError(401, "Unauthorized");
@@ -602,7 +696,7 @@ export const getDeliveryHistory = async (req: Request, res: Response) => {
    * #swagger.parameters['from'] = { in: 'query', description: 'Start date for filtering', required: false, type: 'string', format: 'date-time' }
    * #swagger.parameters['to'] = { in: 'query', description: 'End date for filtering', required: false, type: 'string', format: 'date-time' }
    */
-  const riderId = req.rider?.id;
+  const riderId = req.user?.sub;
   const {
     page = "1",
     limit = "20",
@@ -675,7 +769,7 @@ export const declineOrder = async (req: Request, res: Response) => {
    * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
    */
   try {
-    const riderId = req.rider?.id;
+    const riderId = req.user?.sub;
     if (!riderId) throw new AppError(401, "Authentication required");
     // const actor = getActorFromReq(req);
     // if (actor.role !== "rider") {

@@ -68,6 +68,12 @@
           "items": {
             "$ref": "#/definitions/Review"
           }
+        },
+        "favorites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Favorite"
+          }
         }
       }
     },
@@ -100,6 +106,10 @@
             "number",
             "null"
           ]
+        },
+        "reviewCount": {
+          "type": "integer",
+          "default": 0
         },
         "openingTime": {
           "type": [
@@ -211,6 +221,12 @@
             "null"
           ]
         },
+        "imageUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "attributes": {
           "type": [
             "number",
@@ -220,6 +236,16 @@
             "array",
             "null"
           ]
+        },
+        "rating": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reviewCount": {
+          "type": "integer",
+          "default": 0
         },
         "isAvailable": {
           "type": "boolean",
@@ -249,6 +275,12 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Review"
+          }
+        },
+        "productReviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductReview"
           }
         },
         "modifierGroups": {
@@ -534,6 +566,22 @@
               "type": "null"
             }
           ]
+        },
+        "review": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Review"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Message"
+          }
         }
       }
     },
@@ -762,6 +810,57 @@
               "type": "null"
             }
           ]
+        },
+        "order": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Order"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "productReviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductReview"
+          }
+        }
+      }
+    },
+    "ProductReview": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "review": {
+          "$ref": "#/definitions/Review"
+        },
+        "product": {
+          "$ref": "#/definitions/Product"
+        },
+        "rating": {
+          "type": "integer"
+        }
+      }
+    },
+    "Favorite": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "productId": {
+          "type": "string"
         }
       }
     },
@@ -1230,6 +1329,30 @@
         }
       }
     },
+    "Message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "senderId": {
+          "type": "string"
+        },
+        "senderType": {
+          "type": "string"
+        },
+        "order": {
+          "$ref": "#/definitions/Order"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
     "Address": {
       "type": "object",
       "properties": {
@@ -1237,11 +1360,7 @@
           "type": "string"
         },
         "state": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": "Ilorin"
+          "type": "string"
         },
         "country": {
           "type": [
@@ -1319,6 +1438,12 @@
     "review": {
       "$ref": "#/definitions/Review"
     },
+    "productReview": {
+      "$ref": "#/definitions/ProductReview"
+    },
+    "favorite": {
+      "$ref": "#/definitions/Favorite"
+    },
     "orderHistory": {
       "$ref": "#/definitions/OrderHistory"
     },
@@ -1345,6 +1470,9 @@
     },
     "payoutSchedule": {
       "$ref": "#/definitions/PayoutSchedule"
+    },
+    "message": {
+      "$ref": "#/definitions/Message"
     }
   }
 }

@@ -2,7 +2,10 @@ node_modules/
 .git
 .vscode
 .env
+.zed
 
 /src/generated/prisma
 dist/
 .42c/
+docs
+scripts

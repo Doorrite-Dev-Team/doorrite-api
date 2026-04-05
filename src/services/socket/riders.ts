@@ -124,11 +124,12 @@ class RiderService {
           riderLoc.long,
         );
 
-        // 🚀 io.to(socketId).emit() sends the job notification
         this.notify(targetSocketId, "new-ride-job", {
           orderId,
           pickup: pickupLocation,
           message: `New ride job available! You are ${distanceAway.toFixed(2)} km away.`,
+          amount: "To be calculated",
+          claimUrl: `/riders/orders/${orderId}/claim`,
         });
       }
     });

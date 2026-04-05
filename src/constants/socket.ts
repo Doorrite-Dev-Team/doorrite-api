@@ -1,6 +1,7 @@
 export enum AppSocketEvent {
   // Order Lifecycle
-  ORDER_ACCEPTED = "order:accepted", //--vendor, user
+  ORDER_ACCEPTED = "order:accepted",
+  ORDER_DELIVERED = "order:delivered",
   NEW_ORDER = "new:order",
   NOTIFICATION = "notification",
 

@@ -144,6 +144,19 @@ export const verifyRiderOtp = async (req: Request, res: Response) => {
         200,
       );
     } else {
+      // Create wallet for rider if it doesn't exist
+      const existingWallet = await prisma.wallet.findUnique({
+        where: { riderId: result.entity.id },
+      });
+
+      if (!existingWallet) {
+        await prisma.wallet.create({
+          data: {
+            riderId: result.entity.id,
+          },
+        });
+      }
+
       // Login the rider after successful verification
       const access = makeAccessTokenForRider(result.entity.id);
       const refresh = makeRefreshTokenForRider(result.entity.id);
@@ -190,6 +203,19 @@ export const loginRider = async (req: Request, res: Response) => {
 
     const passwordValid = await verifyPassword(password, rider.passwordHash);
     if (!passwordValid) throw new AppError(400, "Invalid credentials");
+
+    // Create wallet for rider if it doesn't exist (backwards compatibility)
+    const existingWallet = await prisma.wallet.findUnique({
+      where: { riderId: rider.id },
+    });
+
+    if (!existingWallet) {
+      await prisma.wallet.create({
+        data: {
+          riderId: rider.id,
+        },
+      });
+    }
 
     const access = makeAccessTokenForRider(rider.id);
     const refresh = makeRefreshTokenForRider(rider.id);

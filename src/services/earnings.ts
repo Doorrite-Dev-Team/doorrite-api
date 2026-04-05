@@ -19,6 +19,7 @@ export const EARNINGS_CONFIG = {
   WAIT_FEE_CAP: 500,
   MIN_WAIT_MINUTES: 15,
   SHORT_TRIP_MINIMUM: 800,
+  VENDOR_COMMISSION_PERCENT: 0.15, // 15% platform fee
 } as const;
 
 export interface EarningsBreakdown {
@@ -78,19 +79,38 @@ export async function calculateEarnings(
     throw new Error("Order not found");
   }
 
-  const pickupCoords = order.delivery?.pickupLocation as unknown as {
-    lat?: number;
-    long?: number;
-  };
-  const dropoffCoords = order.delivery?.dropoffLocation as unknown as {
-    lat?: number;
-    long?: number;
-  };
+  // Try to get coordinates from delivery record, fallback to order's delivery address
+  let pickupCoords: { lat: number; long: number } = { lat: 9.0, long: 7.0 }; // Default to Abuja
+  let dropoffCoords: { lat: number; long: number } = { lat: 9.0, long: 7.0 };
 
-  const distanceKm = calculateDistanceKm(
-    { lat: pickupCoords?.lat ?? 0, long: pickupCoords?.long ?? 0 },
-    { lat: dropoffCoords?.lat ?? 0, long: dropoffCoords?.long ?? 0 },
-  );
+  if (order.delivery) {
+    const pickup = order.delivery.pickupLocation as {
+      lat?: number;
+      long?: number;
+    } | null;
+    const dropoff = order.delivery.dropoffLocation as {
+      lat?: number;
+      long?: number;
+    } | null;
+    pickupCoords = { lat: pickup?.lat ?? 9.0, long: pickup?.long ?? 7.0 };
+    dropoffCoords = { lat: dropoff?.lat ?? 9.0, long: dropoff?.long ?? 7.0 };
+  } else if (order.deliveryAddress) {
+    const deliveryAddr = order.deliveryAddress as {
+      coordinates?: { lat: number; long: number };
+    };
+    if (deliveryAddr.coordinates) {
+      dropoffCoords = deliveryAddr.coordinates;
+    }
+    // Use vendor address as pickup if available
+    const vendorAddr = order.vendor?.address as {
+      coordinates?: { lat: number; long: number };
+    } | null;
+    if (vendorAddr?.coordinates) {
+      pickupCoords = vendorAddr.coordinates;
+    }
+  }
+
+  const distanceKm = calculateDistanceKm(pickupCoords, dropoffCoords);
 
   const isPeak = checkPeakHour(order.deliveredAt ?? new Date());
   const peakMultiplier = isPeak ? EARNINGS_CONFIG.PEAK_MULTIPLIER : 1.0;
@@ -165,7 +185,7 @@ export async function createEarningsRecord(
     await tx.wallet.update({
       where: { id: wallet.id },
       data: {
-        balance: { increment: breakdown.riderEarnings },
+        pendingBalance: { increment: breakdown.riderEarnings },
         totalEarned: { increment: breakdown.riderEarnings },
       },
     });
@@ -181,6 +201,273 @@ export async function createEarningsRecord(
         status: "COMPLETED",
       },
     });
+  });
+}
+
+export async function addRiderPendingEarnings(
+  riderId: string,
+  amount: number,
+  orderId: string,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const wallet = await tx.wallet.findUnique({
+      where: { riderId },
+    });
+
+    if (!wallet) {
+      throw new Error("Wallet not found for rider");
+    }
+
+    await tx.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        pendingBalance: { increment: amount },
+      },
+    });
+
+    await tx.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: "EARNING",
+        amount: amount,
+        description: `Pending delivery earnings for order ${orderId}`,
+        orderId,
+        status: "PENDING",
+      },
+    });
+  });
+}
+
+export interface VendorEarningsBreakdown {
+  orderSubtotal: number;
+  platformFee: number;
+  vendorEarnings: number;
+}
+
+export async function calculateVendorEarnings(
+  orderId: string,
+): Promise<VendorEarningsBreakdown> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  const orderItems = await prisma.orderItem.findMany({
+    where: { orderId },
+    include: { product: true },
+  });
+
+  const subtotal = orderItems.reduce((sum, item) => {
+    return sum + item.price * item.quantity;
+  }, 0);
+
+  const platformFee = subtotal * EARNINGS_CONFIG.VENDOR_COMMISSION_PERCENT;
+  const vendorEarnings = subtotal - platformFee;
+
+  return {
+    orderSubtotal: subtotal,
+    platformFee,
+    vendorEarnings,
+  };
+}
+
+export async function creditVendorEarnings(orderId: string): Promise<void> {
+  const breakdown = await calculateVendorEarnings(orderId);
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: { vendor: true },
+    });
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    let wallet = await tx.wallet.findUnique({
+      where: { vendorId: order.vendorId },
+    });
+
+    if (!wallet) {
+      wallet = await tx.wallet.create({
+        data: { vendorId: order.vendorId },
+      });
+    }
+
+    await tx.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: "EARNING",
+        amount: breakdown.vendorEarnings,
+        status: "PENDING",
+        orderId,
+        description: `Pending order earnings: ₦${breakdown.vendorEarnings.toFixed(2)} (Subtotal: ₦${breakdown.orderSubtotal}, Platform Fee: ₦${breakdown.platformFee.toFixed(2)})`,
+      },
+    });
+
+    await tx.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        pendingBalance: { increment: breakdown.vendorEarnings },
+        // totalEarned: { increment: breakdown.vendorEarnings },
+      },
+    });
+  });
+}
+
+export async function settleVendorEarnings(orderId: string): Promise<void> {
+  const breakdown = await calculateVendorEarnings(orderId);
+  const settleAmount = breakdown.vendorEarnings;
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: { vendor: true },
+    });
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    const wallet = await tx.wallet.findUnique({
+      where: { vendorId: order.vendorId },
+    });
+
+    if (!wallet || wallet.pendingBalance < settleAmount) {
+      return;
+    }
+
+    // Create completed transaction
+    await tx.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: "EARNING",
+        amount: settleAmount,
+        status: "COMPLETED",
+        orderId,
+        description: `Order earnings settled: ₦${settleAmount.toFixed(2)}`,
+      },
+    });
+
+    // Move only the specific order's amount from pending to available
+    await tx.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        balance: { increment: settleAmount },
+        pendingBalance: { decrement: settleAmount },
+        totalEarned: { increment: breakdown.vendorEarnings },
+      },
+    });
+  });
+}
+
+export async function settleRiderEarnings(orderId: string): Promise<void> {
+  const breakdown = await calculateEarnings(orderId);
+  const settleAmount = breakdown.riderEarnings;
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: { rider: true },
+    });
+
+    if (!order || !order.riderId) {
+      throw new Error("Order or rider not found");
+    }
+
+    const wallet = await tx.wallet.findUnique({
+      where: { riderId: order.riderId },
+    });
+
+    if (!wallet || wallet.pendingBalance < settleAmount) {
+      return;
+    }
+
+    // Create completed transaction
+    await tx.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: "EARNING",
+        amount: settleAmount,
+        status: "COMPLETED",
+        orderId,
+        description: `Delivery earnings settled: ₦${settleAmount.toFixed(2)}`,
+      },
+    });
+
+    // Move only the specific order's amount from pending to available
+    await tx.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        balance: { increment: settleAmount },
+        pendingBalance: { decrement: settleAmount },
+      },
+    });
+  });
+}
+
+export async function deductVendorEarnings(
+  orderId: string,
+  reason: string,
+): Promise<void> {
+  const breakdown = await calculateVendorEarnings(orderId);
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: { vendor: true },
+    });
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    const wallet = await tx.wallet.findUnique({
+      where: { vendorId: order.vendorId },
+    });
+
+    if (!wallet) {
+      return;
+    }
+
+    const deductAmount = Math.min(
+      breakdown.vendorEarnings,
+      wallet.pendingBalance + wallet.balance,
+    );
+
+    if (deductAmount > 0) {
+      await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          type: "ADJUSTMENT",
+          amount: -deductAmount,
+          status: "COMPLETED",
+          orderId,
+          description: `Refund deducted: ${reason}`,
+        },
+      });
+
+      if (wallet.pendingBalance >= deductAmount) {
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: {
+            pendingBalance: { decrement: deductAmount },
+          },
+        });
+      } else {
+        const remaining = deductAmount - wallet.pendingBalance;
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: {
+            pendingBalance: { decrement: wallet.pendingBalance },
+            balance: { decrement: remaining },
+          },
+        });
+      }
+    }
   });
 }
 
@@ -204,7 +491,9 @@ export async function getGeoapifyRouteDistance(
       return distanceMeters / 1000;
     }
 
-    console.warn("Geoapify response missing features, falling back to Haversine");
+    console.warn(
+      "Geoapify response missing features, falling back to Haversine",
+    );
     return getDistance(pickup[0], pickup[1], dropoff[0], dropoff[1]);
   } catch (error) {
     console.error("Geoapify API error:", error);

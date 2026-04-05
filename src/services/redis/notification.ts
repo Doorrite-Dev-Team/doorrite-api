@@ -3,12 +3,14 @@ import { redis } from "@config/redis";
 export const NotificationService = {
   // Save notification to Redis (Hash + List)
   async add(userId: string, notifId: string, data: object) {
+    const stringifiedData: Record<string, string> = {};
+    for (const [key, value] of Object.entries(data)) {
+      stringifiedData[key] = typeof value === "string" ? value : JSON.stringify(value);
+    }
+
     const multi = redis.multi();
-    // 1. Store content in Hash
-    multi.hset(`notif:${notifId}`, data as any);
-    // 2. Add ID to user's unread list
+    multi.hset(`notif:${notifId}`, stringifiedData);
     multi.lpush(`user:${userId}:notifs`, notifId);
-    // 3. Set expiry (optional safety net, e.g., 7 days)
     multi.expire(`notif:${userId}`, 604800);
     await multi.exec();
   },
@@ -21,6 +23,8 @@ export const NotificationService = {
     const pipeline = redis.multi();
     notifIds.forEach((id) => pipeline.hgetall(`notif:${id}`));
     const results = await pipeline.exec();
+
+    if (!results) return [];
 
     // Merge IDs with content
     return results.map((content, index) => ({

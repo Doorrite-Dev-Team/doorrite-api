@@ -227,6 +227,7 @@ export const createProductSchema = z.object({
   description: z.string().trim().optional(),
   basePrice: positiveNumberSchema,
   sku: z.string().trim().optional(),
+  imageUrl: z.string().url("Invalid image URL").optional(),
   attributes: z.record(z.any(), z.any()).optional(),
   isAvailable: z.boolean().optional().default(false),
   variants: z.array(variantSchema).optional(),
@@ -240,6 +241,7 @@ export const updateProductSchema = z.object({
   description: z.string().trim().optional(),
   basePrice: positiveNumberSchema.optional(),
   sku: z.string().trim().optional(),
+  imageUrl: z.string().url("Invalid image URL").optional(),
   attributes: z.record(z.any(), z.any()).optional(),
 });
 
