@@ -1133,3 +1133,114 @@ export const getVendorReviews = async (req: Request, res: Response) => {
     handleError(res, error);
   }
 };
+
+// ============================================================================
+// DASHBOARD
+// ============================================================================
+
+export const getVendorDashboard = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = "Get vendor dashboard data"
+   * #swagger.description = 'Fetches dashboard data including vendor profile, stats, and active orders.'
+   */
+  try {
+    const vendorId = req.user?.sub;
+    if (!vendorId) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [vendor, todayOrders, availableItems, activeOrders] = await Promise.all([
+      prisma.vendor.findUnique({
+        where: { id: vendorId },
+        select: {
+          id: true,
+          businessName: true,
+          email: true,
+          phoneNumber: true,
+          logoUrl: true,
+          rating: true,
+          openingTime: true,
+          closingTime: true,
+          address: {
+            select: {
+              address: true,
+              state: true,
+              country: true,
+            },
+          },
+        },
+      }),
+      prisma.order.findMany({
+        where: {
+          vendorId,
+          createdAt: { gte: todayStart },
+        },
+        select: { totalAmount: true },
+      }),
+      prisma.product.count({
+        where: { vendorId, isAvailable: true },
+      }),
+      prisma.order.findMany({
+        where: {
+          vendorId,
+          status: {
+            in: ["PENDING", "ACCEPTED", "PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY"],
+          },
+        },
+        include: {
+          customer: {
+            select: { id: true, fullName: true, profileImageUrl: true },
+          },
+          items: {
+            include: {
+              product: { select: { name: true } },
+            },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+    ]);
+
+    if (!vendor) {
+      throw new AppError(404, "Vendor not found");
+    }
+
+    const todayOrdersCount = todayOrders.length;
+    const todayEarnings = todayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+
+    const formattedActiveOrders = activeOrders.map((order) => ({
+      id: order.id,
+      orderId: order.id,
+      customerName: order.customer.fullName,
+      customerAvatar: order.customer.profileImageUrl || undefined,
+      status: order.status,
+      totalAmount: order.totalAmount,
+      itemCount: order.items.length,
+      firstItemName: order.items[0]?.product.name || "",
+      createdAt: order.createdAt.toISOString(),
+    }));
+
+    const dashboardData = {
+      vendor: {
+        ...vendor,
+        rating: vendor.rating ?? 0,
+      },
+      stats: {
+        todayOrders: todayOrdersCount,
+        todayEarnings,
+        availableItems,
+      },
+      activeOrders: formattedActiveOrders,
+    };
+
+    return sendSuccess(res, dashboardData);
+  } catch (error) {
+    handleError(res, error);
+  }
+};

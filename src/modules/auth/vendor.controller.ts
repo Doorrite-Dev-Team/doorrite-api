@@ -47,6 +47,7 @@ export const createVendor = async (req: Request, res: Response) => {
       address,
       categoryIds,
       logoUrl,
+      businessHours,
     } = req.body || {};
 
     // Basic validation (throws AppError on invalid)
@@ -57,6 +58,7 @@ export const createVendor = async (req: Request, res: Response) => {
       password,
       address,
       categoryIds,
+      businessHours,
     });
 
     // Ensure provided categoryIds are valid according to vendorCategoryId list
@@ -100,6 +102,8 @@ export const createVendor = async (req: Request, res: Response) => {
         isVerified: false,
         isActive: false, // requires admin approval,
         categories: uniqueCategoryIds,
+        openingTime: businessHours?.open,
+        closingTime: businessHours?.close,
       },
     });
 
@@ -376,6 +380,7 @@ export function validateVendorData({
   password,
   address,
   categoryIds,
+  businessHours,
 }: {
   businessName: any;
   email: any;
@@ -383,6 +388,7 @@ export function validateVendorData({
   password: any;
   address: any;
   categoryIds: any;
+  businessHours: any;
 }) {
   // Business name
   if (
@@ -437,5 +443,32 @@ export function validateVendorData({
     )
   ) {
     throw new AppError(400, "At least one valid categoryId is required");
+  }
+
+  // Business Hours (required)
+  if (!businessHours || typeof businessHours !== "object") {
+    throw new AppError(400, "Business hours are required");
+  }
+
+  const { open, close } = businessHours;
+
+  if (!open || typeof open !== "string" || !/^\d{2}:\d{2}$/.test(open)) {
+    throw new AppError(400, "Opening time is required in HH:mm format (e.g., 09:00)");
+  }
+
+  if (!close || typeof close !== "string" || !/^\d{2}:\d{2}$/.test(close)) {
+    throw new AppError(400, "Closing time is required in HH:mm format (e.g., 21:00)");
+  }
+
+  // Validate time values
+  const [openHour, openMin] = open.split(":").map(Number);
+  const [closeHour, closeMin] = close.split(":").map(Number);
+
+  if (openHour < 0 || openHour > 23 || openMin < 0 || openMin > 59) {
+    throw new AppError(400, "Invalid opening time value");
+  }
+
+  if (closeHour < 0 || closeHour > 23 || closeMin < 0 || closeMin > 59) {
+    throw new AppError(400, "Invalid closing time value");
   }
 }
