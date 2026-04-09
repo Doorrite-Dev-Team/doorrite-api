@@ -1244,3 +1244,48 @@ export const getVendorDashboard = async (req: Request, res: Response) => {
     handleError(res, error);
   }
 };
+
+// STATS
+// ============================================================================
+
+export const getVendorStats = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Vendor']
+   * #swagger.summary = "Get vendor stats"
+   * #swagger.description = 'Fetches vendor stats including rating, orders, products count.'
+   */
+  try {
+    const actor = getActorFromReq(req);
+    if (!actor || actor.role !== "vendor") {
+      throw new AppError(403, "Unauthorized");
+    }
+
+    const [vendor, totalOrders, totalProducts, activeProducts] = await Promise.all([
+      prisma.vendor.findUnique({
+        where: { id: actor.id },
+        select: { rating: true, createdAt: true },
+      }),
+      prisma.order.count({
+        where: { vendorId: actor.id },
+      }),
+      prisma.product.count({
+        where: { vendorId: actor.id },
+      }),
+      prisma.product.count({
+        where: { vendorId: actor.id, isAvailable: true },
+      }),
+    ]);
+
+    return sendSuccess(res, {
+      stats: {
+        rating: vendor?.rating ?? 0,
+        totalOrders,
+        totalProducts,
+        activeProducts,
+        memberSince: vendor?.createdAt.toISOString() ?? new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};

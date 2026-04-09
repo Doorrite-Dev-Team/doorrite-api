@@ -139,6 +139,175 @@ export const requestVendorWithdrawal = async (req: Request, res: Response) => {
   }
 };
 
+export const getVendorEarnings = async (req: Request, res: Response) => {
+  try {
+    const actor = getActorFromReq(req);
+    if (!actor || actor.role !== "vendor") {
+      throw new AppError(403, "Unauthorized");
+    }
+
+    const period = (req.query.period as "daily" | "weekly" | "monthly") || "weekly";
+    const now = new Date();
+    let startDate = new Date();
+
+    if (period === "daily") {
+      startDate.setDate(now.getDate() - 7);
+    } else if (period === "weekly") {
+      startDate.setDate(now.getDate() - 28);
+    } else {
+      startDate.setMonth(now.getMonth() - 3);
+    }
+
+    const wallet = await prisma.wallet.findUnique({
+      where: { vendorId: actor.id },
+    });
+
+    if (!wallet) {
+      return sendSuccess(res, {
+        summary: { totalEarnings: 0, percentageChange: 0, period },
+        wallet: { balance: 0, totalEarned: 0, totalWithdrawn: 0 },
+        chartData: [],
+        recentTransactions: [],
+        pendingPayout: 0,
+      });
+    }
+
+    const [periodEarnings, previousPeriodEarnings, transactions, pendingPayouts] =
+      await Promise.all([
+        prisma.transaction.aggregate({
+          where: {
+            walletId: wallet.id,
+            type: "EARNING",
+            createdAt: { gte: startDate },
+          },
+          _sum: { amount: true },
+        }),
+        prisma.transaction.aggregate({
+          where: {
+            walletId: wallet.id,
+            type: "EARNING",
+            createdAt: {
+              gte: new Date(startDate.getTime() - (now.getTime() - startDate.getTime())),
+            },
+          },
+          _sum: { amount: true },
+        }),
+        prisma.transaction.findMany({
+          where: { walletId: wallet.id },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        }),
+        prisma.transaction.findMany({
+          where: {
+            walletId: wallet.id,
+            type: "PAYOUT",
+            status: "PENDING",
+          },
+        }),
+      ]);
+
+    const currentTotal = periodEarnings._sum.amount ?? 0;
+    const previousTotal = previousPeriodEarnings._sum.amount ?? 0;
+    const percentageChange =
+      previousTotal > 0
+        ? Math.round(((currentTotal - previousTotal) / previousTotal) * 100 * 10) / 10
+        : currentTotal > 0
+          ? 100
+          : 0;
+
+    const chartData = await generateChartData(wallet.id, period, startDate);
+
+    const totalPendingPayout =
+      pendingPayouts.reduce((sum, tx) => sum + Math.abs(tx.amount), 0) || 0;
+
+    return sendSuccess(res, {
+      summary: { totalEarnings: currentTotal, percentageChange, period },
+      wallet: {
+        balance: wallet.balance,
+        totalEarned: wallet.totalEarned,
+        totalWithdrawn: wallet.totalWithdrawn,
+      },
+      chartData,
+      recentTransactions: transactions.map((tx) => ({
+        id: tx.id,
+        type: tx.type,
+        amount: tx.amount,
+        status: tx.status,
+        createdAt: tx.createdAt.toISOString(),
+      })),
+      pendingPayout: totalPendingPayout,
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+async function generateChartData(
+  walletId: string,
+  period: "daily" | "weekly" | "monthly",
+  startDate: Date,
+) {
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      walletId,
+      type: "EARNING",
+      createdAt: { gte: startDate },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const dataMap = new Map<string, number>();
+
+  if (period === "daily") {
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const key = d.toISOString().split("T")[0];
+      dataMap.set(key, 0);
+    }
+    transactions.forEach((tx) => {
+      const key = tx.createdAt.toISOString().split("T")[0];
+      dataMap.set(key, (dataMap.get(key) || 0) + tx.amount);
+    });
+  } else if (period === "weekly") {
+    for (let i = 0; i < 4; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - (3 - i) * 7);
+      dataMap.set(`week${i + 1}`, 0);
+    }
+    const now = new Date();
+    transactions.forEach((tx) => {
+      const daysAgo =
+        Math.floor(
+          (now.getTime() - tx.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+        ) / 7;
+      const week = Math.floor(daysAgo);
+      if (week >= 0 && week < 4) {
+        dataMap.set(
+          `week${4 - week}`,
+          (dataMap.get(`week${4 - week}`) || 0) + tx.amount,
+        );
+      }
+    });
+  } else {
+    for (let i = 0; i < 3; i++) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (2 - i));
+      const key = d.toISOString().slice(0, 7);
+      dataMap.set(key, 0);
+    }
+    transactions.forEach((tx) => {
+      const key = tx.createdAt.toISOString().slice(0, 7);
+      dataMap.set(key, (dataMap.get(key) || 0) + tx.amount);
+    });
+  }
+
+  return Array.from(dataMap.entries()).map(([date, amount]) => ({
+    date,
+    amount: Math.max(0, amount),
+  }));
+}
+
 export const getVendorWithdrawalHistory = async (req: Request, res: Response) => {
   try {
     const actor = getActorFromReq(req);

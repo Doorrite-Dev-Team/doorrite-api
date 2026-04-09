@@ -143,6 +143,11 @@ router.delete(
 // EARNINGS ROUTES
 // ============================================================================
 router.get(
+  "/earnings",
+  requireAuth("vendor"),
+  earningsController.getVendorEarnings,
+);
+router.get(
   "/earnings/summary",
   requireAuth("vendor"),
   earningsController.getVendorEarningsSummary,
@@ -170,6 +175,15 @@ router.get(
   "/dashboard",
   requireAuth("vendor"),
   vendorController.getVendorDashboard,
+);
+
+// ============================================================================
+// STATS ROUTE
+// ============================================================================
+router.get(
+  "/stats",
+  requireAuth("vendor"),
+  vendorController.getVendorStats,
 );
 
 // ============================================================================
