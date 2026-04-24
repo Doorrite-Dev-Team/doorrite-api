@@ -259,7 +259,7 @@ export const createAndSendOtp = async (
           redisRes.code,
         );
 
-  console.log(`TESTING: OTP for ${email} is ${redisRes.code}`); // TEMP FOR TESTING
+
 
   try {
     await sendmail(entity.email, tpl.subject, tpl.text, tpl.html);

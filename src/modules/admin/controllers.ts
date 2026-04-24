@@ -13,6 +13,11 @@ export const adminLogin = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Admin login'
    * #swagger.description = 'Authenticate an admin user.'
+   * #swagger.operationId = 'adminLogin'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { user: { type: 'object' }, access: { type: 'string' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { email, password } = req.body || {};
@@ -53,6 +58,10 @@ export const listVendors = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'List all vendors'
    * #swagger.description = 'Retrieves a paginated list of all vendors.'
+   * #swagger.operationId = 'listVendors'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendors: { type: 'array' }, total: { type: 'number' }, page: { type: 'number' }, limit: { type: 'number' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const page = Math.max(1, Number(req.query.page || 1));
@@ -80,6 +89,11 @@ export const getVendor = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Get a specific vendor'
    * #swagger.description = 'Retrieves the details of a single vendor by their ID.'
+   * #swagger.operationId = 'getVendor'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendor: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { vendorId } = req.params;
@@ -100,6 +114,12 @@ export const approveVendor = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Approve a vendor'
    * #swagger.description = 'Approves a vendor, making them verified and active.'
+   * #swagger.operationId = 'approveVendor'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendor: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { vendorId } = req.params;
@@ -122,6 +142,12 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Update order status'
    * #swagger.description = 'Updates the status of a specific order.'
+   * #swagger.operationId = 'adminUpdateOrderStatus'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { order: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { orderId } = req.params;
@@ -153,6 +179,10 @@ export const getReports = async (_: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Get system reports'
    * #swagger.description = 'Retrieves various system reports, such as counts and revenue.'
+   * #swagger.operationId = 'getReports'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { usersCount: { type: 'number' }, vendorsCount: { type: 'number' }, ordersCount: { type: 'number' }, ridersCount: { type: 'number' }, revenue: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     // MVP reports: counts and simple revenue
@@ -187,6 +217,10 @@ export const listRiders = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'List all riders'
    * #swagger.description = 'Retrieves a paginated list of all riders.'
+   * #swagger.operationId = 'listRiders'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { riders: { type: 'array' }, total: { type: 'number' }, page: { type: 'number' }, limit: { type: 'number' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const page = Math.max(1, Number(req.query.page || 1));
@@ -214,6 +248,11 @@ export const getRider = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Get a specific rider'
    * #swagger.description = 'Retrieves the details of a single rider by their ID.'
+   * #swagger.operationId = 'getRider'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { rider: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { riderId } = req.params;
@@ -234,6 +273,12 @@ export const approveRider = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Approve a rider'
    * #swagger.description = 'Approves a rider, making them verified and available.'
+   * #swagger.operationId = 'approveRider'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { rider: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { riderId } = req.params;
@@ -256,6 +301,12 @@ export const suspendRider = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Suspend a rider'
    * #swagger.description = 'Suspends a rider, making them unavailable.'
+   * #swagger.operationId = 'suspendRider'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { rider: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { riderId } = req.params;
@@ -276,9 +327,12 @@ export const suspendRider = async (req: Request, res: Response) => {
 // GET admin/users/?page=&limit=
 export const getAllUsers = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['User']
+   * #swagger.tags = ['Admin']
    * #swagger.summary = 'Get all users'
-   *
+   * #swagger.operationId = 'adminGetAllUsers'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { users: { type: 'array' }, total: { type: 'number' }, page: { type: 'number' }, limit: { type: 'number' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const page = Math.max(1, Number(req.query.page || 1));
@@ -306,6 +360,11 @@ export const deleteVendor = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Delete a Vendor'
    * #swagger.description = 'Deletes a Vendor, making them unavailable.'
+   * #swagger.operationId = 'deleteVendor'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendor: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
 
   try {
@@ -328,6 +387,11 @@ export const deleteRider = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Delete a rider'
    * #swagger.description = 'Deletes a rider, making them unavailable.'
+   * #swagger.operationId = 'deleteRider'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { rider: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
 
   try {
@@ -350,6 +414,11 @@ export const deleteUser = async (req: Request, res: Response) => {
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Delete a User'
    * #swagger.description = 'Deletes a User, making them unavailable.'
+   * #swagger.operationId = 'deleteUser'
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { user: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    */
   try {
     const { userId } = req.params;

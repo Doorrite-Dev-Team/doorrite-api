@@ -37,6 +37,22 @@
           "type": "boolean",
           "default": false
         },
+        "referralCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "referredBy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "freeDeliveryOrders": {
+          "type": "integer",
+          "default": 2
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
@@ -73,6 +89,18 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Favorite"
+          }
+        },
+        "referralsMade": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Referral"
+          }
+        },
+        "referralsReceived": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Referral"
           }
         }
       }
@@ -475,6 +503,7 @@
           "enum": [
             "PENDING_PAYMENT",
             "PENDING",
+            "SCHEDULED",
             "ACCEPTED",
             "PREPARING",
             "READY_FOR_PICKUP",
@@ -523,6 +552,23 @@
         },
         "updatedAt": {
           "type": "string",
+          "format": "date-time"
+        },
+        "reorderCount": {
+          "type": "integer",
+          "default": 0
+        },
+        "originalOrderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scheduledAt": {
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time"
         },
         "items": {
@@ -878,6 +924,7 @@
           "enum": [
             "PENDING_PAYMENT",
             "PENDING",
+            "SCHEDULED",
             "ACCEPTED",
             "PREPARING",
             "READY_FOR_PICKUP",
@@ -1347,9 +1394,92 @@
         "order": {
           "$ref": "#/definitions/Order"
         },
+        "isArchived": {
+          "type": "boolean",
+          "default": false
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
+        }
+      }
+    },
+    "PushSubscription": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "userType": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "p256dh": {
+          "type": "string"
+        },
+        "auth": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Referral": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "refereePhone": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "default": "pending"
+        },
+        "refereeOrderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "referrerOrderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "referrer": {
+          "$ref": "#/definitions/User"
+        },
+        "referee": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/User"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -1473,6 +1603,12 @@
     },
     "message": {
       "$ref": "#/definitions/Message"
+    },
+    "pushSubscription": {
+      "$ref": "#/definitions/PushSubscription"
+    },
+    "referral": {
+      "$ref": "#/definitions/Referral"
     }
   }
 }

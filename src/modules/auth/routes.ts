@@ -5,21 +5,11 @@ import * as userAuth from "./user.controller";
 import * as vendorAuth from "./vendor.controller";
 import * as riderAuth from "./rider.controller";
 import { CUISINES, vendorCategoryId } from "@lib/category";
+// import { registrationLimiter } from "@app";
 
 const router = express.Router();
 
-/**
- * #swagger.tags = ['Auth']
- * #swagger.summary = 'Create a new user'
- * #swagger.description = 'Register a new user account'
- *
- */
 router.post("/create-user", userAuth.createUser);
-/**
- * #swagger.tags = ['Auth']
- * #swagger.summary = 'Create a new user 2'
- * #swagger.description = 'Register a new user account'
- */
 
 router.post("/create-otp", userAuth.createOtp);
 
@@ -71,12 +61,6 @@ router.post("/reset-rider-password", riderAuth.resetRiderPassword);
 
 // Public endpoint: return in-memory vendor categories (no DB)
 router.get("/vendor-categories", (_, res: Response) => {
-  /**
-   * #swagger.tags = ['Auth']
-   * #swagger.summary = 'Get vendor categories'
-   * #swagger.description = 'Retrieve a list of available vendor categories and their keys.'
-   */
-
   return res.json({
     ok: true,
     categories: CUISINES,

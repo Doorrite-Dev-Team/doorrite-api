@@ -35,6 +35,25 @@ import { cacheService } from "@config/cache";
 // ----- Controllers -----
 
 // GET /api/v1/products/?q=&lat=&lng=&cuisine=&sort=&open=&top_rated=&page=&limit=
+/**
+ * #swagger.tags = ['Product']
+ * #swagger.summary = 'Search products'
+ * #swagger.description = 'Search for products by name or description, filtered by various criteria.'
+ * #swagger.operationId = 'searchProducts'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['q'] = { in: 'query', description: 'Search query', required: true, type: 'string', example: 'pizza' }
+ * #swagger.parameters['lat'] = { in: 'query', description: 'User latitude', required: false, type: 'number', example: 9.082 }
+ * #swagger.parameters['lng'] = { in: 'query', description: 'User longitude', required: false, type: 'number', example: 7.529 }
+ * #swagger.parameters['cuisine'] = { in: 'query', description: 'Filter by cuisine', required: false, type: 'string', example: 'italian' }
+ * #swagger.parameters['sort'] = { in: 'query', description: 'Sort option', required: false, type: 'string', enum: ['recommended', 'rating', 'distance', 'price_low', 'price_high'], example: 'recommended' }
+ * #swagger.parameters['open'] = { in: 'query', description: 'Show only open vendors', required: false, type: 'boolean', example: true }
+ * #swagger.parameters['top_rated'] = { in: 'query', description: 'Show only top rated (4.5+) vendors', required: false, type: 'boolean', example: true }
+ * #swagger.parameters['page'] = { in: 'query', description: 'Page number', required: false, type: 'integer', example: 1 }
+ * #swagger.parameters['limit'] = { in: 'query', description: 'Items per page', required: false, type: 'integer', example: 20 }
+ * #swagger.responses[200] = { description: 'Products found', schema: { type: 'object', properties: { groupedResults: { type: 'array' }, pagination: { type: 'object' } } } }
+ * #swagger.responses[400] = { description: 'Invalid search query', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const {
@@ -295,6 +314,19 @@ export const getProducts = async (req: Request, res: Response) => {
 };
 
 // GET /api/v1/products/vendor/:vendorId?exclude=productId
+/**
+ * #swagger.tags = ['Product']
+ * #swagger.summary = 'Get products by vendor'
+ * #swagger.description = 'Get all active products for a specific vendor.'
+ * #swagger.operationId = 'getVendorProducts'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['vendorId'] = { in: 'path', description: 'Vendor ID', required: true, type: 'string', example: 'vendor_123' }
+ * #swagger.parameters['exclude'] = { in: 'query', description: 'Product ID to exclude', required: false, type: 'string' }
+ * #swagger.responses[200] = { description: 'Products found', schema: { type: 'object', properties: { products: { type: 'array' } } } }
+ * #swagger.responses[400] = { description: 'Invalid vendor ID', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[404] = { description: 'Vendor not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getVendorProducts = async (req: Request, res: Response) => {
   try {
     const { vendorId } = req.params;
@@ -333,7 +365,6 @@ export const getVendorProducts = async (req: Request, res: Response) => {
         variants: {
           where: { isAvailable: true },
           select: { id: true, name: true, price: true },
-          take: 3,
         },
       },
       take: 20,
@@ -351,6 +382,20 @@ export const getVendorProducts = async (req: Request, res: Response) => {
 };
 
 // GET /api/v1/products/:productId?lat=&lng=
+/**
+ * #swagger.tags = ['Product']
+ * #swagger.summary = 'Get product by ID'
+ * #swagger.description = 'Get detailed information about a specific product.'
+ * #swagger.operationId = 'getProductById'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string', example: 'product_123' }
+ * #swagger.parameters['lat'] = { in: 'query', description: 'User latitude', required: false, type: 'number' }
+ * #swagger.parameters['lng'] = { in: 'query', description: 'User longitude', required: false, type: 'number' }
+ * #swagger.responses[200] = { description: 'Product found', schema: { type: 'object', properties: { product: { type: 'object' } } } }
+ * #swagger.responses[400] = { description: 'Invalid product ID', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[404] = { description: 'Product not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getProductById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -450,6 +495,17 @@ export const getProductById = async (req: Request, res: Response) => {
 };
 
 // GET /products/:productId/variants
+/**
+ * #swagger.tags = ['Product']
+ * #swagger.summary = 'Get product variants'
+ * #swagger.description = 'Get all available variants for a product (sizes, colors, etc.).'
+ * #swagger.operationId = 'getProductVariants'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['productId'] = { in: 'path', description: 'Product ID', required: true, type: 'string', example: 'product_123' }
+ * #swagger.responses[200] = { description: 'Variants found', schema: { type: 'object', properties: { variants: { type: 'array' } } } }
+ * #swagger.responses[400] = { description: 'Invalid product ID', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getProductVariants = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
@@ -467,6 +523,20 @@ export const getProductVariants = async (req: Request, res: Response) => {
 };
 
 // GET /products/delivery-calculation?vendorId=xxx&lat=xxx&lng=xxx
+/**
+ * #swagger.tags = ['Product']
+ * #swagger.summary = 'Calculate delivery fee'
+ * #swagger.description = 'Calculate the delivery fee for an order based on vendor and customer location.'
+ * #swagger.operationId = 'getDeliveryCalculation'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['vendorId'] = { in: 'query', description: 'Vendor ID', required: true, type: 'string', example: 'vendor_123' }
+ * #swagger.parameters['lat'] = { in: 'query', description: 'Customer latitude', required: true, type: 'number', example: 9.082 }
+ * #swagger.parameters['lng'] = { in: 'query', description: 'Customer longitude', required: true, type: 'number', example: 7.529 }
+ * #swagger.responses[200] = { description: 'Delivery fee calculated', schema: { type: 'object', properties: { deliveryFee: { type: 'number' }, estimatedTime: { type: 'number' } } } }
+ * #swagger.responses[400] = { description: 'Invalid parameters', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[404] = { description: 'Vendor not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getDeliveryCalculation = async (req: Request, res: Response) => {
   try {
     const { vendorId, lat, lng } = req.query;

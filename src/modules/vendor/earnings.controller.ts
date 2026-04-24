@@ -206,6 +206,19 @@ export const getVendorEarnings = async (req: Request, res: Response) => {
         }),
       ]);
 
+    const orderIds = transactions
+      .map((tx) => tx.orderId)
+      .filter((id): id is string => !!id);
+
+    const orders = orderIds.length > 0
+      ? await prisma.order.findMany({
+          where: { id: { in: orderIds } },
+          include: { customer: true },
+        })
+      : [];
+
+    const orderMap = new Map(orders.map((o) => [o.id, o]));
+
     const currentTotal = periodEarnings._sum.amount ?? 0;
     const previousTotal = previousPeriodEarnings._sum.amount ?? 0;
     const percentageChange =
@@ -228,13 +241,18 @@ export const getVendorEarnings = async (req: Request, res: Response) => {
         totalWithdrawn: wallet.totalWithdrawn,
       },
       chartData,
-      recentTransactions: transactions.map((tx) => ({
-        id: tx.id,
-        type: tx.type,
-        amount: tx.amount,
-        status: tx.status,
-        createdAt: tx.createdAt.toISOString(),
-      })),
+      recentTransactions: transactions.map((tx) => {
+        const order = tx.orderId ? orderMap.get(tx.orderId) : undefined;
+        return {
+          id: tx.id,
+          orderId: tx.orderId || undefined,
+          customerName: order?.customer?.fullName || "N/A",
+          customerAvatar: order?.customer?.profileImageUrl || null,
+          amount: tx.amount,
+          status: tx.status,
+          createdAt: tx.createdAt.toISOString(),
+        };
+      }),
       pendingPayout: totalPendingPayout,
     });
   } catch (error) {

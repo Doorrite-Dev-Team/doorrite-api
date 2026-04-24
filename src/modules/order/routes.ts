@@ -4,10 +4,12 @@ import {
   getOrders,
   getOrderById,
   createOrder,
+  reorder,
   cancelOrder,
   getCustomerVerificationCode,
   getPendingReviews,
   getOrderMessages,
+  sendOrderMessage,
   verifyDeliveryByUser,
 } from "./controllers";
 import {
@@ -32,6 +34,9 @@ router.get("/pending-review", auth("user"), getPendingReviews);
 // Get order chat messages - MUST be before /:id
 router.get("/:id/messages", auth("any"), getOrderMessages);
 
+// Send order chat message - MUST be before /:id
+router.post("/:id/messages", auth("any"), sendOrderMessage);
+
 // Get delivery verification code - MUST be before /:id
 router.get("/:id/verification", auth("user"), getCustomerVerificationCode);
 
@@ -40,6 +45,9 @@ router.post("/:id/verify-delivery", auth("user"), verifyDeliveryByUser);
 
 // Cancel order - MUST be before /:id
 router.patch("/:id/cancel", auth("user"), cancelOrder);
+
+// Reorder - MUST be before /:id
+router.post("/:id/reorder", auth("user"), reorder);
 
 // Get single order by ID - MUST be last
 router.get("/:id", auth("any"), getOrderById);

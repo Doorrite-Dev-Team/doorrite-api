@@ -21,6 +21,7 @@ export const signupSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       "Password must contain uppercase, lowercase, and number"
     ),
+  referrerCode: z.string().optional(),
 });
 
 export const loginSchema = z.object({

@@ -19,10 +19,9 @@ if (isProd) {
     maxRetriesPerRequest: 0,
   });
 
-  redis.on("error", (err: Error) => {
-    console.error("Redis Local Error:", err.message);
-    process.exit(1); // Close app on failure
-  });
+redis.on("error", (err: Error) => {
+  console.error("Redis Local Error:", err.message);
+});
 }
 
 // Startup check to ensure Redis is alive
@@ -31,8 +30,8 @@ export async function checkConnection() {
     await redis.ping();
     console.log("Successfully Conected to redis Client");
   } catch (err) {
-    console.error("Failed to connect to Redis at startup:", err);
-    process.exit(1);
+    console.error("Failed to connect to Redis:", err);
+    throw err;
   }
 }
 
@@ -68,9 +67,11 @@ export const OC_TTL_SECONDS = 86400;
 /** Maximum allowed verification attempts for an OC code. Default: 6. */
 export const OC_MAX_ATTEMPTS = Number(process.env.OC_MAX_ATTEMPT ?? 6);
 
-// =====================================================================
-// 2. KEY GENERATION HELPERS
-// ---------------------------------------------------------------------
+// --- Login Lockout Keys ---
+
+/** Generates the Redis key for tracking login attempts. */
+export const getLoginAttemptsKey = (identifier: string) =>
+  `auth:login:attempts:${identifier}`;
 
 // --- Authentication (OTP) Keys ---
 

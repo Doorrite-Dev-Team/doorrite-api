@@ -2,9 +2,13 @@
 import Crypto from "crypto";
 import * as jwt from "jsonwebtoken";
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+
 export const JWT_SECRET = process.env.JWT_SECRET as jwt.Secret;
 
-export const ACCESS_EXPIRES = process.env.ACCESS_EXPIRES || "7d";
+export const ACCESS_EXPIRES = process.env.ACCESS_EXPIRES || "15m";
 export const REFRESH_EXPIRES = process.env.REFRESH_EXPIRES || "30d";
 export const TEMP_EXPIRES = process.env.TEMP_EXPIRES || "15m";
 
@@ -40,7 +44,6 @@ export function signJwt(payload: object) {
 
 export function verifyJwt<T = any>(token: string): T {
   // Throwing behavior — callers should catch
-  console.log("DEBUG: Secret is", JWT_SECRET ? "DEFINED" : "UNDEFINED");
   return jwt.verify(token, JWT_SECRET) as T;
 }
 
@@ -113,7 +116,6 @@ export function safeVerify(token: string): JwtPayloadShape | null {
     return verifyJwt<JwtPayloadShape>(token);
   } catch (err: any) {
     console.error(`[JWT DEBUG] ${err.name}: ${err.message}`);
-    console.log("DEBUG: Secret is", JWT_SECRET ? "DEFINED" : "UNDEFINED");
     return null;
   }
 }

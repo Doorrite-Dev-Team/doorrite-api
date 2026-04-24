@@ -21,12 +21,22 @@ export const getUser = async (req: Request, res: Response) => {
    * #swagger.tags = ['User']
    * #swagger.summary = 'Get user by ID'
    * #swagger.description = 'Retrieves a user by their ID.'
-   * #swagger.parameters['id'] = { in: 'path', description: 'User ID', required: true, type: 'string' }
-   */
-  try {
-    const { id } = req.params;
+   * #swagger.operationId = 'getUser'
+* #swagger.security = [{ "bearerAuth": [] }]
+    * #swagger.parameters['id'] = { in: 'path', description: 'User ID', required: true, type: 'string' }
+    * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { user: { type: 'object' } } } }
+    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    */
+    try {
+     const { id } = req.params;
 
-    const key = cacheService.generateKey("users", id);
+     if (req.user?.role !== "admin" && req.user?.sub !== id) {
+       throw new AppError(403, "Access denied");
+     }
+
+     const key = cacheService.generateKey("users", id);
     const cacheHit = await cacheService.get<{ user: any }>(key);
 
     if (cacheHit) {
@@ -62,11 +72,16 @@ export const getUser = async (req: Request, res: Response) => {
 // GET api/v1/users/?page=&limit=
 export const getAllUsers = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['User']
-   * #swagger.summary = 'Get all users'
-   *
-   */
-  try {
+* #swagger.tags = ['User']
+    * #swagger.summary = 'Get all users'
+    * #swagger.operationId = 'getAllUsers'
+    * #swagger.security = [{ "bearerAuth": [] }]
+    * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { users: { type: 'array' }, pagination: { type: 'object' } } } }
+    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    */
+   try {
     const { page = "1", limit = "20" } = req.query as Record<string, string>;
     const pageNum = Math.max(1, parseInt(page));
     const lim = Math.min(100, Math.max(1, parseInt(limit)));
@@ -95,12 +110,17 @@ export const getAllUsers = async (req: Request, res: Response) => {
 // GET api/v1/users/me
 export const getCurrentUserProfile = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['User']
-   * #swagger.summary = 'Get current user profile'
-   * #swagger.description = 'Retrieves profile of currently authenticated user.'
-   * #swagger.security = [{ "bearerAuth": [] }]
-   */
-  try {
+* #swagger.tags = ['User']
+    * #swagger.summary = 'Get current user profile'
+    * #swagger.description = 'Retrieves profile of currently authenticated user.'
+    * #swagger.operationId = 'getCurrentUserProfile'
+    * #swagger.security = [{ "bearerAuth": [] }]
+    * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { user: { type: 'object' } } } } }
+    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    */
+   try {
     const userId = req.user?.sub;
     if (!userId) throw new AppError(401, "Unauthorized");
 
@@ -143,8 +163,9 @@ export const updateUserProfile = async (req: Request, res: Response) => {
    * #swagger.tags = ['User']
    * #swagger.summary = 'Update user profile'
    * #swagger.description = 'Updates the profile of the currently authenticated user.'
+   * #swagger.operationId = 'updateUserProfile'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['body'] = { in: 'body', description: 'User profile data', required: true, schema: { type: 'object', properties: { fullName: { type: 'string' }, phoneNumber: { type: 'string' }, profileImageUrl: { type: 'string' }, address: { type: 'object' } } } }
+   * #swagger.requestBody = { description: 'User profile data', required: true, schema: { type: 'object', properties: { fullName: { type: 'string' }, phoneNumber: { type: 'string' }, profileImageUrl: { type: 'string' }, address: { type: 'object' } } } }
    */
   const id = req.user?.sub;
   if (!id) {
@@ -237,9 +258,10 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 // GET /users/orders/
 export const getUserOrders = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['User', 'User Orders']
+   * #swagger.tags = ['User']
    * #swagger.summary = 'Get user orders'
    * #swagger.description = 'Retrieves a paginated list of orders for the currently authenticated user.'
+   * #swagger.operationId = 'getUserOrders'
    * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
    * #swagger.parameters['limit'] = { in: 'query', description: 'Page size', type: 'integer' }
@@ -321,11 +343,12 @@ export const getUserOrders = async (req: Request, res: Response) => {
 // POST /users/reviews
 export const createUserReview = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['User', 'User Reviews']
+   * #swagger.tags = ['User']
    * #swagger.summary = 'Create a review'
    * #swagger.description = 'Creates a review for a vendor, rider, or product.'
+   * #swagger.operationId = 'createUserReview'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['body'] = { in: 'body', description: 'Review data', required: true, schema: { type: 'object', properties: { orderId: { type: 'string' }, vendorRating: { type: 'integer', minimum: 1, maximum: 5 }, riderRating: { type: 'integer', minimum: 1, maximum: 5 }, comment: { type: 'string' }, productRatings: { type: 'array', items: { type: 'object', properties: { productId: { type: 'string' }, rating: { type: 'integer' } } } } } } }
+   * #swagger.requestBody = { description: 'Review data', required: true, schema: { type: 'object', properties: { orderId: { type: 'string' }, vendorRating: { type: 'integer', minimum: 1, maximum: 5 }, riderRating: { type: 'integer', minimum: 1, maximum: 5 }, comment: { type: 'string' }, productRatings: { type: 'array', items: { type: 'object', properties: { productId: { type: 'string' }, rating: { type: 'integer' } } } } } }}
    */
   try {
     const userId = req.user?.sub;
@@ -429,6 +452,18 @@ try {
 
 // Delete User Address
 // DELETE api/v1/users/address
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Delete user address'
+ * #swagger.description = 'Removes a saved address from the user profile.'
+ * #swagger.operationId = 'deleteUserAddress'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.requestBody = { description: 'Address to delete', required: true, schema: { type: 'object', required: ['addressToDelete'], properties: { addressToDelete: { type: 'string' } } } }
+ * #swagger.responses[200] = { description: 'Address deleted', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+ * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const deleteAddress = async (req: Request, res: Response) => {
   try {
     const id = req.user?.sub;
@@ -451,6 +486,16 @@ export const deleteAddress = async (req: Request, res: Response) => {
 
 // Get User Addresses
 // GET /users/addresses
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Get user addresses'
+ * #swagger.description = 'Retrieves all saved addresses for the user.'
+ * #swagger.operationId = 'getUserAddresses'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.responses[200] = { description: 'Addresses retrieved', schema: { type: 'object', properties: { address: { type: 'object' } } } }
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getUserAddresses = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.sub;
@@ -469,6 +514,18 @@ export const getUserAddresses = async (req: Request, res: Response) => {
 
 // Create New Address
 // POST /users/addresses
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Create user address'
+ * #swagger.description = 'Adds a new address to the user profile.'
+ * #swagger.operationId = 'createUserAddress'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.requestBody = { description: 'Address data', required: true, schema: { type: 'object', required: ['address'], properties: { address: { type: 'string' }, state: { type: 'string' }, country: { type: 'string' }, coordinates: { type: 'object' } } } }
+ * #swagger.responses[201] = { description: 'Address created', schema: { type: 'object', properties: { ok: { type: 'boolean' } } } }
+ * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const createAddress = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.sub;
@@ -512,6 +569,20 @@ export const createAddress = async (req: Request, res: Response) => {
 
 // Update Address
 // PUT /users/addresses/:id
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Update user address'
+ * #swagger.description = 'Updates an existing address in the user profile.'
+ * #swagger.operationId = 'updateUserAddress'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['id'] = { in: 'path', description: 'Address ID', required: true, type: 'string' }
+ * #swagger.requestBody = { description: 'Address data', required: true, schema: { type: 'object', properties: { address: { type: 'string' }, state: { type: 'string' }, country: { type: 'string' }, coordinates: { type: 'object' } } } }
+ * #swagger.responses[200] = { description: 'Address updated', schema: { type: 'object', properties: { ok: { type: 'boolean' } } } }
+ * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[404] = { description: 'Address not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const updateAddress = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.sub;
@@ -559,6 +630,16 @@ export const updateAddress = async (req: Request, res: Response) => {
 
 // Get User Favorites
 // GET /users/favorites
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Get user favorites'
+ * #swagger.description = 'Retrieves all favorite products for the user.'
+ * #swagger.operationId = 'getUserFavorites'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.responses[200] = { description: 'Favorites retrieved', schema: { type: 'object', properties: { favorites: { type: 'array' } } } }
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } }}}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getUserFavorites = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.sub;
@@ -604,6 +685,19 @@ export const getUserFavorites = async (req: Request, res: Response) => {
 
 // Add Product to Favorites
 // POST /users/favorites
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Add to favorites'
+ * #swagger.description = 'Adds a product to the user favorites.'
+ * #swagger.operationId = 'addFavorite'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.requestBody = { description: 'Product ID', required: true, schema: { type: 'object', required: ['productId'], properties: { productId: { type: 'string' } } } }
+ * #swagger.responses[201] = { description: 'Added to favorites', schema: { type: 'object', properties: { ok: { type: 'boolean' } } } }
+ * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[404] = { description: 'Product not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const addFavorite = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.sub;
@@ -659,6 +753,18 @@ export const addFavorite = async (req: Request, res: Response) => {
 
 // Remove Product from Favorites
 // DELETE /users/favorites/:productId
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Remove from favorites'
+ * #swagger.description = 'Removes a product from the user favorites.'
+ * #swagger.operationId = 'removeFavorite'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['productId'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
+ * #swagger.responses[200] = { description: 'Removed from favorites', schema: { type: 'object', properties: { ok: { type: 'boolean' } } } }
+ * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const removeFavorite = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.sub;
@@ -697,6 +803,18 @@ export const removeFavorite = async (req: Request, res: Response) => {
 
 // Change User Password If Loging
 // PUT /users/password
+/**
+ * #swagger.tags = ['User']
+ * #swagger.summary = 'Change password'
+ * #swagger.description = 'Change the user password.'
+ * #swagger.operationId = 'changePassword'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.requestBody = { description: 'Password data', required: true, schema: { type: 'object', required: ['email', 'password', 'confirmPassword'], properties: { email: { type: 'string' }, password: { type: 'string' }, confirmPassword: { type: 'string' } } } }
+ * #swagger.responses[200] = { description: 'Password changed', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const changePassWord = async (req: Request, res: Response) => {
   try {
     const id = req.user?.sub;

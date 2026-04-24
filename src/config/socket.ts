@@ -31,7 +31,7 @@ class WebSocketService {
         origin: [
           "http://localhost:3000",
           "https://dooriteuser-ui.vercel.app",
-          "https://*.netlify.app/",
+          "https://*.netlify.app",
         ],
         methods: ["GET", "POST"],
         credentials: true,

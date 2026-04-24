@@ -36,6 +36,7 @@ enum VehicleType {
 enum OrderStatus {
   PENDING_PAYMENT
   PENDING
+  SCHEDULED
   ACCEPTED
   PREPARING
   READY_FOR_PICKUP
@@ -132,6 +133,13 @@ model User {
   passwordHash    String
   profileImageUrl String?
   isVerified      Boolean  @default(false)
+  tokenVersion     Int      @default(0)
+  
+  // Referral fields
+  referralCode        String?  @unique
+  referredBy          String?  @db.ObjectId
+  freeDeliveryOrders  Int      @default(2)
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -140,6 +148,8 @@ model User {
   payments        Payment[]
   reviews         Review[]
   favorites       Favorite[]
+  referralsMade   Referral[] @relation("ReferrerReferences")
+  referralsReceived Referral[] @relation("RefereeReferences")
 }
 
 model Vendor {
@@ -157,6 +167,7 @@ model Vendor {
   isActive            Boolean     @default(true)
   isVerified          Boolean     @default(false)
   isApproved          Boolean     @default(false)
+  tokenVersion         Int          @default(0)
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
   address             Address
@@ -219,6 +230,7 @@ model Rider {
   isAvailable     Boolean     @default(true)
   isVerified      Boolean     @default(false)
   isApproved      Boolean     @default(false)
+  tokenVersion     Int          @default(0)
   rating          Float?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -232,30 +244,33 @@ model Rider {
 }
 
 model Order {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  customerId      String        @db.ObjectId
-  customer        User          @relation("customer_orders", fields: [customerId], references: [id])
-  vendorId        String        @db.ObjectId
-  vendor          Vendor        @relation(fields: [vendorId], references: [id])
-  riderId         String?       @db.ObjectId
-  rider           Rider?        @relation("rider_orders", fields: [riderId], references: [id])
-  contactInfo     ContactInfo
-  status          OrderStatus   @default(PENDING)
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  customerId String @db.ObjectId
+  customer User @relation("customer_orders", fields: [customerId], references: [id])
+  vendorId String @db.ObjectId
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+  riderId String? @db.ObjectId
+  rider Rider? @relation("rider_orders", fields: [riderId], references: [id])
+  contactInfo ContactInfo
+  status OrderStatus @default(PENDING)
   deliveryAddress Address
-  deliveryVerificationCode  String?
-  totalAmount     Float
-  paymentStatus   PaymentStatus @default(PENDING)
-  placedAt        DateTime      @default(now())
-  deliveredAt     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  deliveryVerificationCode String?
+  totalAmount Float
+  paymentStatus PaymentStatus @default(PENDING)
+  placedAt DateTime @default(now())
+  deliveredAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reorderCount Int @default(0)
+  originalOrderId String? @db.ObjectId
+  scheduledAt DateTime?
 
-  items    OrderItem[]
-  payment  Payment?
+  items OrderItem[]
+  payment Payment?
   delivery Delivery?
-  history  OrderHistory[]
+  history OrderHistory[]
   earningsRecord EarningsRecord?
-  review   Review?
+  review Review?
   messages Message[]
 }
 
@@ -545,13 +560,49 @@ model PayoutSchedule {
 }
 
 model Message {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  content    String
-  senderId   String   @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  content String
+  senderId String @db.ObjectId
   senderType String
-  orderId    String   @db.ObjectId
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  orderId String @db.ObjectId
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  isArchived Boolean @default(false)
+  createdAt DateTime @default(now())
 
   @@index([orderId, createdAt])
+  @@index([orderId, isArchived])
+}
+
+model PushSubscription {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  userType String
+  endpoint String @unique
+  p256dh String
+  auth String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, userType])
+  @@index([userType])
+}
+
+model Referral {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  referrerId     String   @db.ObjectId
+  refereeId      String?  @db.ObjectId
+  refereePhone   String
+  status         String   @default("pending") // "pending" | "completed" | "cancelled"
+  refereeOrderId String?  @db.ObjectId
+  referrerOrderId String? @db.ObjectId
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  referrer User @relation("ReferrerReferences", fields: [referrerId], references: [id])
+  referee  User? @relation("RefereeReferences", fields: [refereeId], references: [id])
+
+  @@index([referrerId])
+  @@index([refereeId])
+  @@index([refereePhone])
+  @@index([status])
 }

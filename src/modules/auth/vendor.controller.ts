@@ -14,6 +14,7 @@ import {
   makeAccessTokenForVendor,
   makeRefreshTokenForVendor,
   verifyJwt,
+  type JwtPayloadShape,
 } from "@config/jwt";
 import { hashPassword, verifyPassword } from "@lib/hash";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
@@ -345,27 +346,26 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
   try {
     const raw = getRefreshTokenFromReq(req, "vendor");
     const { refresh } = req.body || {};
-    if (!raw || !refresh) throw new AppError(401, "No refresh token");
-    let payload;
-    if (raw) {
-      payload = verifyJwt(raw);
-    } else {
-      payload = verifyJwt(refresh);
-    }
+    if (!raw && !refresh) throw new AppError(401, "No refresh token");
+    
+    const token = raw || refresh;
+    const payload = verifyJwt<JwtPayloadShape>(token);
+    
     if (!payload?.sub) throw new AppError(401, "Invalid token payload");
+    if (payload.type !== "refresh") throw new AppError(401, "Invalid token type");
 
     const vendor = await prisma.vendor.findUnique({
       where: { id: payload.sub },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, isVerified: true },
     });
     if (!vendor) throw new AppError(401, "Invalid vendor");
 
-    if (!vendor.isActive)
-      throw new AppError(403, "Vendor account not approved");
+    if (!vendor.isActive) throw new AppError(403, "Vendor account not approved");
+    if (!vendor.isVerified) throw new AppError(403, "Vendor account not verified");
 
     const access = makeAccessTokenForVendor(vendor.id);
-    // const refresh = makeRefreshTokenForVendor(vendor.id);
-    setAccessCookies(res, access, "vendor");
+    const newRefresh = makeRefreshTokenForVendor(vendor.id);
+    setAuthCookies(res, access, newRefresh, "vendor");
 
     return sendSuccess(res, { access }, 200);
   } catch (err) {

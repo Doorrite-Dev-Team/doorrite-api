@@ -10,6 +10,7 @@ import {
   makeAccessTokenForRider,
   makeRefreshTokenForRider,
   verifyJwt,
+  type JwtPayloadShape,
 } from "@config/jwt";
 import { hashPassword, verifyPassword } from "@lib/hash";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
@@ -269,25 +270,22 @@ export const refreshRiderToken = async (req: Request, res: Response) => {
   try {
     const raw = getRefreshTokenFromReq(req, "rider");
     const { refresh } = req.body || {};
-    if (!raw || !refresh) throw new AppError(401, "No refresh token");
-    let decoded;
-    if (raw) {
-      decoded = verifyJwt(raw);
-    } else {
-      decoded = verifyJwt(refresh);
-    }
-    if (!decoded || !decoded.id) {
-      throw new AppError(401, "Invalid refresh token. Please log in.");
-    }
+    if (!raw && !refresh) throw new AppError(401, "No refresh token");
+    
+    const token = raw || refresh;
+    const payload = verifyJwt<JwtPayloadShape>(token);
+    
+    if (!payload?.sub) throw new AppError(401, "Invalid token payload");
+    if (payload.type !== "refresh") throw new AppError(401, "Invalid token type");
 
-    const rider = await prisma.rider.findUnique({ where: { id: decoded.id } });
+    const rider = await prisma.rider.findUnique({ where: { id: payload.sub } });
     if (!rider) {
       throw new AppError(401, "Rider not found. Please log in.");
     }
 
     const newAccessToken = makeAccessTokenForRider(rider.id);
-    // const newRefreshToken = refreshToken;
-    setAccessCookies(res, newAccessToken, "rider");
+    const newRefreshToken = makeRefreshTokenForRider(rider.id);
+    setAuthCookies(res, newAccessToken, newRefreshToken, "rider");
 
     return sendSuccess(
       res,

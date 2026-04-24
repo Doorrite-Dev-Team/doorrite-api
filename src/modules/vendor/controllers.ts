@@ -19,6 +19,7 @@ import {
   calculateDistance,
 } from "@lib/utils/location";
 import { creditVendorEarnings, settleVendorEarnings } from "@services/earnings";
+import { pushService } from "@modules/push/push.service";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -27,7 +28,13 @@ export const getVendorById = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor']
    * #swagger.summary = 'Get vendor details'
    * #swagger.description = 'Fetches a single vendor by their ID.'
-   */
+   * #swagger.operationId = 'getVendorById'
+   * #swagger.security = [{ "bearerAuth": [] }]
+    * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendor: { type: 'object' } } } }
+    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    */
   try {
     const vendorId = req.params.id;
 
@@ -110,7 +117,13 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor']
    * #swagger.summary = "Get current vendor's profile"
    * #swagger.description = 'Fetches the profile of the currently authenticated vendor, including their products and orders.'
-   */
+   * #swagger.operationId = 'getCurrentVendorProfile'
+   * #swagger.security = [{ "bearerAuth": [] }]
+    * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendor: { type: 'object' } } } }
+    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    */
   try {
     const vendorId = req.user?.sub; // Assuming vendor ID is available from auth middleware
     if (!vendorId) {
@@ -161,11 +174,18 @@ export const getCurrentVendorProfile = async (req: Request, res: Response) => {
 export const getAllVendors = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Vendor']
-   * #swagger.summary = 'Get all vendors with pagination'
-   * #swagger.description = 'Fetches a paginated list of all vendors.'
+   * #swagger.summary = 'Get all vendors with pagination (Deprecated)'
+   * #swagger.description = 'Fetches a paginated list of all vendors. DEPRECATED - use /vendors/v2 instead.'
+   * #swagger.operationId = 'getAllVendors'
+   * #swagger.deprecated = true
+   * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
    * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
-   */
+    * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendors: { type: 'array' }, pagination: { type: 'object' } } } }
+    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    */
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -235,6 +255,22 @@ export const getAllVendors = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * #swagger.tags = ['Vendor']
+ * #swagger.summary = 'Get all vendors v2'
+ * #swagger.description = 'Fetches a paginated list of all vendors with advanced filters. Current version.'
+ * #swagger.operationId = 'getAllVendorsV2'
+ * #swagger.security = [{ "bearerAuth": [] }]
+ * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer', example: 1 }
+ * #swagger.parameters['limit'] = { in: 'query', description: 'Items per page', type: 'integer', example: 20 }
+ * #swagger.parameters['q'] = { in: 'query', description: 'Search vendor name', type: 'string' }
+ * #swagger.parameters['cuisine'] = { in: 'query', description: 'Filter by cuisine', type: 'string' }
+ * #swagger.parameters['open'] = { in: 'query', description: 'Filter open vendors', type: 'boolean' }
+ * #swagger.parameters['sort'] = { in: 'query', description: 'Sort option', type: 'string', enum: ['recommended', 'rating', 'distance', 'price_low', 'price_high'] }
+ * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendors: { type: 'array' }, pagination: { type: 'object' } } }}
+ * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+ */
 export const getAllVendorsV2 = async (req: Request, res: Response) => {
   try {
     const {
@@ -491,8 +527,15 @@ export const updateVendorProfile = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor']
    * #swagger.summary = "Update current vendor's profile"
    * #swagger.description = 'Updates the profile of the currently authenticated vendor.'
-   * #swagger.parameters['body'] = { in: 'body', description: 'Vendor profile data to update', required: true, schema: { type: 'object', properties: { businessName: { type: 'string' }, phoneNumber: { type: 'string' }, address: { type: 'object' }, logoUrl: { type: 'string' } } } }
-   */
+   * #swagger.operationId = 'updateVendorProfile'
+   * #swagger.security = [{ "bearerAuth": [] }]
+    * #swagger.requestBody = { description: 'Vendor profile data to update', required: true, schema: { type: 'object', properties: { businessName: { type: 'string' }, phoneNumber: { type: 'string' }, address: { type: 'object' }, logoUrl: { type: 'string' } } }}
+    * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { message: { type: 'string' }, vendor: { type: 'object' } } } }
+    * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+    */
   const vendorId = req.user?.sub;
   if (!vendorId) throw new AppError(401, "Authentication required");
 
@@ -576,8 +619,14 @@ export const getVendorProducts = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor']
    * #swagger.summary = "Get vendor's products with pagination"
    * #swagger.description = 'Fetches a paginated list of products for the currently authenticated vendor.'
+   * #swagger.operationId = 'getVendorProducts'
+   * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
    * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { products: { type: 'array' }, pagination: { type: 'object' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const vendorId = req.user?.sub;
@@ -616,11 +665,17 @@ export const getVendorProducts = async (req: Request, res: Response) => {
 //GET /vendors/orders/?page=&limit= - List vendor orders
 export const getVendorOrders = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['Vendor', 'Vendor Orders']
+   * #swagger.tags = ['Vendor']
    * #swagger.summary = "Get vendor's orders with pagination"
    * #swagger.description = 'Fetches a paginated list of orders for the currently authenticated vendor.'
+   * #swagger.operationId = 'getVendorOrders'
+   * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
    * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { orders: { type: 'array' }, pagination: { type: 'object' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const vendorId = req.user?.sub;
@@ -641,6 +696,21 @@ export const getVendorOrders = async (req: Request, res: Response) => {
       skip: offset,
       take: limit,
       orderBy: { createdAt: "desc" },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            profileImageUrl: true,
+          },
+        },
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
+      },
     });
     return sendSuccess(res, {
       orders,
@@ -659,10 +729,16 @@ export const getVendorOrders = async (req: Request, res: Response) => {
 // GET /vendors/orders/:orderId - Get order details
 export const getVendorOrderById = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['Vendor', 'Vendor Orders']
+   * #swagger.tags = ['Vendor']
    * #swagger.summary = "Get a single order for the vendor"
    * #swagger.description = 'Fetches details of a specific order belonging to the currently authenticated vendor.'
+   * #swagger.operationId = 'getVendorOrderById'
+   * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { order: { type: 'object' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const vendorId = req.user?.sub;
@@ -700,12 +776,18 @@ export const getVendorOrderById = async (req: Request, res: Response) => {
 
 export const updateOrderStatus = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['Vendor', 'Vendor Orders']
+   * #swagger.tags = ['Vendor']
    * #swagger.summary = 'Update order status'
    * #swagger.description = 'Updates the status of an order. Vendors can only set status to ACCEPTED, PREPARING, READY_FOR_PICKUP, or CANCELLED.'
+   * #swagger.operationId = 'updateOrderStatus'
    * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'CANCELLED'] }, note: { type: 'string' } } } }
+    * #swagger.requestBody = { description: 'Status update data', required: true, schema: { type: 'object', properties: { status: { type: 'string', enum: ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP', 'CANCELLED'] }, note: { type: 'string' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { message: { type: 'string' }, order: { type: 'object' } } }}
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const actor = getActorFromReq(req);
@@ -867,6 +949,20 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         },
         timestamp: result.updatedAt.toISOString(),
       });
+
+      // Send push notification to customer (as backup when socket is not connected)
+      if (result.customerId) {
+        pushService.sendToUser(result.customerId, {
+          title: notification.title,
+          body: notification.message,
+          tag: `order-${result.id}`,
+          data: {
+            orderId: result.id,
+            vendorId: result.vendorId,
+            status: status,
+          },
+        }).catch((err) => console.error("Push notification failed:", err));
+      }
     }
 
     // Notify riders when order is ACCEPTED or READY_FOR_PICKUP
@@ -880,6 +976,13 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         if (vendorLat && vendorLng) {
           riderService.notifyClosestRiders(result.id, vendorLat, vendorLng);
         }
+        // Push notification to all riders about new available order
+        pushService.sendToAllRiders({
+          title: "New Order Available",
+          body: `New order ready for pickup from ${result.vendor?.businessName}`,
+          tag: `order-available-${result.id}`,
+          data: { orderId: result.id, vendorId: result.vendorId },
+        }).catch((err) => console.error("Push to riders failed:", err));
       } else {
         // Rider already assigned - notify them that order is ready for pickup
         riderService.notify(result.riderId, "order-ready-for-pickup", {
@@ -887,6 +990,13 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
           message: `Order ${result.id.slice(-6)} is ready for pickup from ${result.vendor?.businessName}`,
           vendorAddress: vendorAddress?.address,
         });
+        // Push notification to assigned rider
+        pushService.sendToRider(result.riderId, {
+          title: "Order Ready for Pickup",
+          body: `Order ${result.id.slice(-6)} is ready for pickup from ${result.vendor?.businessName}`,
+          tag: `order-ready-${result.id}`,
+          data: { orderId: result.id, vendorId: result.vendorId },
+        }).catch((err) => console.error("Push to rider failed:", err));
       }
     }
 
@@ -907,11 +1017,18 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 // Post /vendors/orders/:orderId/confirm-rider
 export const confirmOrderRider = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['Vendor', 'Vendor Order']
+   * #swagger.tags = ['Vendor']
    * #swagger.summary = 'Confirm if the Rider is Legit'
    * #swagger.description = Confirms the  order rider by verifying code.'
+   * #swagger.operationId = 'confirmOrderRider'
+   * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['id'] = { in: 'path', description: 'Product ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = { in: 'body', description: 'Product variant data to create', required: true}
+    * #swagger.requestBody = { description: 'Product variant data to create', required: true}
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { ok: { type: 'boolean' }, order: { type: 'object' } } }}
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
 
   try {
@@ -989,9 +1106,15 @@ export const getVendorReviews = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor']
    * #swagger.summary = 'Get reviews, average rating, and distribution for a specific vendor'
    * #swagger.description = 'Fetches paginated reviews and aggregate statistics for a vendor.'
+   * #swagger.operationId = 'getVendorReviews'
+   * #swagger.security = [{ "bearerAuth": [] }]
    * #swagger.parameters['id'] = { in: 'path', description: 'Vendor ID', required: true, type: 'string' }
    * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer' }
    * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', type: 'integer' }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { reviewsData: { type: 'object' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const { id: vendorId } = req.params;
@@ -1143,6 +1266,12 @@ export const getVendorDashboard = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor']
    * #swagger.summary = "Get vendor dashboard data"
    * #swagger.description = 'Fetches dashboard data including vendor profile, stats, and active orders.'
+   * #swagger.operationId = 'getVendorDashboard'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendor: { type: 'object' }, stats: { type: 'object' }, activeOrders: { type: 'array' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const vendorId = req.user?.sub;
@@ -1253,6 +1382,12 @@ export const getVendorStats = async (req: Request, res: Response) => {
    * #swagger.tags = ['Vendor']
    * #swagger.summary = "Get vendor stats"
    * #swagger.description = 'Fetches vendor stats including rating, orders, products count.'
+   * #swagger.operationId = 'getVendorStats'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { stats: { type: 'object' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const actor = getActorFromReq(req);

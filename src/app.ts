@@ -22,6 +22,9 @@ import vendorRoutes from "@modules/vendor/routes";
 import adminRoutes from "@modules/admin/routes";
 import RiderRoutes from "@modules/rider/routes";
 import PublicRoutes from "@modules/public/routes";
+import PushRoutes from "@modules/push/routes";
+import ReferralRoutes from "@modules/referral/routes";
+import { checkConnection, redis } from "@config/redis";
 // import { requireAuth } from "middleware/auth";
 
 export const app = express();
@@ -49,15 +52,37 @@ app.use(
   }),
 );
 
-// 3️⃣ Rate limiting (100 reqs per 15m per IP)
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-  }),
-);
+// 3️⃣ Rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message:
+    "Too many authentication attempts, please try again after 15 minutes",
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many registration attempts, please try again after an hour",
+});
 
 // 4️⃣ Parse JSON + cookies
 app.use(
@@ -75,8 +100,24 @@ app.use(compression());
 // 6️⃣ Request logging (dev-friendly)
 app.use(morgan("dev"));
 
-app.get("/", (req, res) => {
-  res.send("Welcome to the DoorRite API!");
+app.get("/", async (_, res) => {
+  try {
+    await checkConnection();
+    res.send("Welcome to the DoorRite API!");
+  } catch (e) {
+    res.send("Failed to connect to Reddis");
+  }
+});
+
+app.get("/health", async (_, res) => {
+  try {
+    await redis.ping();
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  } catch (err) {
+    res
+      .status(503)
+      .json({ status: "error", timestamp: new Date().toISOString() });
+  }
 });
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocumet));
@@ -86,17 +127,19 @@ app.get("/docs-json", (req: Request, res: Response) => {
 });
 // …All routes are here….
 //Public Routes...
-app.use("/api/v1/auth", AuthRoutes);
+app.use("/api/v1/auth", authLimiter, AuthRoutes);
 
 //I'm only here to fix some issuess
 //Private Routes
-app.use("/api/v1/users", UserRoutes);
-app.use("/api/v1/vendors", vendorRoutes);
-app.use("/api/v1/products", ProductRoutes);
-app.use("/api/v1/orders", OrderRoutes);
-app.use("/api/v1/admin", adminRoutes);
-app.use("/api/v1/riders", RiderRoutes);
-app.use("/api/v1/publics", PublicRoutes);
+app.use("/api/v1/users", apiLimiter, UserRoutes);
+app.use("/api/v1/vendors", apiLimiter, vendorRoutes);
+app.use("/api/v1/products", apiLimiter, ProductRoutes);
+app.use("/api/v1/orders", apiLimiter, OrderRoutes);
+app.use("/api/v1/admin", apiLimiter, adminRoutes);
+app.use("/api/v1/riders", apiLimiter, RiderRoutes);
+app.use("/api/v1/publics", webhookLimiter, PublicRoutes);
+app.use("/api/v1/push", apiLimiter, PushRoutes);
+app.use("/api/v1/referral", apiLimiter, ReferralRoutes);
 
 //MiddleWare
 //404 handler

@@ -15,6 +15,8 @@ import { Pagination } from "types/types";
 import { Order } from "../../generated/prisma";
 import { calculateDeliveryFee } from "@lib/utils/location";
 import { PendingReviewService } from "@services/redis/pending-review";
+import { CancellationPolicyService } from "@services/cancellation-policy";
+import { RefundService } from "@services/refund-service";
 import {
   deductVendorEarnings,
   creditVendorEarnings,
@@ -22,6 +24,8 @@ import {
   createEarningsRecord,
   settleRiderEarnings,
 } from "@services/earnings";
+import { pushService } from "@modules/push/push.service";
+import { isEligibleForFreeDelivery, useFreeDelivery } from "@modules/referral/referral.service";
 
 // GET api/v1/orders?status=&vendorId=&customerId=&page=&limit=&from=&to=
 export const getOrders = async (req: Request, res: Response) => {
@@ -29,6 +33,15 @@ export const getOrders = async (req: Request, res: Response) => {
    * #swagger.tags = ['Order']
    * #swagger.summary = 'Get orders'
    * #swagger.description = 'Get all orders'
+   * #swagger.operationId = 'getOrders'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', required: false, type: 'integer', example: 1 }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Number of items per page', required: false, type: 'integer', example: 20 }
+   * #swagger.parameters['status'] = { in: 'query', description: 'Filter by order status', required: false, type: 'string', example: 'PENDING' }
+   * #swagger.responses[200] = { description: 'Orders retrieved successfully', schema: { type: 'object', properties: { orders: { type: 'array' }, total: { type: 'integer' }, page: { type: 'integer' }, limit: { type: 'integer' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[403] = { description: 'Forbidden', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const actor = getActorFromReq(req);
@@ -134,6 +147,14 @@ export const getOrderById = async (req: Request, res: Response) => {
    * #swagger.tags = ['Order']
    * #swagger.summary = 'Get order by ID'
    * #swagger.description = 'Get a single order by its ID'
+   * #swagger.operationId = 'getOrderById'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string', example: 'order_123' }
+   * #swagger.responses[200] = { description: 'Order retrieved successfully', schema: { type: 'object', properties: { order: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Invalid order ID', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Order not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   const { id } = req.params;
 
@@ -209,6 +230,14 @@ export const createOrder = async (req: Request, res: Response) => {
    * #swagger.tags = ['Order']
    * #swagger.summary = 'Create order'
    * #swagger.description = 'Create a new order'
+   * #swagger.operationId = 'createOrder'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.requestBody = { description: 'Order data', required: true, schema: { type: 'object', required: ['vendorId', 'items', 'contactInfo', 'deliveryAddress', 'paymentMethod'], properties: { vendorId: { type: 'string' }, items: { type: 'array' }, contactInfo: { type: 'object' }, deliveryAddress: { type: 'object' }, paymentMethod: { type: 'string', enum: ['COD', 'PAYSTACK'] } } } }
+   * #swagger.responses[201] = { description: 'Order created successfully', schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Validation error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Vendor or product not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     console.log("CREATE ORDER:", req.body);
@@ -571,6 +600,18 @@ export const createOrder = async (req: Request, res: Response) => {
         });
       }
 
+      // Push notification to vendor about new order
+      pushService.sendToVendor(vendorId, {
+        title: "New Order Received",
+        body: `New order from ${customer.fullName} - ₦${order.totalAmount}`,
+        tag: `new-order-${order.id}`,
+        data: {
+          orderId: order.id,
+          customerId: customerId,
+          amount: order.totalAmount,
+        },
+      }).catch((err) => console.error("Push notification to vendor failed:", err));
+
       return { order, payment };
     });
 
@@ -614,21 +655,48 @@ export const cancelOrder = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Order']
    * #swagger.summary = 'Cancel order'
-   * #swagger.description = 'Cancel an order (User/Admin only). Cancellation fee of ₦1,000 applies if vendor has accepted the order.'
+   * #swagger.description = 'Cancel an order (User/Vendor/Admin only).'
+   * #swagger.operationId = 'cancelOrder'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string', example: 'order_123' }
+   * #swagger.requestBody = { description: 'Cancellation reason', required: true, schema: { type: 'object', required: ['reason'], properties: { reason: { type: 'string' } } } }
+   * #swagger.responses[200] = { description: 'Order cancelled successfully', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[403] = { description: 'Cannot cancel this order', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Order not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   const { id } = req.params;
   const reason = req.body?.reason;
   const actor = getActorFromReq(req);
 
-  const CANCELLATION_FEE = 1000;
-
   try {
     if (!id) throw new AppError(400, "Order id is required");
     if (!reason) throw new AppError(400, "Cancellation reason is required");
     if (!actor) throw new AppError(401, "Unauthorized");
-    const role = String(actor.role || "").toUpperCase();
-    if (role !== "CUSTOMER" && role !== "ADMIN" && role !== "USER") {
-      throw new AppError(403, "Only customers and admins can cancel orders");
+
+    // 1. Role-based Authorization
+    const allowedRoles = ["user", "admin", "vendor"];
+    const actorRole = actor.role || "";
+    if (!allowedRoles.includes(actorRole)) {
+      throw new AppError(403, "Only customers, vendors and admins can cancel orders");
+    }
+
+    // 2. Idempotency Check
+    const existingCancellation = await prisma.orderHistory.findFirst({
+      where: {
+        orderId: id,
+        status: "CANCELLED",
+        createdAt: { gt: new Date(Date.now() - 5 * 60 * 1000) },
+      },
+    });
+    if (existingCancellation) {
+      return sendSuccess(res, {
+        message: "Order already cancelled",
+        cancelledAt: existingCancellation.createdAt,
+        cancelledBy: existingCancellation.actorType,
+      });
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -645,29 +713,34 @@ export const cancelOrder = async (req: Request, res: Response) => {
 
       if (!order) throw new AppError(404, "Order not found");
 
+      // 3. Ownership Validation
       if (actor.role === "user" && order.customerId !== actor.id) {
         throw new AppError(403, "You can only cancel your own orders");
       }
-
-      const canCancelStatuses = ["PENDING", "PENDING_PAYMENT"];
-      const acceptedWithFeeStatuses = ["ACCEPTED"];
-
-      if (
-        !canCancelStatuses.includes(order.status) &&
-        !acceptedWithFeeStatuses.includes(order.status)
-      ) {
-        throw new AppError(400, "Cannot cancel order at this stage");
+      if (actor.role === "vendor" && order.vendorId !== actor.id) {
+        throw new AppError(403, "Vendors can only cancel their own orders");
       }
 
-      let cancellationNote = "";
+      // 4. Status Check via Policy Service
+      const rule = CancellationPolicyService.getRule(order.status);
+      if (!rule.canCancel) {
+        throw new AppError(400, rule.reason);
+      }
+
       const finalStatus = "CANCELLED" as const;
+      const customerName = order.customer?.fullName || "Customer";
+      const vendorName = order.vendor?.businessName || "Vendor";
+      
+      const actorName = actor.role === "admin" ? "Admin" : 
+                       actor.role === "vendor" ? vendorName : 
+                       customerName;
 
-      if (acceptedWithFeeStatuses.includes(order.status)) {
-        cancellationNote = `Order cancelled by ${actor.role === "admin" ? "Admin" : order.customer.fullName}. Reason: ${reason}. ₦${CANCELLATION_FEE} cancellation fee applies. Refund will be processed manually within 24 hours.`;
-      } else {
-        cancellationNote = `Order cancelled by ${actor.role === "admin" ? "Admin" : order.customer.fullName}. Reason: ${reason}`;
+      let cancellationNote = `Order cancelled by ${actorName}. Reason: ${reason}`;
+      if (rule.fee > 0) {
+        cancellationNote += `. ₦${rule.fee} cancellation fee applies.`;
       }
 
+      // 5. Order Update
       const updatedOrder = await tx.order.update({
         where: { id },
         data: { status: finalStatus },
@@ -679,43 +752,68 @@ export const cancelOrder = async (req: Request, res: Response) => {
         },
       });
 
+      // 6. Audit Trail
       await tx.orderHistory.create({
         data: {
           orderId: updatedOrder.id,
           status: finalStatus,
           actorId: actor.id,
-          actorType: actor.role === "admin" ? "ADMIN" : "USER",
+          actorType: actor.role === "admin" ? "ADMIN" : 
+                     actor.role === "vendor" ? "VENDOR" : "USER",
           note: cancellationNote,
         },
       });
 
-      if (
-        acceptedWithFeeStatuses.includes(order.status) &&
-        order.payment?.status === "SUCCESSFUL"
-      ) {
-        await deductVendorEarnings(id, "Order cancelled by customer");
+      // 7. Stock Restoration
+      if (rule.restoreStock) {
+        for (const item of order.items) {
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } },
+            });
+          }
+        }
+      }
+
+      // 8. Financials & Payment
+      if (order.payment) {
+        const refundResult = await RefundService.processCancellationRefund(
+          id,
+          order.payment,
+          rule.fee,
+          reason,
+          { id: actor.id, role: actor.role || "" },
+          tx
+        );
+        
+        if (refundResult.status === "COMPLETED") {
+          await tx.payment.update({
+            where: { id: order.payment.id },
+            data: { status: "REFUNDED" },
+          });
+        }
       }
 
       return {
         order: updatedOrder,
-        cancellationFee: acceptedWithFeeStatuses.includes(order.status)
-          ? CANCELLATION_FEE
-          : 0,
+        cancellationFee: rule.fee,
       };
     });
 
     const order = result.order;
     const cancellationFee = result.cancellationFee;
 
-    // Emit notifications
+    // 9. Notifications
     const notificationRecipients = [
       order.vendorId,
       order.customerId,
-      order.riderId,
+      order.rider?.id,
     ].filter(Boolean) as string[];
 
-    const cancellerName =
-      actor.role === "admin" ? "Admin" : order.customer.fullName;
+    const cancellerName = actor.role === "admin" ? "Admin" : 
+                          actor.role === "vendor" ? "Vendor" : 
+                          order.customer?.fullName || "Customer";
 
     socketService.notifyTo(
       notificationRecipients,
@@ -736,17 +834,16 @@ export const cancelOrder = async (req: Request, res: Response) => {
       },
     );
 
-    // Invalidate relevant caches
+    // 10. Cache Invalidation
     await cacheService.invalidatePattern("orders");
     await cacheService.invalidatePattern("userOrders");
     await cacheService.invalidatePattern("vendors");
 
     return sendSuccess(res, {
       order,
-      message:
-        cancellationFee > 0
-          ? "Order cancelled successfully. Cancellation fee of ₦1,000 applies. Refund will be processed manually within 24 hours."
-          : "Order cancelled successfully",
+      message: cancellationFee > 0
+        ? `Order cancelled successfully. Cancellation fee of ₦${cancellationFee} applies. Refund will be processed manually within 24 hours.`
+        : "Order cancelled successfully",
       cancellationFee,
     });
   } catch (error: any) {
@@ -761,8 +858,13 @@ export const checkPaymentStatus = async (req: Request, res: Response) => {
    * #swagger.tags = ['Payment']
    * #swagger.summary = 'Check payment status'
    * #swagger.description = 'Checks the payment status for an order.'
+   * #swagger.operationId = 'checkPaymentStatus'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string', example: 'order_123' }
+   * #swagger.responses[200] = { description: 'Payment status retrieved', schema: { type: 'object', properties: { paymentStatus: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Order not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
   try {
     const { id: orderId } = req.params;
@@ -814,11 +916,17 @@ export const getCustomerVerificationCode = async (
   res: Response,
 ) => {
   /**
-   * #swagger.tags = ['User Orders']
+   * #swagger.tags = ['Order']
    * #swagger.summary = 'Get 6 digit delivery verification code'
    * #swagger.description = 'Used by the customer to get the code to show the rider.'
+   * #swagger.operationId = 'getCustomerVerificationCode'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string', example: 'order_123' }
+   * #swagger.responses[200] = { description: 'Verification code retrieved', schema: { type: 'object', properties: { verificationCode: { type: 'string' } } } }
+   * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Order not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
 
   try {
@@ -866,22 +974,18 @@ export const getCustomerVerificationCode = async (
 
 export const verifyDeliveryByUser = async (req: Request, res: Response) => {
   /**
-   * #swagger.tags = ['User Orders']
+   * #swagger.tags = ['Order']
    * #swagger.summary = 'Verify delivery using 6 digit code from rider'
    * #swagger.description = 'Used by the customer to verify delivery by entering code from rider.'
+   * #swagger.operationId = 'verifyDeliveryByUser'
    * #swagger.security = [{ "bearerAuth": [] }]
-   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string' }
-   * #swagger.parameters['body'] = {
-   * in: 'body',
-   * description: 'Verification code from rider',
-   * required: true,
-   * schema: {
-   * type: 'object',
-   * properties: {
-   * verificationCode: { type: 'string', example: '123456' }
-   * }
-   * }
-   * }
+   * #swagger.parameters['orderId'] = { in: 'path', description: 'Order ID', required: true, type: 'string', example: 'order_123' }
+   * #swagger.requestBody = { description: 'Verification code from rider', required: true, schema: { type: 'object', required: ['verificationCode'], properties: { verificationCode: { type: 'string', example: '123456' } } } }
+   * #swagger.responses[200] = { description: 'Delivery verified successfully', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[400] = { description: 'Invalid code or request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Order not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
    */
 
   try {
@@ -1019,6 +1123,194 @@ export const getOrderMessages = async (req: Request, res: Response) => {
     });
 
     return sendSuccess(res, { messages: messages.reverse() });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// POST /orders/:id/messages
+export const sendOrderMessage = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    const { id: orderId } = req.params;
+    const { content } = req.body;
+
+    if (!content?.trim()) {
+      throw new AppError(400, "Message content is required");
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, customerId: true, riderId: true },
+    });
+
+    if (!order) {
+      throw new AppError(404, "Order not found");
+    }
+
+    const isAuthorized = order.customerId === userId || order.riderId === userId;
+    if (!isAuthorized) {
+      throw new AppError(403, "Not authorized to send messages for this order");
+    }
+
+    const senderType = order.customerId === userId ? "customer" : "rider";
+
+    const message = await prisma.message.create({
+      data: {
+        content: content.trim(),
+        senderId: userId,
+        senderType,
+        orderId,
+      },
+    });
+
+    return sendSuccess(res, { message }, 201);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// POST /api/v1/orders/:id/reorder
+export const reorder = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Order']
+   * #swagger.summary = 'Reorder'
+   * #swagger.description = 'Create a new order by reordering from an existing order'
+   * #swagger.operationId = 'reorder'
+   * #swagger.security = [{ "bearerAuth": [] }]
+   * #swagger.parameters['id'] = { in: 'path', description: 'Order ID', required: true, type: 'string', example: 'order_123' }
+   * #swagger.responses[201] = { description: 'Order created successfully', schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Invalid request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[404] = { description: 'Order not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
+   */
+  try {
+    const { id: orderId } = req.params;
+
+    const actor = getActorFromReq(req);
+    if (!actor || !actor.id) throw new AppError(401, "Unauthorized");
+
+    const result = await prisma.$transaction(async (tx) => {
+      const originalOrder = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: {
+            include: {
+              product: true,
+              variant: true,
+              modifiers: true,
+            },
+          },
+          vendor: true,
+          delivery: true,
+        },
+      });
+
+      if (!originalOrder) {
+        throw new AppError(404, "Order not found");
+      }
+
+      if (originalOrder.customerId !== actor.id) {
+        throw new AppError(403, "You can only reorder your own orders");
+      }
+
+      if (!originalOrder.vendor.isActive) {
+        throw new AppError(400, "Vendor is no longer available");
+      }
+
+      const availableItems = originalOrder.items.filter(
+        (item) => item.product.isAvailable && (item.variant?.isAvailable ?? true)
+      );
+
+      if (availableItems.length === 0) {
+        throw new AppError(400, "No items available for reorder");
+      }
+
+      const itemsSubtotal = availableItems.reduce((sum, item) => {
+        const currentPrice = item.variant?.price ?? item.product.basePrice;
+        return sum + currentPrice * item.quantity;
+      }, 0);
+
+      const deliveryFee = calculateDeliveryFee(
+        originalOrder.vendor,
+        originalOrder.deliveryAddress.coordinates?.lat,
+        originalOrder.deliveryAddress.coordinates?.long
+      );
+
+      const itemsWithCommission = itemsSubtotal * 1.1;
+      const smallOrderFee = itemsSubtotal < 2000 ? 200 : 0;
+      const totalAmount = Math.round((itemsWithCommission + deliveryFee + smallOrderFee) * 100) / 100;
+
+      const newOrder = await tx.order.create({
+        data: {
+          customerId: actor.id,
+          vendorId: originalOrder.vendorId,
+          contactInfo: originalOrder.contactInfo,
+          deliveryAddress: originalOrder.deliveryAddress,
+          totalAmount,
+          status: "PENDING",
+          paymentStatus: "PENDING",
+          originalOrderId: orderId,
+          items: {
+            create: await Promise.all(
+              availableItems.map(async (item) => {
+                const currentPrice = item.variant?.price ?? item.product.basePrice;
+
+                const variant = item.variantId
+                  ? await tx.productVariant.findUnique({
+                      where: { id: item.variantId },
+                    })
+                  : null;
+
+                if (variant && typeof variant.stock === "number") {
+                  if (variant.stock < item.quantity) {
+                    throw new AppError(400, `Insufficient stock for ${item.product.name}`);
+                  }
+                  await tx.productVariant.update({
+                    where: { id: item.variantId! },
+                    data: { stock: variant.stock - item.quantity },
+                  });
+                }
+
+                return {
+                  productId: item.productId,
+                  variantId: item.variantId || undefined,
+                  quantity: item.quantity,
+                  price: currentPrice,
+                  modifiersTotal: item.modifiersTotal,
+                  modifiers: {
+                    create: item.modifiers.map((mod) => ({
+                      modifierOptionId: mod.modifierOptionId,
+                      quantity: mod.quantity,
+                      groupName: mod.groupName,
+                      optionName: mod.optionName,
+                      priceAdjustment: mod.priceAdjustment,
+                    })),
+                  },
+                };
+              })
+            ),
+          },
+        },
+        include: {
+          items: { include: { product: true, variant: true } },
+          vendor: { select: { id: true, businessName: true } },
+          customer: { select: { id: true, fullName: true, email: true } },
+        },
+      });
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { reorderCount: { increment: 1 } },
+      });
+
+      return newOrder;
+    });
+
+    return sendSuccess(res, { order: result });
   } catch (error) {
     handleError(res, error);
   }

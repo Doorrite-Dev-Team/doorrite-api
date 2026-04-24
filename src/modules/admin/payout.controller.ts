@@ -8,6 +8,18 @@ const payoutActionSchema = z.object({
 });
 
 export const getAllPayouts = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Get all payouts'
+   * #swagger.description = 'Retrieves a paginated list of all payout schedules.'
+   * #swagger.operationId = 'getAllPayouts'
+   * #swagger.parameters['page'] = { in: 'query', description: 'Page number', type: 'integer', example: 1 }
+   * #swagger.parameters['limit'] = { in: 'query', description: 'Items per page', type: 'integer', example: 20 }
+   * #swagger.parameters['status'] = { in: 'query', description: 'Filter by payout status', type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'] }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { payouts: { type: 'array', items: { type: 'object' } }, pagination: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   */
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -71,6 +83,17 @@ export const getAllPayouts = async (req: Request, res: Response) => {
 };
 
 export const getPayoutById = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Get payout by ID'
+   * #swagger.description = 'Retrieves detailed information about a specific payout schedule.'
+   * #swagger.operationId = 'getPayoutById'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Payout ID', required: true, type: 'string' }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { payout: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Payout not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   */
   try {
     const { id } = req.params;
 
@@ -97,6 +120,19 @@ export const getPayoutById = async (req: Request, res: Response) => {
 };
 
 export const approvePayout = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Approve payout'
+   * #swagger.description = 'Approves a pending payout schedule.'
+   * #swagger.operationId = 'approvePayout'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Payout ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Approval notes', required: false, schema: { type: 'object', properties: { notes: { type: 'string', example: 'Approved after verification' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { payout: { type: 'object' }, message: { type: 'string' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Payout not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   */
   try {
     const { id } = req.params;
     const parsed = payoutActionSchema.parse(req.body);
@@ -140,6 +176,19 @@ export const approvePayout = async (req: Request, res: Response) => {
 };
 
 export const rejectPayout = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Reject payout'
+   * #swagger.description = 'Rejects a pending payout schedule and restores the balance to the rider.'
+   * #swagger.operationId = 'rejectPayout'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Payout ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Rejection notes', required: false, schema: { type: 'object', properties: { notes: { type: 'string', example: 'Incorrect bank details' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { message: { type: 'string' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Payout not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   */
   try {
     const { id } = req.params;
     const parsed = payoutActionSchema.parse(req.body);
@@ -198,6 +247,19 @@ export const rejectPayout = async (req: Request, res: Response) => {
 };
 
 export const completePayout = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Complete payout'
+   * #swagger.description = 'Marks a payout as completed after payment has been processed externally.'
+   * #swagger.operationId = 'completePayout'
+   * #swagger.parameters['id'] = { in: 'path', description: 'Payout ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Completion details', required: false, schema: { type: 'object', properties: { notes: { type: 'string' }, reference: { type: 'string', example: 'BANK_REF_12345' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { message: { type: 'string' }, reference: { type: 'string' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Payout not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   */
   try {
     const { id } = req.params;
     const parsed = payoutActionSchema.parse(req.body);
@@ -263,6 +325,19 @@ export const completePayout = async (req: Request, res: Response) => {
 };
 
 export const adjustRiderBalance = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Adjust rider balance'
+   * #swagger.description = 'Manually credit or debit a rider\'s wallet balance.'
+   * #swagger.operationId = 'adjustRiderBalance'
+   * #swagger.parameters['riderId'] = { in: 'path', description: 'Rider ID', required: true, type: 'string' }
+   * #swagger.parameters['body'] = { in: 'body', description: 'Adjustment data', required: true, schema: { type: 'object', required: ['amount', 'type', 'description'], properties: { amount: { type: 'number', example: 1000 }, type: { type: 'string', enum: ['ADD', 'DEDUCT'], example: 'ADD' }, description: { type: 'string', example: 'Correction for order #123' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { message: { type: 'string' }, transaction: { type: 'object' } } } }
+   * #swagger.responses[400] = { description: 'Bad request', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[404] = { description: 'Wallet not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   */
   try {
     const { riderId } = req.params;
     const { amount, type, description } = req.body;
@@ -322,6 +397,18 @@ export const adjustRiderBalance = async (req: Request, res: Response) => {
 };
 
 export const getRiderEarnings = async (req: Request, res: Response) => {
+  /**
+   * #swagger.tags = ['Admin']
+   * #swagger.summary = 'Get rider earnings'
+   * #swagger.description = 'Retrieves earnings records and summary for a specific rider.'
+   * #swagger.operationId = 'getRiderEarnings'
+   * #swagger.parameters['riderId'] = { in: 'path', description: 'Rider ID', required: true, type: 'string' }
+   * #swagger.parameters['from'] = { in: 'query', description: 'Start date (ISO format)', type: 'string', example: '2024-01-01' }
+   * #swagger.parameters['to'] = { in: 'query', description: 'End date (ISO format)', type: 'string', example: '2024-12-31' }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { records: { type: 'array', items: { type: 'object' } }, summary: { type: 'object' } } } }
+   * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
+   */
   try {
     const { riderId } = req.params;
     const from = req.query.from ? new Date(req.query.from as string) : undefined;

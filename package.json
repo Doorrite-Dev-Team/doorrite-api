@@ -19,12 +19,14 @@
     "ioredis": "^5.9.3",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
     "paystack-sdk": "^3.6.1",
     "resend": "^6.1.2",
     "socket.io": "^4.8.1",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1",
+    "web-push": "^3.6.7",
     "zod": "^4.1.12"
   },
   "description": "",
@@ -37,6 +39,7 @@
     "@types/node": "^24.2.0",
     "@types/nodemailer": "^6.4.17",
     "@types/swagger-ui-express": "^4.1.8",
+    "@types/web-push": "^3.6.4",
     "prisma": "^6.17.1",
     "prisma-json-schema-generator": "^5.1.5",
     "supertest": "^7.1.4",
@@ -62,7 +65,7 @@
     "prisma:push": "prisma db push",
     "start": "node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
-    "swagger:generate": "ts-node -r tsconfig-paths/register src/swagger.ts",
+    "swagger:generate": "ts-node-dev -r tsconfig-paths/register src/swagger.ts",
     "test": "vitest"
   },
   "version": "1.0.0"
