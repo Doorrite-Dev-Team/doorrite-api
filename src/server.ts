@@ -4,7 +4,7 @@ import { socketService } from "@config/socket";
 import { createServer } from "http";
 import { checkConnection } from "@config/redis";
 import prisma from "@config/db";
-import { startScheduledOrdersCron, startMessageArchiveCron } from "./scripts/scheduled-orders";
+import { startScheduledOrdersCron, startMessageArchiveCron } from "./crons/scheduled-orders";
 // Attach socket server to the Express app and start the resulting HTTP server
 const server = createServer(app);
 
