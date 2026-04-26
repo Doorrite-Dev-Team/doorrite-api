@@ -2,6 +2,14 @@ import prisma from "@config/db";
 import { getDistance } from "@lib/utils/location";
 import { GEOAPIFY_API_KEY } from "@config/env";
 
+async function ensureWallet(ownerId: string, ownerType: "RIDER" | "VENDOR") {
+  return prisma.wallet.upsert({
+    where: { ownerId },
+    update: {},
+    create: { ownerId, ownerType },
+  });
+}
+
 export const EARNINGS_CONFIG = {
   BASE_FEE: 200,
   PER_KM_RATE: 150,
@@ -155,9 +163,7 @@ export async function createEarningsRecord(
   breakdown: EarningsBreakdown,
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.findUnique({
-      where: { riderId },
-    });
+    const wallet = await ensureWallet(riderId, "RIDER");
 
     if (!wallet) {
       throw new Error("Wallet not found for rider");
@@ -209,9 +215,7 @@ export async function addRiderPendingEarnings(
   orderId: string,
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.findUnique({
-      where: { riderId },
-    });
+    const wallet = await ensureWallet(riderId, "RIDER");
 
     if (!wallet) {
       throw new Error("Wallet not found for rider");
@@ -286,15 +290,7 @@ export async function creditVendorEarnings(orderId: string): Promise<void> {
       throw new Error("Order not found");
     }
 
-    let wallet = await tx.wallet.findUnique({
-      where: { vendorId: order.vendorId },
-    });
-
-    if (!wallet) {
-      wallet = await tx.wallet.create({
-        data: { vendorId: order.vendorId },
-      });
-    }
+    const wallet = await ensureWallet(order.vendorId, "VENDOR");
 
     await tx.transaction.create({
       data: {
@@ -331,9 +327,7 @@ export async function settleVendorEarnings(orderId: string): Promise<void> {
       throw new Error("Order not found");
     }
 
-    const wallet = await tx.wallet.findUnique({
-      where: { vendorId: order.vendorId },
-    });
+    const wallet = await ensureWallet(order.vendorId, "VENDOR");
 
     if (!wallet || wallet.pendingBalance < settleAmount) {
       return;
@@ -377,9 +371,7 @@ export async function settleRiderEarnings(orderId: string): Promise<void> {
       throw new Error("Order or rider not found");
     }
 
-    const wallet = await tx.wallet.findUnique({
-      where: { riderId: order.riderId },
-    });
+    const wallet = await ensureWallet(order.riderId, "RIDER");
 
     if (!wallet || wallet.pendingBalance < settleAmount) {
       return;
@@ -424,9 +416,7 @@ export async function deductVendorEarnings(
       throw new Error("Order not found");
     }
 
-    const wallet = await tx.wallet.findUnique({
-      where: { vendorId: order.vendorId },
-    });
+    const wallet = await ensureWallet(order.vendorId, "VENDOR");
 
     if (!wallet) {
       return;
@@ -521,9 +511,7 @@ export async function addReferralBonus(
 ): Promise<void> {
   const bonusAmount = 1000;
 
-  const wallet = await prisma.wallet.findUnique({
-    where: { riderId },
-  });
+  const wallet = await ensureWallet(riderId, "RIDER");
 
   if (!wallet) {
     throw new Error("Wallet not found for rider");

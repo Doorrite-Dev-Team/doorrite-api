@@ -351,7 +351,7 @@ export const adjustRiderBalance = async (req: Request, res: Response) => {
     }
 
     const wallet = await prisma.wallet.findUnique({
-      where: { riderId },
+      where: { ownerId: riderId },
     });
 
     if (!wallet) {
@@ -428,7 +428,7 @@ export const getRiderEarnings = async (req: Request, res: Response) => {
         include: { order: true },
       }),
       prisma.wallet.findUnique({
-        where: { riderId },
+        where: { ownerId: riderId },
       }),
     ]);
 

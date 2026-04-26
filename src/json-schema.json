@@ -37,6 +37,10 @@
           "type": "boolean",
           "default": false
         },
+        "tokenVersion": {
+          "type": "integer",
+          "default": 0
+        },
         "referralCode": {
           "type": [
             "string",
@@ -168,6 +172,10 @@
         "isApproved": {
           "type": "boolean",
           "default": false
+        },
+        "tokenVersion": {
+          "type": "integer",
+          "default": 0
         },
         "createdAt": {
           "type": "string",
@@ -411,6 +419,10 @@
         "isApproved": {
           "type": "boolean",
           "default": false
+        },
+        "tokenVersion": {
+          "type": "integer",
+          "default": 0
         },
         "rating": {
           "type": [
@@ -1121,6 +1133,9 @@
         "createdAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "ownerType": {
+          "type": "string"
         },
         "vendor": {
           "anyOf": [

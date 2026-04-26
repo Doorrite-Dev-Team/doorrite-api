@@ -471,15 +471,17 @@ model Wallet {
   lastUpdated     DateTime @updatedAt
   createdAt       DateTime @default(now())
 
-  vendorId String? @unique @db.ObjectId
-  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+  ownerId   String @unique @db.ObjectId
+  ownerType String // "RIDER" | "VENDOR"
 
-  riderId  String? @unique @db.ObjectId
-  rider    Rider?  @relation(fields: [riderId], references: [id])
+  vendor    Vendor? @relation(fields: [ownerId], references: [id])
+  rider     Rider?  @relation(fields: [ownerId], references: [id])
 
   transactions    Transaction[]
   earningsRecords EarningsRecord[]
   payoutSchedules PayoutSchedule[]
+
+  @@index([ownerId, ownerType])
 }
 
 model Transaction {

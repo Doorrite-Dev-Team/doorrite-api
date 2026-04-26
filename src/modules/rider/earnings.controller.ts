@@ -9,6 +9,14 @@ import {
 import { z } from "zod/v3";
 import { getActorFromReq } from "@lib/utils/req-res";
 
+async function ensureRiderWallet(riderId: string) {
+  return prisma.wallet.upsert({
+    where: { ownerId: riderId },
+    update: {},
+    create: { ownerId: riderId, ownerType: "RIDER" },
+  });
+}
+
 const withdrawalSchema = z.object({
   amount: z.number().min(EARNINGS_CONFIG.MIN_WITHDRAWAL, `Minimum withdrawal is ₦${EARNINGS_CONFIG.MIN_WITHDRAWAL}`),
   bankName: z.string().min(1, "Bank name is required"),
@@ -23,8 +31,10 @@ export const getEarningsSummary = async (req: Request, res: Response) => {
       throw new AppError(401, "Authentication required");
     }
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { riderId },
+    const wallet = await ensureRiderWallet(riderId);
+
+    const walletWithIncludes = await prisma.wallet.findUnique({
+      where: { id: wallet.id },
       include: {
         earningsRecords: true,
         payoutSchedules: true,
@@ -32,7 +42,7 @@ export const getEarningsSummary = async (req: Request, res: Response) => {
       },
     });
 
-    if (!wallet) {
+    if (!walletWithIncludes) {
       throw new AppError(404, "Wallet not found");
     }
 
@@ -85,10 +95,10 @@ export const getEarningsSummary = async (req: Request, res: Response) => {
       thisWeekDeliveries: weekEarnings._count || 0,
       thisMonth: monthEarnings._sum.riderEarnings || 0,
       thisMonthDeliveries: monthEarnings._count || 0,
-      totalEarned: wallet.totalEarned,
+      totalEarned: walletWithIncludes.totalEarned,
       pendingPayout: pendingPayout._sum.amount || 0,
-      availableBalance: wallet.balance,
-      walletBalance: wallet.balance,
+      availableBalance: walletWithIncludes.balance,
+      walletBalance: walletWithIncludes.balance,
     });
   } catch (error) {
     return handleError(res, error);
@@ -107,9 +117,7 @@ export const getTransactions = async (req: Request, res: Response) => {
     const skip = (page - 1) * limit;
     const type = req.query.type as string;
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { riderId },
-    });
+    const wallet = await ensureRiderWallet(riderId);
 
     if (!wallet) {
       throw new AppError(404, "Wallet not found");
@@ -198,9 +206,7 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
     const parsed = withdrawalSchema.parse(req.body);
     const { amount, bankName, accountNumber, accountName } = parsed;
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { riderId },
-    });
+    const wallet = await ensureRiderWallet(riderId);
 
     if (!wallet) {
       throw new AppError(404, "Wallet not found");
@@ -284,9 +290,7 @@ export const getWithdrawalHistory = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { riderId },
-    });
+    const wallet = await ensureRiderWallet(riderId);
 
     if (!wallet) {
       throw new AppError(404, "Wallet not found");
@@ -325,8 +329,10 @@ export const getPayoutInfo = async (req: Request, res: Response) => {
       throw new AppError(401, "Authentication required");
     }
 
+    const baseWallet = await ensureRiderWallet(riderId);
+
     const wallet = await prisma.wallet.findUnique({
-      where: { riderId },
+      where: { id: baseWallet.id },
       include: {
         payoutSchedules: {
           where: { status: { in: ["PENDING", "APPROVED", "PROCESSING"] } },

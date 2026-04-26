@@ -3,6 +3,14 @@ import prisma from "@config/db";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import { getActorFromReq } from "@lib/utils/req-res";
 
+async function ensureVendorWallet(vendorId: string) {
+  return prisma.wallet.upsert({
+    where: { ownerId: vendorId },
+    update: {},
+    create: { ownerId: vendorId, ownerType: "VENDOR" },
+  });
+}
+
 export const getVendorEarningsSummary = async (req: Request, res: Response) => {
   try {
     const actor = getActorFromReq(req);
@@ -10,9 +18,7 @@ export const getVendorEarningsSummary = async (req: Request, res: Response) => {
       throw new AppError(403, "Unauthorized");
     }
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { vendorId: actor.id },
-    });
+    const wallet = await ensureVendorWallet(actor.id);
 
     if (!wallet) {
       return sendSuccess(res, {
@@ -46,9 +52,7 @@ export const getVendorTransactions = async (req: Request, res: Response) => {
     const lim = Math.min(100, Math.max(1, parseInt(limit as string)));
     const skip = (pageNum - 1) * lim;
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { vendorId: actor.id },
-    });
+    const wallet = await ensureVendorWallet(actor.id);
 
     if (!wallet) {
       return sendSuccess(res, {
@@ -93,9 +97,7 @@ export const requestVendorWithdrawal = async (req: Request, res: Response) => {
       throw new AppError(400, "Bank details are required");
     }
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { vendorId: actor.id },
-    });
+    const wallet = await ensureVendorWallet(actor.id);
 
     if (!wallet || wallet.balance < amount) {
       throw new AppError(400, "Insufficient balance");
@@ -158,9 +160,7 @@ export const getVendorEarnings = async (req: Request, res: Response) => {
       startDate.setMonth(now.getMonth() - 3);
     }
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { vendorId: actor.id },
-    });
+    const wallet = await ensureVendorWallet(actor.id);
 
     if (!wallet) {
       return sendSuccess(res, {
@@ -338,9 +338,7 @@ export const getVendorWithdrawalHistory = async (req: Request, res: Response) =>
     const lim = Math.min(100, Math.max(1, parseInt(limit as string)));
     const skip = (pageNum - 1) * lim;
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { vendorId: actor.id },
-    });
+    const wallet = await ensureVendorWallet(actor.id);
 
     if (!wallet) {
       return sendSuccess(res, {

@@ -110,7 +110,8 @@ export const createVendor = async (req: Request, res: Response) => {
 
     await prisma.wallet.create({
       data: {
-        vendorId: newVendor.id,
+        ownerId: newVendor.id,
+        ownerType: "VENDOR",
       },
     });
 
