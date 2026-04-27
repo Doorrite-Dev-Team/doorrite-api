@@ -539,7 +539,7 @@ export const updateVendorProfile = async (req: Request, res: Response) => {
   const vendorId = req.user?.sub;
   if (!vendorId) throw new AppError(401, "Authentication required");
 
-  const allowedFields = ["businessName", "phoneNumber", "address", "logoUrl"];
+  const allowedFields = ["businessName", "phoneNumber", "address", "logoUrl", "isActive"];
 
   const data: Record<string, any> = {};
   for (const field of allowedFields) {
