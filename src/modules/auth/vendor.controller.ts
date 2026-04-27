@@ -210,7 +210,7 @@ export const loginVendor = async (req: Request, res: Response) => {
     const { identifier, password } = req.body || {}; // identifier = email or phone
 
     if (!identifier || !password)
-      throw new AppError(400, "Identifier and password are required");
+      throw new AppError(400, "Email and password are required");
 
     const vendor = await findEntityByIdentifier(identifier, "vendor");
     if (!vendor) throw new AppError(401, "Invalid credentials");
@@ -219,14 +219,14 @@ export const loginVendor = async (req: Request, res: Response) => {
     if (!vendor.isVerified)
       throw new AppError(403, "Please verify your email before logging in");
 
-    // must be approved by admin (isActive)
-    const dbVendor = await prisma.vendor.findUnique({
-      where: { id: vendor.id },
-      select: { isActive: true },
-    });
-    if (!dbVendor || !dbVendor.isActive) {
-      throw new AppError(403, "Account pending admin approval");
-    }
+    // // must be approved by admin (isActive)
+    // const dbVendor = await prisma.vendor.findUnique({
+    //   where: { id: vendor.id },
+    //   select: { isActive: true },
+    // });
+    // if (!dbVendor || !dbVendor.isActive) {
+    //   throw new AppError(403, "Account pending admin approval");
+    // }
 
     const isPasswordValid = await verifyPassword(password, vendor.passwordHash);
     if (!isPasswordValid) throw new AppError(401, "Invalid credentials");
@@ -348,12 +348,13 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
     const raw = getRefreshTokenFromReq(req, "vendor");
     const { refresh } = req.body || {};
     if (!raw && !refresh) throw new AppError(401, "No refresh token");
-    
+
     const token = raw || refresh;
     const payload = verifyJwt<JwtPayloadShape>(token);
-    
+
     if (!payload?.sub) throw new AppError(401, "Invalid token payload");
-    if (payload.type !== "refresh") throw new AppError(401, "Invalid token type");
+    if (payload.type !== "refresh")
+      throw new AppError(401, "Invalid token type");
 
     const vendor = await prisma.vendor.findUnique({
       where: { id: payload.sub },
@@ -361,8 +362,10 @@ export const refreshVendorToken = async (req: Request, res: Response) => {
     });
     if (!vendor) throw new AppError(401, "Invalid vendor");
 
-    if (!vendor.isActive) throw new AppError(403, "Vendor account not approved");
-    if (!vendor.isVerified) throw new AppError(403, "Vendor account not verified");
+    if (!vendor.isActive)
+      throw new AppError(403, "Vendor account not approved");
+    if (!vendor.isVerified)
+      throw new AppError(403, "Vendor account not verified");
 
     const access = makeAccessTokenForVendor(vendor.id);
     const newRefresh = makeRefreshTokenForVendor(vendor.id);
@@ -454,11 +457,17 @@ export function validateVendorData({
   const { open, close } = businessHours;
 
   if (!open || typeof open !== "string" || !/^\d{2}:\d{2}$/.test(open)) {
-    throw new AppError(400, "Opening time is required in HH:mm format (e.g., 09:00)");
+    throw new AppError(
+      400,
+      "Opening time is required in HH:mm format (e.g., 09:00)",
+    );
   }
 
   if (!close || typeof close !== "string" || !/^\d{2}:\d{2}$/.test(close)) {
-    throw new AppError(400, "Closing time is required in HH:mm format (e.g., 21:00)");
+    throw new AppError(
+      400,
+      "Closing time is required in HH:mm format (e.g., 21:00)",
+    );
   }
 
   // Validate time values
