@@ -6,6 +6,7 @@ import { setAuthCookies } from "@config/cookies";
 import { makeAccessTokenForAdmin, makeRefreshTokenForAdmin } from "@config/jwt";
 // import socketService from "@lib/socketService";
 // import { getActorFromReq } from "@lib/utils/req-res";
+import { deleteAccount } from "@services/account-deletion";
 
 // POST /admin/login
 export const adminLogin = async (req: Request, res: Response) => {
@@ -359,9 +360,9 @@ export const deleteVendor = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Delete a Vendor'
-   * #swagger.description = 'Deletes a Vendor, making them unavailable.'
+   * #swagger.description = 'Deletes a Vendor and all related data.'
    * #swagger.operationId = 'deleteVendor'
-   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { vendor: { type: 'object' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
@@ -371,11 +372,9 @@ export const deleteVendor = async (req: Request, res: Response) => {
     const { vendorId } = req.params;
     if (!vendorId) throw new AppError(400, "vendorId required");
 
-    const vendor = await prisma.vendor.delete({
-      where: { id: vendorId },
-    });
+    await deleteAccount("vendor", vendorId);
 
-    return sendSuccess(res, { vendor });
+    return sendSuccess(res, { message: "Vendor account deleted successfully" });
   } catch (error) {
     handleError(res, error);
   }
@@ -386,9 +385,9 @@ export const deleteRider = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Delete a rider'
-   * #swagger.description = 'Deletes a rider, making them unavailable.'
+   * #swagger.description = 'Deletes a rider and all related data.'
    * #swagger.operationId = 'deleteRider'
-   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { rider: { type: 'object' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
@@ -398,11 +397,9 @@ export const deleteRider = async (req: Request, res: Response) => {
     const { riderId } = req.params;
     if (!riderId) throw new AppError(400, "riderId required");
 
-    const rider = await prisma.rider.delete({
-      where: { id: riderId },
-    });
+    await deleteAccount("rider", riderId);
 
-    return sendSuccess(res, { rider });
+    return sendSuccess(res, { message: "Rider account deleted successfully" });
   } catch (error) {
     handleError(res, error);
   }
@@ -413,9 +410,9 @@ export const deleteUser = async (req: Request, res: Response) => {
   /**
    * #swagger.tags = ['Admin']
    * #swagger.summary = 'Delete a User'
-   * #swagger.description = 'Deletes a User, making them unavailable.'
+   * #swagger.description = 'Deletes a User and all related data.'
    * #swagger.operationId = 'deleteUser'
-   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { user: { type: 'object' } } } }
+   * #swagger.responses[200] = { description: 'Success', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[404] = { description: 'Not found', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
    * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } } }
@@ -424,11 +421,9 @@ export const deleteUser = async (req: Request, res: Response) => {
     const { userId } = req.params;
     if (!userId) throw new AppError(400, "userId required");
 
-    const user = await prisma.user.delete({
-      where: { id: userId },
-    });
+    await deleteAccount("user", userId);
 
-    return sendSuccess(res, { user });
+    return sendSuccess(res, { message: "User account deleted successfully" });
   } catch (error) {
     handleError(res, error);
   }

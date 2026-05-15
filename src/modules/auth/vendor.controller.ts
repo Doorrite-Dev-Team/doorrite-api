@@ -19,6 +19,7 @@ import {
 import { hashPassword, verifyPassword } from "@lib/hash";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import {
+  checkDuplicateFields,
   checkExistingEntity,
   createAndSendOtp,
   findEntityByIdentifier,
@@ -74,6 +75,9 @@ export const createVendor = async (req: Request, res: Response) => {
         `Invalid categoryIds: ${invalid.join(", ")}. Allowed: ${vendorCategoryId().join(", ")}`,
       );
     }
+
+    // Check duplicate fields (phoneNumber, businessName) before email check
+    await checkDuplicateFields("vendor", { phoneNumber, businessName: businessName?.trim() });
 
     // Check if vendor (email/phone) already exists
     const registrationResult = await checkExistingEntity(email, "vendor");

@@ -7,7 +7,7 @@ const router = Router();
 
 // Specific routes FIRST - /me must come before /:id
 router.get("/me", requireAuth("rider"), riderController.getCurrentRiderProfile);
-
+router.delete("/me", requireAuth("rider"), riderController.deleteMyAccount);
 router.put("/me", requireAuth("rider"), riderController.updateRiderProfile);
 
 router.get("/orders", requireAuth("rider"), riderController.getRiderOrders);

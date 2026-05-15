@@ -15,6 +15,7 @@ import {
 import { hashPassword, verifyPassword } from "@lib/hash";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import {
+  checkDuplicateFields,
   checkExistingEntity,
   createAndSendOtp,
   handlePasswordReset,
@@ -58,6 +59,9 @@ export const createRider = async (req: Request, res: Response) => {
     if (vehicleType && !Object.values(VehicleType).includes(vehicleType)) {
       throw new AppError(400, "Please provide an appropriate vehicleType");
     }
+    // Check duplicate fields (phoneNumber) before email check
+    await checkDuplicateFields("rider", { phoneNumber });
+
     // Check if rider exists
     const registrationResult = await checkExistingEntity(email, "rider");
 

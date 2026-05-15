@@ -535,6 +535,40 @@ export const checkExistingEntity = async (
   return { shouldCreateNew: false, redirectToLogin: true };
 };
 
+export const checkDuplicateFields = async (
+  entityType: EntityType,
+  fields: { phoneNumber?: string; businessName?: string },
+) => {
+  const checks: { table: string; field: string; value: string; label: string }[] = [];
+
+  switch (entityType) {
+    case "user":
+      if (fields.phoneNumber)
+        checks.push({ table: "user", field: "phoneNumber", value: fields.phoneNumber, label: "phone number" });
+      break;
+    case "vendor":
+      if (fields.phoneNumber)
+        checks.push({ table: "vendor", field: "phoneNumber", value: fields.phoneNumber, label: "phone number" });
+      if (fields.businessName)
+        checks.push({ table: "vendor", field: "businessName", value: fields.businessName, label: "business name" });
+      break;
+    case "rider":
+      if (fields.phoneNumber)
+        checks.push({ table: "rider", field: "phoneNumber", value: fields.phoneNumber, label: "phone number" });
+      break;
+  }
+
+  for (const { table, field, value, label } of checks) {
+    const existing = await (prisma as any)[table].findUnique({
+      where: { [field]: value },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new AppError(409, `A ${entityType} with this ${label} already exists`);
+    }
+  }
+};
+
 export const deleteIncompleteEntity = async (
   id: string,
   entityType: EntityType,

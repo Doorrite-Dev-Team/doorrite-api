@@ -172,12 +172,49 @@ export const updateProduct = async (req: Request, res: Response) => {
         "Unauthorized: Cannot modify another vendor's product",
       );
 
-    const updated = await prisma.product.update({
-      where: { id: productId },
-      data: {
-        ...updateData,
-      },
-      include: { variants: { orderBy: { createdAt: "asc" } } },
+    const { variants, ...productFields } = updateData;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (variants) {
+        const existingVariants = await tx.productVariant.findMany({
+          where: { productId },
+          include: { orderItems: { select: { id: true }, take: 1 } },
+        });
+
+        const ordered = existingVariants.filter(
+          (v) => v.orderItems.length > 0,
+        );
+        if (ordered.length > 0) {
+          throw new AppError(
+            400,
+            `Cannot bulk-replace variants: ${ordered.length} variant(s) have been ordered. Use individual variant endpoints instead.`,
+          );
+        }
+
+        await tx.productVariant.deleteMany({ where: { productId } });
+
+        if (variants.length > 0) {
+          await Promise.all(
+            variants.map((v: any) =>
+              tx.productVariant.create({
+                data: {
+                  productId,
+                  name: v.name,
+                  price: v.price,
+                  stock: v.stock ?? undefined,
+                  isAvailable: v.isAvailable !== false,
+                },
+              }),
+            ),
+          );
+        }
+      }
+
+      return tx.product.update({
+        where: { id: productId },
+        data: { ...productFields },
+        include: { variants: { orderBy: { createdAt: "asc" } } },
+      });
     });
 
     // Invalidate vendor and product caches

@@ -18,6 +18,11 @@ router.get(
   vendorController.getCurrentVendorProfile,
 );
 router.put("/me", requireAuth("vendor"), vendorController.updateVendorProfile);
+router.delete(
+  "/me",
+  requireAuth("vendor"),
+  vendorController.deleteMyAccount,
+);
 
 // Products - MUST be before /:id
 router.get(
@@ -42,6 +47,11 @@ router.delete(
 );
 
 // Variants
+router.post(
+  "/products/:id/variants",
+  requireAuth("vendor"),
+  productsController.createProductVariant,
+);
 router.put(
   "/products/:id/variants/:variantId",
   requireAuth("vendor"),

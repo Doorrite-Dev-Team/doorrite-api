@@ -12,12 +12,11 @@ class WebSocketService {
   private static instance: WebSocketService;
   private io: Server | null = null;
 
-  // 🔒 Private State: No global variables
-  private users = new Map<string, string>();
+  // userId → Set of active socketIds (one per tab/device)
+  private users = new Map<string, Set<string>>();
 
   private constructor() {}
 
-  // Singleton Accessor
   public static getInstance(): WebSocketService {
     if (!WebSocketService.instance) {
       WebSocketService.instance = new WebSocketService();
@@ -37,9 +36,9 @@ class WebSocketService {
         credentials: true,
       },
     });
-    console.log("Successfully Conected to WebSocket Client");
+    console.log("Successfully Connected to WebSocket Client");
 
-    //Middleware for jwt Token verification
+    // Middleware for JWT token verification
     this.io.use((socket, next) => {
       console.log("New Connection Detected");
       const token = socket.handshake.auth.token || socket.handshake.query.token;
@@ -55,11 +54,10 @@ class WebSocketService {
         return next(new Error("Invalid token"));
       }
 
-      socket.user = user; // Attach user to socket
+      socket.user = user;
       next();
     });
 
-    //On Connection
     this.io.on("connection", async (socket) => {
       const user = socket.user;
       const userId = socket.user?.sub;
@@ -79,30 +77,44 @@ class WebSocketService {
         });
       }
 
-      // 1. Manage State
-      this.users.set(userId, socket.id);
-      console.log(`User connected: ${userId}`);
+      // 1. Register socket — add to the user's set (supports multiple tabs/devices)
+      const sockets = this.users.get(userId) ?? new Set<string>();
+      sockets.add(socket.id);
+      this.users.set(userId, sockets);
+      console.log(
+        `User connected: ${userId} (${sockets.size} active socket(s))`,
+      );
 
-      // 2. Check Redis for pending (Delegate to another service)
-      const pending = await NotificationService.getPending(userId);
-      if (pending.length) socket.emit("pending-notifications", pending);
+      // 2. Check Redis for pending notifications (only on first connection)
+      if (sockets.size === 1) {
+        const pending = await NotificationService.getPending(userId);
+        if (pending.length) socket.emit("pending-notifications", pending);
+      }
 
       socket.on("rider:update-location", (coord: Coordinates) => {
-        console.log(coord);
         riderService.update(userId, coord);
       });
-
-      //3. Notify user
-      // socket.emit("notification", "Welcome to Doorrite");
 
       socket.on("notification-read", (id) => {
         NotificationService.remove(userId, id);
       });
 
       socket.on("disconnect", () => {
-        console.log("A user was disconnected");
-        this.users.delete(userId);
-        riderService.delete(userId);
+        // Remove only this socket — keep the entry alive while other tabs remain
+        const activeSockets = this.users.get(userId);
+        if (activeSockets) {
+          activeSockets.delete(socket.id);
+          if (activeSockets.size === 0) {
+            this.users.delete(userId);
+            console.log(`User fully disconnected: ${userId}`);
+          } else {
+            console.log(
+              `Socket disconnected for ${userId} (${activeSockets.size} socket(s) remaining)`,
+            );
+          }
+        }
+
+        riderService.removeSocket(userId, socket.id);
       });
 
       setupChatHandlers(this.io!, socket);
@@ -110,10 +122,8 @@ class WebSocketService {
   }
 
   /**
-   * Public Method to send notifications from anywhere
-   * @param userId string
-   * @param event string
-   * @param data Notification
+   * Emit an event to all active sockets for a user (all tabs/devices).
+   * Falls back to Redis if the user is offline.
    */
   public notify(
     userId: string,
@@ -122,15 +132,17 @@ class WebSocketService {
   ) {
     if (!this.io) throw new Error("Socket IO not initialized!");
 
-    const socketId = this.users.get(userId);
+    const socketIds = this.users.get(userId);
 
-    if (socketId) {
-      this.io.to(socketId).emit(event, data);
+    if (socketIds && socketIds.size > 0) {
+      socketIds.forEach((socketId) => {
+        this.io!.to(socketId).emit(event, data);
+      });
       return true; // Online
     }
 
+    // User is offline — persist to Redis
     const notifId = `${userId}-${event}`;
-
     NotificationService.add(userId, notifId, { id: notifId, ...data });
     return false; // Offline
   }

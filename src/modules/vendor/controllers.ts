@@ -20,6 +20,7 @@ import {
 } from "@lib/utils/location";
 import { creditVendorEarnings, settleVendorEarnings } from "@services/earnings";
 import { pushService } from "@modules/push/push.service";
+import { deleteAccount } from "@services/account-deletion";
 
 //Get Vendor Details
 //GET /api/vendors/:id
@@ -1420,6 +1421,21 @@ export const getVendorStats = async (req: Request, res: Response) => {
         memberSince: vendor?.createdAt.toISOString() ?? new Date().toISOString(),
       },
     });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// Delete vendor account + all related data
+// DELETE /vendors/me
+export const deleteMyAccount = async (req: Request, res: Response) => {
+  try {
+    const vendorId = req.vendor?.id || getActorFromReq(req).id;
+    if (!vendorId) throw new AppError(401, "Unauthorized");
+
+    await deleteAccount("vendor", vendorId);
+
+    return sendSuccess(res, { message: "Account deleted successfully" }, 200);
   } catch (error) {
     handleError(res, error);
   }

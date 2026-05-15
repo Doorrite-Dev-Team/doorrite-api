@@ -13,6 +13,7 @@ import { calculateEarnings, settleVendorEarnings, addRiderPendingEarnings } from
 import { cacheService } from "@config/cache";
 import { pushService } from "@modules/push/push.service";
 import { processReferralOnDelivery } from "@modules/referral/referral.service";
+import { deleteAccount } from "@services/account-deletion";
 
 type LocationUpdate = {
   latitude: number;
@@ -943,5 +944,20 @@ export const declineOrder = async (req: Request, res: Response) => {
     return sendSuccess(res, { order: updatedOrder });
   } catch (error) {
     return handleError(res, error);
+  }
+};
+
+// Delete rider account + all related data
+// DELETE /riders/me
+export const deleteMyAccount = async (req: Request, res: Response) => {
+  try {
+    const riderId = req.user?.sub || getActorFromReq(req).id;
+    if (!riderId) throw new AppError(401, "Unauthorized");
+
+    await deleteAccount("rider", riderId);
+
+    return sendSuccess(res, { message: "Account deleted successfully" }, 200);
+  } catch (error) {
+    handleError(res, error);
   }
 };

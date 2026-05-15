@@ -15,6 +15,7 @@ import {
 import { hashPassword, verifyPassword } from "@lib/hash";
 import { AppError, handleError, sendSuccess } from "@lib/utils/AppError";
 import {
+  checkDuplicateFields,
   checkExistingEntity,
   createAndSendOtp,
   findEntityByIdentifier,
@@ -60,6 +61,9 @@ export const createUser = async (req: Request, res: Response) => {
     if (!isValidNigerianPhone(phoneNumber))
       throw new AppError(400, "Invalid Nigerian phone number");
     validatePassword(password);
+
+    // Check duplicate fields (phoneNumber) before email check
+    await checkDuplicateFields("user", { phoneNumber });
 
     // Check if user exists
     const registrationResult = await checkExistingEntity(email, "user");

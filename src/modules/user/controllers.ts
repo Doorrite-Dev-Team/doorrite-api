@@ -13,6 +13,7 @@ import { cacheService } from "@config/cache";
 import { Pagination } from "types/types";
 import { PendingReviewService } from "@services/redis/pending-review";
 import { updateVendorRating, updateProductRating } from "@services/review-hooks";
+import { deleteAccount } from "@services/account-deletion";
 
 // Get User by ID
 // GET api/v1/users/:id
@@ -815,6 +816,21 @@ export const removeFavorite = async (req: Request, res: Response) => {
  * #swagger.responses[401] = { description: 'Unauthorized', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
  * #swagger.responses[500] = { description: 'Internal server error', schema: { type: 'object', properties: { ok: { type: 'boolean' }, message: { type: 'string' } } }}
  */
+// Delete current user account + all related data
+// DELETE /users/me
+export const deleteMyAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) throw new AppError(401, "Unauthorized");
+
+    await deleteAccount("user", userId);
+
+    return sendSuccess(res, { message: "Account deleted successfully" }, 200);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 export const changePassWord = async (req: Request, res: Response) => {
   try {
     const id = req.user?.sub;
