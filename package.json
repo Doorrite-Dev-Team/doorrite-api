@@ -55,15 +55,15 @@
   "name": "doorrite-api",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.json && tsc-alias",
-    "dev": "pnpm run dev:server",
+    "build": "node api.js && rm -rf dist && tsc -p tsconfig.json && tsc-alias",
+    "dev": "node api.js && pnpm run dev:server",
     "dev:server": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "dev:typecheck": "tsc --noEmit --watch",
     "postbuild": "cp src/swagger-output.json dist/ && cp src/json-schema.json dist/ && cp -r src/generated dist/generated",
     "postinstall": "pnpm run prisma:generate",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "start": "node dist/server.js",
+    "start": "node api.js && node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
     "swagger:generate": "ts-node-dev -r tsconfig-paths/register src/swagger.ts",
     "test": "vitest"
