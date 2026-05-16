@@ -60,6 +60,7 @@ export const getProducts = async (req: Request, res: Response) => {
       q,
       lat,
       lng,
+      addressIndex,
       cuisine,
       sort = "recommended",
       open,
@@ -72,8 +73,9 @@ export const getProducts = async (req: Request, res: Response) => {
       throw new AppError(400, "Search query must be at least 2 characters");
     }
 
-    const userLat = lat ? parseFloat(String(lat)) : undefined;
-    const userLng = lng ? parseFloat(String(lng)) : undefined;
+    const hasExplicitCoords = !!lat && !!lng;
+    let userLat = lat ? parseFloat(String(lat)) : undefined;
+    let userLng = lng ? parseFloat(String(lng)) : undefined;
 
     const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
     const limitNum = Math.min(
@@ -102,7 +104,13 @@ export const getProducts = async (req: Request, res: Response) => {
           select: { address: true },
         });
         if (user?.address && user.address.length > 0) {
-          userState = user.address[0].state;
+          const rawIdx = parseInt(String(addressIndex ?? "0"), 10);
+          const safeIdx = (!isNaN(rawIdx) && rawIdx >= 0 && rawIdx < user.address.length) ? rawIdx : 0;
+          userState = user.address[safeIdx].state;
+          if (!hasExplicitCoords && user.address[safeIdx]?.coordinates) {
+            userLat = user.address[safeIdx].coordinates.lat;
+            userLng = user.address[safeIdx].coordinates.long;
+          }
         }
       }
     } catch {}
@@ -399,12 +407,37 @@ export const getVendorProducts = async (req: Request, res: Response) => {
 export const getProductById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { lat, lng } = req.query;
+    const { lat, lng, addressIndex } = req.query;
 
     if (!isValidObjectId(id)) throw new AppError(400, "Product ID is required");
 
-    const userLat = lat ? parseFloat(String(lat)) : undefined;
-    const userLng = lng ? parseFloat(String(lng)) : undefined;
+    let userLat = lat ? parseFloat(String(lat)) : undefined;
+    let userLng = lng ? parseFloat(String(lng)) : undefined;
+
+    // Auto-populate lat/lng from saved address if not explicitly provided
+    if (!userLat && !userLng && addressIndex !== undefined) {
+      try {
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+          const token = authHeader.split(" ")[1];
+          if (token) {
+            const { verifyJwt } = await import("@config/jwt");
+            const payload = verifyJwt(token);
+            if (payload?.sub) {
+              const user = await prisma.user.findUnique({
+                where: { id: payload.sub },
+                select: { address: true },
+              });
+              const rawIdx = parseInt(String(addressIndex), 10);
+              if (user?.address?.[rawIdx]?.coordinates) {
+                userLat = user.address[rawIdx].coordinates.lat;
+                userLng = user.address[rawIdx].coordinates.long;
+              }
+            }
+          }
+        }
+      } catch {}
+    }
 
     const product = await prisma.product.findUnique({
       where: { id },
