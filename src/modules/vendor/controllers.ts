@@ -287,7 +287,12 @@ export const getAllVendorsV2 = async (req: Request, res: Response) => {
       priceRange, // budget/mid/premium
       lat, // User latitude for distance calculation
       lng, // User longitude
+      addressIndex,
     } = req.query;
+
+    const hasExplicitCoords = !!lat && !!lng;
+    let userLat = lat ? parseFloat(String(lat)) : undefined;
+    let userLng = lng ? parseFloat(String(lng)) : undefined;
 
     // Auto-detect user state from their saved address
     let userState: string | null = null;
@@ -311,7 +316,13 @@ export const getAllVendorsV2 = async (req: Request, res: Response) => {
           select: { address: true },
         });
         if (user?.address && user.address.length > 0) {
-          userState = user.address[0].state;
+          const rawIdx = parseInt(String(addressIndex ?? "0"), 10);
+          const safeIdx = (!isNaN(rawIdx) && rawIdx >= 0 && rawIdx < user.address.length) ? rawIdx : 0;
+          userState = user.address[safeIdx].state;
+          if (!hasExplicitCoords && user.address[safeIdx]?.coordinates) {
+            userLat = user.address[safeIdx].coordinates.lat;
+            userLng = user.address[safeIdx].coordinates.long;
+          }
         }
       }
     } catch {
